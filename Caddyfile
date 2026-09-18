@@ -1,0 +1,3 @@
+umfrage.deine-domain.de {
+	reverse_proxy app:3000
+}
