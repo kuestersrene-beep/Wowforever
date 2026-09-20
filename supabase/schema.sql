@@ -85,8 +85,8 @@ create policy "delete own response"
 -- Views laufen standardmäßig mit den Rechten des Erstellers (nicht des
 -- aufrufenden Nutzers) und umgehen damit gezielt die RLS-Policy oben -
 -- aber NUR für die hier ausgewählten, unkritischen Spalten. Klasse,
--- Rolle, Häufigkeit und Kommentar bleiben so weiterhin ausschließlich
--- im Admin-Dashboard sichtbar (dort per service_role Key).
+-- Häufigkeit und Kommentar bleiben weiterhin ausschließlich im
+-- Admin-Dashboard sichtbar (dort per service_role Key).
 -- ============================================================
 
 -- DROP + CREATE statt CREATE OR REPLACE: Postgres erlaubt bei
@@ -104,7 +104,9 @@ create view public.participants_overview as
     avatar_url,
     participation,
     faction,
-    playstyle
+    playstyle,
+    class,
+    role
   from public.responses;
 
 revoke all on public.participants_overview from anon;

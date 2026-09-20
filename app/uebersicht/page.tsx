@@ -6,6 +6,7 @@ import {
   FACTION_LABELS,
   PARTICIPATION_LABELS,
   PLAYSTYLE_LABELS,
+  ROLE_LABELS,
 } from "@/lib/constants";
 
 interface OverviewRow {
@@ -16,6 +17,8 @@ interface OverviewRow {
   participation: "ja" | "vielleicht" | "nein";
   faction: "horde" | "allianz" | "egal" | null;
   playstyle: "pvp" | "pve" | "beides" | null;
+  class: string | null;
+  role: "tank" | "heiler" | "dd" | null;
 }
 
 export default async function UebersichtPage() {
@@ -88,8 +91,14 @@ export default async function UebersichtPage() {
                 )}
               </p>
               <p className="text-xs text-slate-400">
-                {p.faction ? FACTION_LABELS[p.faction] : "–"}
-                {p.playstyle ? ` · ${PLAYSTYLE_LABELS[p.playstyle]}` : ""}
+                {[
+                  p.faction ? FACTION_LABELS[p.faction] : null,
+                  p.playstyle ? PLAYSTYLE_LABELS[p.playstyle] : null,
+                  p.class,
+                  p.role ? ROLE_LABELS[p.role] : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "–"}
               </p>
             </div>
             <span
