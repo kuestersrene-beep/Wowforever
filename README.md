@@ -133,56 +133,141 @@ Discord-ID in `ADMIN_DISCORD_IDS` steht).
 
 ---
 
-## 6. Deployment auf deinem eigenen Server (Hetzner)
+## 6. Deployment auf deinem eigenen Server (Hetzner, neben einem bestehenden nginx)
 
-Die App läuft als Docker-Container. Vor der Tür steht **Caddy** als
-Reverse-Proxy – er kümmert sich automatisch um ein kostenloses
-HTTPS-Zertifikat (Let's Encrypt), du musst dafür nichts konfigurieren außer
-deiner Domain.
+Dieses Setup geht davon aus, dass auf deinem Server bereits **nginx direkt
+installiert** läuft (kein Docker) und dort schon ein anderes Projekt bedient
+wird. Die Umfrage-App läuft deshalb als Docker-Container **nur intern** auf
+Port `3001` (nicht von außen erreichbar), und das vorhandene nginx bekommt
+eine zusätzliche Seite, die Anfragen von deiner DuckDNS-Adresse (z. B.
+`deine-id.duckdns.org`) an diesen internen Port weiterleitet. Für das
+HTTPS-Zertifikat nutzen wir `certbot`, der sich in nginx einklinkt.
 
-### Voraussetzungen auf dem Server
+Alle Befehle führst du direkt in deiner SSH-Sitzung auf dem Server aus.
 
-- Ein A-Record deiner Domain (z. B. `umfrage.deine-domain.de`), der auf die
-  IP deines Hetzner-Servers zeigt (in der DNS-Verwaltung deines
-  Domain-Anbieters).
-- Docker und das Docker-Compose-Plugin installiert:
+### Voraussetzungen
+
+- Docker + Docker-Compose-Plugin installiert (falls noch nicht vorhanden):
   ```bash
   curl -fsSL https://get.docker.com | sh
   ```
-- Ports 80 und 443 müssen frei sein (falls dort schon nginx/Apache läuft,
-  entweder stoppen oder die App stattdessen hinter deinen bestehenden
-  Reverse-Proxy hängen – dann Caddy im `docker-compose.yml` weglassen und
-  nur den `app`-Container auf einen internen Port mappen).
+- Deine DuckDNS-Adresse zeigt bereits auf die IP deines Servers (hast du
+  laut deinen Angaben schon eingerichtet).
 
-### Deployment-Schritte
+### Schritt 1: Projekt auf den Server holen
 
-1. Projekt auf den Server bringen (klonen oder per `git pull`):
-   ```bash
-   git clone <dein-repo-url> wowforever
-   cd wowforever
-   ```
-2. `.env` Datei mit den echten Werten aus Schritt 5 anlegen:
-   ```bash
-   cp .env.local.example .env
-   nano .env   # Werte eintragen
-   ```
-3. In `Caddyfile` die Domain anpassen (`umfrage.deine-domain.de` durch deine
-   echte Domain ersetzen).
-4. Bauen und starten:
-   ```bash
-   docker compose up -d --build
-   ```
-   Beim ersten Start holt sich Caddy automatisch ein SSL-Zertifikat für
-   deine Domain – das dauert meist unter einer Minute.
-5. Aufrufen: `https://umfrage.deine-domain.de` sollte jetzt funktionieren.
+```bash
+git clone -b claude/wow-forever-survey-app-0p0ka6 https://github.com/kuestersrene-beep/Wowforever.git wowforever
+cd wowforever
+```
 
-### Nach dem ersten Deployment: Redirect-URLs finalisieren
+### Schritt 2: `.env` Datei anlegen
 
-Falls du in Schritt 3 nur `localhost` eingetragen hattest, jetzt in Supabase
-unter **Authentication → URL Configuration** die **Site URL** und
-**Redirect URLs** auf deine echte Domain aktualisieren
-(`https://umfrage.deine-domain.de` bzw.
-`https://umfrage.deine-domain.de/auth/callback`).
+Am einfachsten fügst du den ganzen Block in einem Rutsch ein (Werte vorher
+mit deinen echten Daten aus Supabase/Discord ersetzen), dann brauchst du
+keinen Editor wie `nano`:
+
+```bash
+cat > .env << 'EOF'
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=dein-anon-oder-publishable-key
+SUPABASE_SERVICE_ROLE_KEY=dein-service-role-oder-secret-key
+ADMIN_DISCORD_IDS=deine-discord-id
+EOF
+```
+
+Prüfen, ob alles richtig drinsteht:
+
+```bash
+cat .env
+```
+
+### Schritt 3: App bauen und starten (nur intern, Port 3001)
+
+```bash
+docker compose up -d --build
+```
+
+Testen, ob sie lokal auf dem Server antwortet (sollte HTML zurückgeben):
+
+```bash
+curl -I http://127.0.0.1:3001
+```
+
+### Schritt 4: Neue nginx-Seite für die DuckDNS-Adresse anlegen
+
+Konfigurationsdatei anlegen (ersetze `deine-id.duckdns.org` durch deine
+echte Adresse):
+
+```bash
+sudo tee /etc/nginx/sites-available/wowforever > /dev/null << 'EOF'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name deine-id.duckdns.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+EOF
+```
+
+Seite aktivieren und nginx neu laden:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/wowforever /etc/nginx/sites-enabled/wowforever
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+`nginx -t` prüft die Konfiguration auf Fehler, bevor irgendetwas
+angewendet wird – falls hier ein Fehler erscheint, nichts weiter
+ausführen und den Fehlertext genau lesen (meist ein Tippfehler in der
+Domain).
+
+Jetzt sollte `http://deine-id.duckdns.org` bereits die App zeigen (noch
+ohne HTTPS).
+
+### Schritt 5: HTTPS mit certbot einrichten
+
+Falls certbot noch nicht installiert ist:
+
+```bash
+sudo apt update && sudo apt install -y certbot python3-certbot-nginx
+```
+
+Zertifikat holen und nginx automatisch auf HTTPS umstellen lassen:
+
+```bash
+sudo certbot --nginx -d deine-id.duckdns.org
+```
+
+Certbot fragt nach einer E-Mail-Adresse (für Ablauf-Erinnerungen) und ob
+HTTP automatisch auf HTTPS umgeleitet werden soll – das kannst du
+bestätigen. Die automatische Zertifikats-Erneuerung richtet certbot
+selbstständig ein (Systemd-Timer), du musst dich um nichts weiter kümmern.
+
+Jetzt sollte `https://deine-id.duckdns.org` funktionieren.
+
+### Schritt 6: Redirect-URLs in Supabase finalisieren
+
+Gehe in Supabase zu **Authentication → URL Configuration** und trage ein:
+
+- **Site URL**: `https://deine-id.duckdns.org`
+- **Redirect URLs**: zusätzlich `https://deine-id.duckdns.org/auth/callback`
+
+Und im Discord Developer Portal unter **OAuth2 → General → Redirects**
+sicherstellen, dass dort weiterhin nur die Supabase-Callback-URL steht
+(die ändert sich durch dieses Setup nicht, siehe Abschnitt 3).
 
 ### Updates einspielen
 
@@ -233,5 +318,6 @@ lib/
   admin.ts                    Admin-Check anhand ADMIN_DISCORD_IDS
   constants.ts, types.ts
 supabase/schema.sql           Tabelle, RLS-Policies, Übersichts-View
-Dockerfile, docker-compose.yml, Caddyfile   Deployment auf eigenem Server
+Dockerfile, docker-compose.yml     Deployment auf eigenem Server
+deploy/nginx-wowforever.conf.example   Beispiel für die nginx-Seite (Referenz)
 ```

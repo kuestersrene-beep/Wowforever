@@ -8,22 +8,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    expose:
-      - "3000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
+    # Nur auf localhost erreichbar - das bereits laufende nginx auf dem
+    # Server nimmt Anfragen von außen entgegen und leitet sie intern an
+    # diesen Port weiter (siehe deploy/nginx-wowforever.conf.example).
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-
-volumes:
-  caddy_data:
-  caddy_config:
+      - "127.0.0.1:3001:3000"
