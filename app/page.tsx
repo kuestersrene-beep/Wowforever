@@ -25,8 +25,8 @@ export default async function HomePage() {
           Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die
           Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch
           immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst
-          uns die Rüstung noch einmal poliert und die alte Truppe
-          wiedervereint!
+          uns die Rüstung noch einmal polieren und die alte Truppe
+          wiedervereinen!
         </blockquote>
         <p className="mt-4 text-slate-300">
           Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir
