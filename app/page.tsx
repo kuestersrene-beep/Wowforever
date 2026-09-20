@@ -13,6 +13,17 @@ export default async function HomePage() {
 
   const admin = user ? isAdmin(getDiscordId(user)) : false;
 
+  let daysUntilLaunch: number | null = null;
+  if (process.env.NEXT_PUBLIC_LAUNCH_DATE) {
+    const launch = new Date(process.env.NEXT_PUBLIC_LAUNCH_DATE);
+    const today = new Date();
+    launch.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    daysUntilLaunch = Math.round(
+      (launch.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+  }
+
   return (
     <main className="flex flex-col gap-8">
       <header className="text-center">
@@ -32,6 +43,17 @@ export default async function HomePage() {
           Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir
           als Gruppe rechnen?
         </p>
+        {daysUntilLaunch !== null && daysUntilLaunch > 0 && (
+          <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
+            Noch {daysUntilLaunch} {daysUntilLaunch === 1 ? "Tag" : "Tage"} bis
+            WoW Forever!
+          </p>
+        )}
+        {daysUntilLaunch === 0 && (
+          <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
+            Heute ist es soweit!
+          </p>
+        )}
       </header>
 
       <section className="panel p-6">

@@ -20,6 +20,10 @@ export default async function UmfragePage() {
     .eq("user_id", user.id)
     .maybeSingle<SurveyResponse>();
 
+  const deadline = process.env.NEXT_PUBLIC_SURVEY_DEADLINE
+    ? new Date(process.env.NEXT_PUBLIC_SURVEY_DEADLINE)
+    : null;
+
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -32,6 +36,17 @@ export default async function UmfragePage() {
         Du kannst deine Antwort jederzeit hier ändern, solange die Umfrage
         läuft.
       </p>
+      {deadline && (
+        <p className="rounded-lg border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-gold-light">
+          Bitte antworte bis zum{" "}
+          {deadline.toLocaleDateString("de-DE", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
+          .
+        </p>
+      )}
       <div className="panel p-6">
         <SurveyForm existing={existing ?? null} />
       </div>

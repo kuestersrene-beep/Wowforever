@@ -76,6 +76,7 @@ export default function ParticipantsTable({
               <th className="px-3 py-2">Rolle</th>
               <th className="px-3 py-2">Häufigkeit</th>
               <th className="px-3 py-2">Kommentar</th>
+              <Th label="Aktualisiert" onClick={() => toggleSort("updated_at")} />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -115,11 +116,17 @@ export default function ParticipantsTable({
                 <td className="max-w-[220px] truncate px-3 py-2" title={r.comment ?? ""}>
                   {r.comment ?? "–"}
                 </td>
+                <td className="whitespace-nowrap px-3 py-2 text-slate-400">
+                  {new Date(r.updated_at).toLocaleString("de-DE", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
                   Keine Einträge.
                 </td>
               </tr>

@@ -8,6 +8,7 @@ import FactionChart from "@/components/admin/FactionChart";
 import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import InsightBanner from "@/components/admin/InsightBanner";
+import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ParticipantsTable from "@/components/admin/ParticipantsTable";
 import CsvExportButton from "@/components/admin/CsvExportButton";
 
@@ -54,6 +55,7 @@ export default async function AdminPage() {
 
       <StatTiles responses={responses} />
       <InsightBanner responses={responses} />
+      <RoleNeedBanner responses={responses} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <FactionChart responses={responses} />

@@ -36,7 +36,12 @@ export default async function UebersichtPage() {
     .select("*")
     .returns<OverviewRow[]>();
 
-  const participants = rows ?? [];
+  const participants = (rows ?? []).slice().sort((a, b) =>
+    (a.first_name ?? a.display_name).localeCompare(
+      b.first_name ?? b.display_name,
+      "de"
+    )
+  );
   const ja = participants.filter((p) => p.participation === "ja").length;
   const vielleicht = participants.filter(
     (p) => p.participation === "vielleicht"
