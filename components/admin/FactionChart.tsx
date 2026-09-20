@@ -26,8 +26,8 @@ export default function FactionChart({
     .map(([name, value]) => ({ name, value }));
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-      <h3 className="mb-2 font-semibold">Fraktion</h3>
+    <div className="panel p-4">
+      <h3 className="mb-2 font-heading text-gold-light">Fraktion</h3>
       {data.length === 0 ? (
         <EmptyState />
       ) : (

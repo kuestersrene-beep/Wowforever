@@ -46,8 +46,8 @@ export default async function AdminPage() {
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Admin-Dashboard</h1>
-        <Link href="/" className="text-sm text-slate-400 hover:underline">
+        <h1 className="heading-ornate text-2xl">Admin-Dashboard</h1>
+        <Link href="/" className="text-sm text-gold-light hover:underline">
           ← Zurück
         </Link>
       </div>
@@ -63,7 +63,9 @@ export default async function AdminPage() {
       <ClassRoleCharts responses={responses} />
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Alle Teilnehmer:innen</h2>
+        <h2 className="font-heading text-lg text-gold-light">
+          Alle Teilnehmer:innen
+        </h2>
         <CsvExportButton responses={responses} />
       </div>
       <ParticipantsTable responses={responses} />

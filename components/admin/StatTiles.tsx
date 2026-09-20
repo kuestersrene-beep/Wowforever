@@ -23,7 +23,7 @@ export default function StatTiles({
       {tiles.map((t) => (
         <div
           key={t.label}
-          className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-center"
+          className="panel p-4 text-center"
         >
           <p className={`text-3xl font-bold ${t.color}`}>{t.value}</p>
           <p className="text-sm text-slate-400">{t.label}</p>

@@ -3,5 +3,30 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-wow-radial text-slate-100;
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+@layer components {
+  /* Wiederkehrender "Panel"-Look für Karten/Boxen, angelehnt an
+     WoW-Fensterrahmen: dunkles Panel mit dezentem Gold-Rand. */
+  .panel {
+    @apply rounded-xl border border-gold/25 bg-panel/80 shadow-inner shadow-black/40;
+  }
+
+  .heading-ornate {
+    @apply font-heading tracking-wide text-gold-light;
+  }
+
+  .divider-ornate {
+    @apply flex items-center justify-center gap-3 text-gold/60;
+  }
+  .divider-ornate::before,
+  .divider-ornate::after {
+    content: "";
+    height: 1px;
+    width: 3rem;
+    @apply bg-gradient-to-r from-transparent via-gold/60 to-transparent;
+  }
 }

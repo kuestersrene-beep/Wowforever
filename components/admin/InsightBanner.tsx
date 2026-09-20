@@ -23,7 +23,7 @@ export default function InsightBanner({
   if (ratio < LEAD_THRESHOLD) return null;
 
   return (
-    <div className="rounded-xl border border-amber-700 bg-amber-950/40 p-4 text-amber-200">
+    <div className="rounded-xl border border-gold bg-gold/10 p-4 text-gold-light">
       <strong>{count} von {total}</strong> mit Fraktionswunsch wollen{" "}
       <strong>{leader}</strong> spielen.
     </div>

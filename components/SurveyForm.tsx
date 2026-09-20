@@ -53,7 +53,7 @@ export default function SurveyForm({
           required
           maxLength={100}
           placeholder="z. B. Max"
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+          className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
         />
       </fieldset>
 
@@ -71,8 +71,8 @@ export default function SurveyForm({
               key={opt.value}
               className={`cursor-pointer rounded-lg border px-4 py-2 transition ${
                 participation === opt.value
-                  ? "border-emerald-500 bg-emerald-950 text-emerald-300"
-                  : "border-slate-700 bg-slate-900 hover:bg-slate-800"
+                  ? "border-gold bg-gold/20 text-gold-light"
+                  : "border-gold/20 bg-panel hover:bg-gold/10"
               }`}
             >
               <input
@@ -97,7 +97,7 @@ export default function SurveyForm({
             <select
               name="faction"
               defaultValue={existing?.faction ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
               <option value="">Bitte wählen</option>
               <option value="horde">Horde</option>
@@ -111,7 +111,7 @@ export default function SurveyForm({
             <select
               name="playstyle"
               defaultValue={existing?.playstyle ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
               <option value="">Bitte wählen</option>
               <option value="pvp">PvP</option>
@@ -127,7 +127,7 @@ export default function SurveyForm({
             <select
               name="class"
               defaultValue={existing?.class ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
               <option value="">Noch unklar</option>
               {WOW_CLASSES.map((c) => (
@@ -143,7 +143,7 @@ export default function SurveyForm({
             <select
               name="role"
               defaultValue={existing?.role ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
               <option value="">Noch unklar</option>
               <option value="tank">Tank</option>
@@ -159,7 +159,7 @@ export default function SurveyForm({
             <select
               name="frequency"
               defaultValue={existing?.frequency ?? ""}
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
               <option value="">Noch unklar</option>
               <option value="gelegentlich">Gelegentlich</option>
@@ -178,7 +178,7 @@ export default function SurveyForm({
               rows={3}
               maxLength={1000}
               placeholder="Alles was du sonst noch loswerden willst..."
-              className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             />
           </fieldset>
         </>

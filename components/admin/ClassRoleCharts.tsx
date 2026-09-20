@@ -26,8 +26,8 @@ export default function ClassRoleCharts({
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-2 font-semibold">Klassen</h3>
+      <div className="panel p-4">
+        <h3 className="mb-2 font-heading text-gold-light">Klassen</h3>
         {classData.length === 0 ? (
           <EmptyState />
         ) : (
@@ -43,8 +43,8 @@ export default function ClassRoleCharts({
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-2 font-semibold">Rollen</h3>
+      <div className="panel p-4">
+        <h3 className="mb-2 font-heading text-gold-light">Rollen</h3>
         {roleData.length === 0 ? (
           <EmptyState />
         ) : (

@@ -63,7 +63,7 @@ export default function CsvExportButton({
   return (
     <button
       onClick={handleExport}
-      className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 transition hover:bg-slate-800"
+      className="rounded-lg border border-gold/30 px-3 py-1.5 text-sm text-parchment transition hover:bg-gold/10"
     >
       Als CSV exportieren
     </button>

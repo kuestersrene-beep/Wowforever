@@ -23,8 +23,8 @@ export default async function UmfragePage() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Deine Antwort</h1>
-        <Link href="/" className="text-sm text-slate-400 hover:underline">
+        <h1 className="heading-ornate text-2xl">Deine Antwort</h1>
+        <Link href="/" className="text-sm text-gold-light hover:underline">
           ← Zurück
         </Link>
       </div>
@@ -32,7 +32,9 @@ export default async function UmfragePage() {
         Du kannst deine Antwort jederzeit hier ändern, solange die Umfrage
         läuft.
       </p>
-      <SurveyForm existing={existing ?? null} />
+      <div className="panel p-6">
+        <SurveyForm existing={existing ?? null} />
+      </div>
     </main>
   );
 }

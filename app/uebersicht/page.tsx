@@ -43,8 +43,8 @@ export default async function UebersichtPage() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Übersicht</h1>
-        <Link href="/" className="text-sm text-slate-400 hover:underline">
+        <h1 className="heading-ornate text-2xl">Übersicht</h1>
+        <Link href="/" className="text-sm text-gold-light hover:underline">
           ← Zurück
         </Link>
       </div>
@@ -55,7 +55,7 @@ export default async function UebersichtPage() {
         <StatTile label="Nein" value={nein} color="text-red-400" />
       </div>
 
-      <ul className="flex flex-col divide-y divide-slate-800 rounded-xl border border-slate-800 bg-slate-900">
+      <ul className="flex flex-col divide-y divide-slate-800 panel">
         {participants.map((p) => (
           <li key={p.user_id} className="flex items-center gap-3 p-3">
             {p.avatar_url ? (
@@ -114,7 +114,7 @@ function StatTile({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-center">
+    <div className="panel p-4 text-center">
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-xs text-slate-400">{label}</p>
     </div>
