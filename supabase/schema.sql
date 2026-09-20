@@ -12,6 +12,7 @@ create table if not exists public.responses (
   -- Discord-Session übernommen.
   discord_id text not null,
   display_name text not null,
+  first_name text,
   avatar_url text,
 
   participation text not null check (participation in ('ja', 'vielleicht', 'nein')),
@@ -26,6 +27,11 @@ create table if not exists public.responses (
 );
 
 comment on table public.responses is 'Eine Zeile pro Discord-Nutzer mit ihrer/seiner WoW-Forever-Umfrageantwort.';
+
+-- Falls du dieses Skript auf einer bereits bestehenden Datenbank erneut
+-- ausführst (z. B. weil first_name nachträglich dazugekommen ist): dieser
+-- Befehl ergänzt die Spalte, ohne bestehende Daten zu verändern.
+alter table public.responses add column if not exists first_name text;
 
 -- updated_at automatisch aktualisieren, wenn eine Zeile geändert wird
 create or replace function public.set_updated_at()
@@ -87,6 +93,7 @@ create or replace view public.participants_overview as
   select
     user_id,
     display_name,
+    first_name,
     avatar_url,
     participation,
     faction,

@@ -11,6 +11,7 @@ import {
 interface OverviewRow {
   user_id: string;
   display_name: string;
+  first_name: string | null;
   avatar_url: string | null;
   participation: "ja" | "vielleicht" | "nein";
   faction: "horde" | "allianz" | "egal" | null;
@@ -69,7 +70,12 @@ export default async function UebersichtPage() {
               <div className="h-9 w-9 rounded-full bg-slate-700" />
             )}
             <div className="flex-1">
-              <p className="font-medium">{p.display_name}</p>
+              <p className="font-medium">
+                {p.display_name}
+                {p.first_name && (
+                  <span className="text-slate-400"> ({p.first_name})</span>
+                )}
+              </p>
               <p className="text-xs text-slate-400">
                 {p.faction ? FACTION_LABELS[p.faction] : "–"}
                 {p.playstyle ? ` · ${PLAYSTYLE_LABELS[p.playstyle]}` : ""}

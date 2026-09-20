@@ -94,6 +94,9 @@ export default function ParticipantsTable({
                     <div className="h-7 w-7 rounded-full bg-slate-700" />
                   )}
                   {r.display_name}
+                  {r.first_name && (
+                    <span className="text-slate-400"> ({r.first_name})</span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   {PARTICIPATION_LABELS[r.participation]}

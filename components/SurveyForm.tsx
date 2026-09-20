@@ -41,6 +41,23 @@ export default function SurveyForm({
   return (
     <form action={handleSubmit} className="flex flex-col gap-6">
       <fieldset className="flex flex-col gap-2">
+        <legend className="mb-1 font-medium">Dein Vorname *</legend>
+        <p className="text-xs text-slate-400">
+          Damit dich alle erkennen, falls jemand deinen Discord-Namen nicht
+          kennt.
+        </p>
+        <input
+          type="text"
+          name="first_name"
+          defaultValue={existing?.first_name ?? ""}
+          required
+          maxLength={100}
+          placeholder="z. B. Max"
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2"
+        />
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 font-medium">
           1. Bist du bei WoW Forever dabei? *
         </legend>

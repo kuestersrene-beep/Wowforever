@@ -15,11 +15,13 @@ export async function saveResponse(formData: FormData) {
   }
 
   const participation = formData.get("participation") as string;
+  const firstName = String(formData.get("first_name") ?? "").trim().slice(0, 100);
 
   const payload: Record<string, unknown> = {
     user_id: user.id,
     discord_id: getDiscordId(user),
     display_name: getDisplayName(user),
+    first_name: firstName || null,
     avatar_url: getAvatarUrl(user),
     participation,
     faction: null,

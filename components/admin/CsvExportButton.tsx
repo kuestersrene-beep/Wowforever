@@ -24,6 +24,7 @@ export default function CsvExportButton({
   const handleExport = () => {
     const header = [
       "Name",
+      "Vorname",
       "Status",
       "Fraktion",
       "Spielstil",
@@ -35,6 +36,7 @@ export default function CsvExportButton({
 
     const rows = responses.map((r) => [
       r.display_name,
+      r.first_name ?? "",
       PARTICIPATION_LABELS[r.participation],
       r.faction ? FACTION_LABELS[r.faction] : "",
       r.playstyle ? PLAYSTYLE_LABELS[r.playstyle] : "",

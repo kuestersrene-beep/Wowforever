@@ -8,6 +8,7 @@ export interface SurveyResponse {
   user_id: string;
   discord_id: string;
   display_name: string;
+  first_name: string;
   avatar_url: string | null;
   participation: Participation;
   faction: Faction | null;
