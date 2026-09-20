@@ -9,13 +9,22 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/umfrage";
 
+  // Hinter einem Reverse-Proxy (nginx) baut Next.js die eigene Adresse
+  // manchmal falsch aus der internen Bind-Adresse zusammen, statt aus der
+  // echten Domain. x-forwarded-host (von nginx gesetzt) ist die
+  // verlässliche Quelle dafür - offiziell von Supabase für genau dieses
+  // Szenario empfohlen.
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const redirectBase = forwardedHost ? `${forwardedProto}://${forwardedHost}` : origin;
+
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(`${redirectBase}${next}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/?error=login_fehlgeschlagen`);
+  return NextResponse.redirect(`${redirectBase}/?error=login_fehlgeschlagen`);
 }
