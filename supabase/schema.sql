@@ -39,6 +39,11 @@ alter table public.responses add column if not exists first_name text;
 -- übernommen, danach wird die alte Spalte entfernt.
 alter table public.responses add column if not exists classes text[];
 
+-- Muss VOR dem Drop von "class" passieren, weil die View unten sonst
+-- noch von der alten Spalte abhängt und Postgres das Löschen verweigert
+-- (Fehler 2BP01 "cannot drop column ... because other objects depend on it").
+drop view if exists public.participants_overview;
+
 do $$
 begin
   if exists (
@@ -112,10 +117,8 @@ create policy "delete own response"
 -- DROP + CREATE statt CREATE OR REPLACE: Postgres erlaubt bei
 -- CREATE OR REPLACE VIEW nur neue Spalten ans Ende anzuhängen, nicht
 -- mittendrin einzufügen (sonst Fehler 42P16 "cannot change name of
--- view column"). Ein DROP ist hier unkritisch, da die View keine
--- eigenen Daten hält, nur eine Sicht auf public.responses ist.
-drop view if exists public.participants_overview;
-
+-- view column"). Der DROP dafür ist bereits weiter oben passiert
+-- (vor der class -> classes Migration).
 create view public.participants_overview as
   select
     user_id,
