@@ -89,7 +89,14 @@ create policy "delete own response"
 -- im Admin-Dashboard sichtbar (dort per service_role Key).
 -- ============================================================
 
-create or replace view public.participants_overview as
+-- DROP + CREATE statt CREATE OR REPLACE: Postgres erlaubt bei
+-- CREATE OR REPLACE VIEW nur neue Spalten ans Ende anzuhängen, nicht
+-- mittendrin einzufügen (sonst Fehler 42P16 "cannot change name of
+-- view column"). Ein DROP ist hier unkritisch, da die View keine
+-- eigenen Daten hält, nur eine Sicht auf public.responses ist.
+drop view if exists public.participants_overview;
+
+create view public.participants_overview as
   select
     user_id,
     display_name,
