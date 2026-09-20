@@ -5,12 +5,19 @@ import type { SurveyResponse } from "@/lib/types";
 import { ROLE_LABELS } from "@/lib/constants";
 import { EmptyState } from "./FactionChart";
 
-function countBy(responses: SurveyResponse[], key: "class" | "role") {
+function countClasses(responses: SurveyResponse[]) {
   const counts = new Map<string, number>();
   responses.forEach((r) => {
-    const value = r[key];
-    if (!value) return;
-    const label = key === "role" ? ROLE_LABELS[value as keyof typeof ROLE_LABELS] : value;
+    r.classes?.forEach((c) => counts.set(c, (counts.get(c) ?? 0) + 1));
+  });
+  return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
+}
+
+function countRoles(responses: SurveyResponse[]) {
+  const counts = new Map<string, number>();
+  responses.forEach((r) => {
+    if (!r.role) return;
+    const label = ROLE_LABELS[r.role];
     counts.set(label, (counts.get(label) ?? 0) + 1);
   });
   return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
@@ -21,8 +28,8 @@ export default function ClassRoleCharts({
 }: {
   responses: SurveyResponse[];
 }) {
-  const classData = countBy(responses, "class");
-  const roleData = countBy(responses, "role");
+  const classData = countClasses(responses);
+  const roleData = countRoles(responses);
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">

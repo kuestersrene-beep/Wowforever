@@ -108,7 +108,11 @@ export default function ParticipantsTable({
                 <td className="px-3 py-2">
                   {r.playstyle ? PLAYSTYLE_LABELS[r.playstyle] : "–"}
                 </td>
-                <td className="px-3 py-2">{r.class ?? "–"}</td>
+                <td className="px-3 py-2">
+                  {r.classes && r.classes.length > 0
+                    ? r.classes.join(" → ")
+                    : "–"}
+                </td>
                 <td className="px-3 py-2">{r.role ? ROLE_LABELS[r.role] : "–"}</td>
                 <td className="px-3 py-2">
                   {r.frequency ? FREQUENCY_LABELS[r.frequency] : "–"}

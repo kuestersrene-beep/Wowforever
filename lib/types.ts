@@ -13,7 +13,7 @@ export interface SurveyResponse {
   participation: Participation;
   faction: Faction | null;
   playstyle: Playstyle | null;
-  class: string | null;
+  classes: string[] | null;
   role: Role | null;
   frequency: Frequency | null;
   comment: string | null;

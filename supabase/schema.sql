@@ -18,7 +18,8 @@ create table if not exists public.responses (
   participation text not null check (participation in ('ja', 'vielleicht', 'nein')),
   faction text check (faction in ('horde', 'allianz', 'egal')),
   playstyle text check (playstyle in ('pvp', 'pve', 'beides')),
-  class text,
+  -- Bis zu 3 Klassen in Prioritäts-Reihenfolge (Index 0 = 1. Wahl).
+  classes text[],
   role text check (role in ('tank', 'heiler', 'dd')),
   frequency text check (frequency in ('gelegentlich', 'mehrmals_woche', 'fast_taeglich')),
   comment text,
@@ -32,6 +33,25 @@ comment on table public.responses is 'Eine Zeile pro Discord-Nutzer mit ihrer/se
 -- ausführst (z. B. weil first_name nachträglich dazugekommen ist): dieser
 -- Befehl ergänzt die Spalte, ohne bestehende Daten zu verändern.
 alter table public.responses add column if not exists first_name text;
+
+-- Migration: aus der alten einzelnen "class"-Spalte wird "classes"
+-- (eine Prioritätenliste). Bestehende Werte werden als 1. Priorität
+-- übernommen, danach wird die alte Spalte entfernt.
+alter table public.responses add column if not exists classes text[];
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'responses' and column_name = 'class'
+  ) then
+    update public.responses
+    set classes = array[class]
+    where class is not null and classes is null;
+
+    alter table public.responses drop column class;
+  end if;
+end $$;
 
 -- updated_at automatisch aktualisieren, wenn eine Zeile geändert wird
 create or replace function public.set_updated_at()
@@ -84,9 +104,9 @@ create policy "delete own response"
 -- Übersicht für alle eingeloggten Teilnehmer:innen (/uebersicht)
 -- Views laufen standardmäßig mit den Rechten des Erstellers (nicht des
 -- aufrufenden Nutzers) und umgehen damit gezielt die RLS-Policy oben -
--- aber NUR für die hier ausgewählten, unkritischen Spalten. Klasse,
--- Häufigkeit und Kommentar bleiben weiterhin ausschließlich im
--- Admin-Dashboard sichtbar (dort per service_role Key).
+-- aber NUR für die hier ausgewählten, unkritischen Spalten. Häufigkeit
+-- und Kommentar bleiben weiterhin ausschließlich im Admin-Dashboard
+-- sichtbar (dort per service_role Key).
 -- ============================================================
 
 -- DROP + CREATE statt CREATE OR REPLACE: Postgres erlaubt bei
@@ -105,7 +125,7 @@ create view public.participants_overview as
     participation,
     faction,
     playstyle,
-    class,
+    classes,
     role
   from public.responses;
 

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveResponse, deleteResponse } from "@/app/umfrage/actions";
-import { WOW_CLASSES } from "@/lib/constants";
+import { CLASS_PRIORITY_COUNT, WOW_CLASSES } from "@/lib/constants";
 import type { SurveyResponse } from "@/lib/types";
 
 export default function SurveyForm({
@@ -122,20 +122,32 @@ export default function SurveyForm({
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-medium">
-              4. Geplante Klasse (optional)
+              4. Geplante Klasse(n) (optional)
             </legend>
-            <select
-              name="class"
-              defaultValue={existing?.class ?? ""}
-              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
-            >
-              <option value="">Noch unklar</option>
-              {WOW_CLASSES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <p className="text-xs text-slate-400">
+              Bis zu {CLASS_PRIORITY_COUNT} Klassen nach Priorität – hilft
+              uns, wenn mehrere dasselbe spielen wollen, zu sehen, wer das am
+              liebsten möchte.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {Array.from({ length: CLASS_PRIORITY_COUNT }, (_, i) => i + 1).map(
+                (prio) => (
+                  <select
+                    key={prio}
+                    name={`class_prio_${prio}`}
+                    defaultValue={existing?.classes?.[prio - 1] ?? ""}
+                    className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
+                  >
+                    <option value="">{prio}. Priorität – keine</option>
+                    {WOW_CLASSES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                )
+              )}
+            </div>
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">

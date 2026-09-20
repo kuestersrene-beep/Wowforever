@@ -17,7 +17,7 @@ interface OverviewRow {
   participation: "ja" | "vielleicht" | "nein";
   faction: "horde" | "allianz" | "egal" | null;
   playstyle: "pvp" | "pve" | "beides" | null;
-  class: string | null;
+  classes: string[] | null;
   role: "tank" | "heiler" | "dd" | null;
 }
 
@@ -99,7 +99,9 @@ export default async function UebersichtPage() {
                 {[
                   p.faction ? FACTION_LABELS[p.faction] : null,
                   p.playstyle ? PLAYSTYLE_LABELS[p.playstyle] : null,
-                  p.class,
+                  p.classes && p.classes.length > 0
+                    ? p.classes.join(" → ")
+                    : null,
                   p.role ? ROLE_LABELS[p.role] : null,
                 ]
                   .filter(Boolean)

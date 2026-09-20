@@ -7,6 +7,7 @@ import StatTiles from "@/components/admin/StatTiles";
 import FactionChart from "@/components/admin/FactionChart";
 import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
+import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
 import InsightBanner from "@/components/admin/InsightBanner";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ParticipantsTable from "@/components/admin/ParticipantsTable";
@@ -63,6 +64,7 @@ export default async function AdminPage() {
       </div>
 
       <ClassRoleCharts responses={responses} />
+      <ClassPriorityOverview responses={responses} />
 
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-lg text-gold-light">

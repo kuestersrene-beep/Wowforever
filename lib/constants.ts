@@ -12,6 +12,8 @@ export const WOW_CLASSES = [
   "Druide",
 ] as const;
 
+export const CLASS_PRIORITY_COUNT = 3;
+
 export const PARTICIPATION_LABELS: Record<Participation, string> = {
   ja: "Ja",
   vielleicht: "Vielleicht",

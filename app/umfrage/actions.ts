@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAvatarUrl, getDiscordId, getDisplayName } from "@/lib/admin";
+import { CLASS_PRIORITY_COUNT } from "@/lib/constants";
 
 export async function saveResponse(formData: FormData) {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export async function saveResponse(formData: FormData) {
     participation,
     faction: null,
     playstyle: null,
-    class: null,
+    classes: null,
     role: null,
     frequency: null,
     comment: null,
@@ -37,7 +38,16 @@ export async function saveResponse(formData: FormData) {
   if (participation !== "nein") {
     payload.faction = formData.get("faction") || null;
     payload.playstyle = formData.get("playstyle") || null;
-    payload.class = formData.get("class") || null;
+
+    // Bis zu CLASS_PRIORITY_COUNT Klassen in Prioritäts-Reihenfolge.
+    // Doppelte Auswahl derselben Klasse wird entfernt (die erste, also
+    // höchste Priorität, gewinnt).
+    const rawClasses = Array.from({ length: CLASS_PRIORITY_COUNT }, (_, i) =>
+      String(formData.get(`class_prio_${i + 1}`) ?? "").trim()
+    ).filter(Boolean);
+    const classes = Array.from(new Set(rawClasses));
+    payload.classes = classes.length > 0 ? classes : null;
+
     payload.role = formData.get("role") || null;
     payload.frequency = formData.get("frequency") || null;
     const comment = formData.get("comment");
