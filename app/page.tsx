@@ -20,7 +20,15 @@ export default async function HomePage() {
           World of Warcraft Forever
         </h1>
         <Ornament />
-        <p className="mt-2 text-slate-300">
+        <blockquote className="mx-auto mt-4 max-w-md border-l-2 border-gold/50 pl-4 text-left italic leading-relaxed text-parchment/90">
+          Sei gegrüßt, Abenteurer! Die Zeiten haben sich geändert – aus
+          Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die
+          Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch
+          immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst
+          uns die Rüstung noch einmal poliert und die alte Truppe
+          wiedervereint!
+        </blockquote>
+        <p className="mt-4 text-slate-300">
           Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir
           als Gruppe rechnen?
         </p>

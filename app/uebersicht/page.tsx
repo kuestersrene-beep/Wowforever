@@ -55,6 +55,17 @@ export default async function UebersichtPage() {
         <StatTile label="Nein" value={nein} color="text-red-400" />
       </div>
 
+      <div className="panel flex flex-col items-center gap-3 p-4 text-center">
+        <p className="text-sm text-slate-400">Kennt ihr das?</p>
+        <Image
+          src="/images/meme-adult-responsibilities.jpg"
+          alt="Meme: Ein Tauren versucht WoW wie früher zu spielen, während im Hintergrund die 'Adult Responsibilities' heranstürmen"
+          width={640}
+          height={906}
+          className="max-w-[240px] rounded-lg border border-gold/30"
+        />
+      </div>
+
       <ul className="flex flex-col divide-y divide-slate-800 panel">
         {participants.map((p) => (
           <li key={p.user_id} className="flex items-center gap-3 p-3">
