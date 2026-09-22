@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAvatarUrl, getDiscordId, getDisplayName } from "@/lib/admin";
 import { CLASS_PRIORITY_COUNT } from "@/lib/constants";
+import { notifyDiscord } from "@/lib/discord";
+import type { Faction, Participation, Playstyle, Role } from "@/lib/types";
 
 export async function saveResponse(formData: FormData) {
   const supabase = await createClient();
@@ -15,7 +17,14 @@ export async function saveResponse(formData: FormData) {
     throw new Error("Nicht angemeldet.");
   }
 
-  const participation = formData.get("participation") as string;
+  const { data: existingRow } = await supabase
+    .from("responses")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isUpdate = !!existingRow;
+
+  const participation = formData.get("participation") as Participation;
   const firstName = String(formData.get("first_name") ?? "").trim().slice(0, 100);
 
   const payload: Record<string, unknown> = {
@@ -59,6 +68,18 @@ export async function saveResponse(formData: FormData) {
   if (error) {
     throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
   }
+
+  const displayName = getDisplayName(user);
+  await notifyDiscord({
+    name: firstName ? `${displayName} (${firstName})` : displayName,
+    avatarUrl: getAvatarUrl(user),
+    isUpdate,
+    participation,
+    faction: payload.faction as Faction | null,
+    playstyle: payload.playstyle as Playstyle | null,
+    classes: payload.classes as string[] | null,
+    role: payload.role as Role | null,
+  });
 
   revalidatePath("/umfrage");
   revalidatePath("/uebersicht");
