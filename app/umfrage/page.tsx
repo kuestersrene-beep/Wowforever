@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { formatDeadline } from "@/lib/i18n/format";
 import SurveyForm from "@/components/SurveyForm";
+import Emblem from "@/components/ui/Emblem";
 import type { SurveyResponse } from "@/lib/types";
 
 export default async function UmfragePage() {
@@ -31,6 +32,7 @@ export default async function UmfragePage() {
 
   return (
     <main className="flex flex-col gap-6">
+      <Emblem className="mx-auto h-14 w-14" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.survey.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

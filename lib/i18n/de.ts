@@ -66,6 +66,7 @@ export const de: Dictionary = {
     memeAlt:
       "Meme: Ein Tauren versucht WoW wie früher zu spielen, während im Hintergrund die 'Adult Responsibilities' heranstürmen",
     noResponses: "Noch keine Antworten.",
+    noteLabel: "Anmerkung",
   },
   admin: {
     title: "Admin-Dashboard",
@@ -85,6 +86,8 @@ export const de: Dictionary = {
       comment: "Kommentar",
       updated: "Aktualisiert",
       empty: "Keine Einträge.",
+      adminNote: "Admin-Notiz",
+      adminNotePlaceholder: "Notiz hinzufügen...",
     },
     stat: { yes: "Ja", maybe: "Vielleicht", no: "Nein", total: "Gesamt" },
     insightTemplate: "{count} von {total} mit Fraktionswunsch wollen {leader} spielen.",

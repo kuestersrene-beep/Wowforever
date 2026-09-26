@@ -66,6 +66,7 @@ export const en: Dictionary = {
     memeAlt:
       "Meme: A Tauren tries to play WoW like the good old days, while 'Adult Responsibilities' close in from behind",
     noResponses: "No responses yet.",
+    noteLabel: "Note",
   },
   admin: {
     title: "Admin dashboard",
@@ -85,6 +86,8 @@ export const en: Dictionary = {
       comment: "Comment",
       updated: "Updated",
       empty: "No entries.",
+      adminNote: "Admin note",
+      adminNotePlaceholder: "Add a note...",
     },
     stat: { yes: "Yes", maybe: "Maybe", no: "No", total: "Total" },
     insightTemplate: "{count} of {total} with a faction preference want to play {leader}.",

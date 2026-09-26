@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import type { SurveyResponse } from "@/lib/types";
+import type { AdminResponseRow } from "@/lib/types";
 import type { Dictionary, Locale } from "@/lib/i18n/types";
+import AdminNoteCell from "./AdminNoteCell";
 
 type SortKey = "display_name" | "participation" | "faction" | "updated_at";
 
@@ -12,7 +13,7 @@ export default function ParticipantsTable({
   dict,
   locale,
 }: {
-  responses: SurveyResponse[];
+  responses: AdminResponseRow[];
   dict: Dictionary;
   locale: Locale;
 }) {
@@ -77,6 +78,7 @@ export default function ParticipantsTable({
               <th className="px-3 py-2">{dict.admin.table.frequency}</th>
               <th className="px-3 py-2">{dict.admin.table.comment}</th>
               <Th label={dict.admin.table.updated} onClick={() => toggleSort("updated_at")} />
+              <th className="px-3 py-2">{dict.admin.table.adminNote}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -128,11 +130,18 @@ export default function ParticipantsTable({
                     { dateStyle: "short", timeStyle: "short" }
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  <AdminNoteCell
+                    userId={r.user_id}
+                    initialNote={r.admin_note}
+                    placeholder={dict.admin.table.adminNotePlaceholder}
+                  />
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
                   {dict.admin.table.empty}
                 </td>
               </tr>

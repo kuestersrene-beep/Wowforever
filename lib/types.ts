@@ -22,6 +22,13 @@ export interface SurveyResponse {
 
 export type SurveyResponseInput = Omit<SurveyResponse, "updated_at">;
 
+// SurveyResponse plus die Admin-Notiz (liegt in einer eigenen Tabelle,
+// siehe supabase/schema.sql). Wird im Admin-Dashboard verwendet, wo
+// beide Datenquellen serverseitig zusammengeführt werden.
+export interface AdminResponseRow extends SurveyResponse {
+  admin_note: string | null;
+}
+
 // Reduzierter Ausschnitt einer Antwort - die Felder, die über die
 // participants_overview-View für ALLE eingeloggten Nutzer:innen sichtbar
 // sind (kein Kommentar, keine Häufigkeit, kein Zeitstempel, keine
@@ -39,4 +46,5 @@ export interface ParticipantSummary {
   playstyle: Playstyle | null;
   classes: string[] | null;
   role: Role | null;
+  admin_note: string | null;
 }

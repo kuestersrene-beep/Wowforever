@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { formatLoadError } from "@/lib/i18n/format";
-import type { SurveyResponse } from "@/lib/types";
+import type { AdminResponseRow, SurveyResponse } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
 import FactionChart from "@/components/admin/FactionChart";
 import PlaystyleChart from "@/components/admin/PlaystyleChart";
@@ -46,7 +46,17 @@ export default async function AdminPage() {
     );
   }
 
-  const responses = data ?? [];
+  const { data: notesData } = await adminSupabase
+    .from("admin_notes")
+    .select("user_id, note");
+  const notesByUser = new Map(
+    (notesData ?? []).map((n) => [n.user_id as string, n.note as string | null])
+  );
+
+  const responses: AdminResponseRow[] = (data ?? []).map((r) => ({
+    ...r,
+    admin_note: notesByUser.get(r.user_id) ?? null,
+  }));
 
   return (
     <main className="flex flex-col gap-8">

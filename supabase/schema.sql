@@ -58,6 +58,28 @@ begin
   end if;
 end $$;
 
+-- ============================================================
+-- Admin-Notizen: eine kurze Anmerkung pro Teilnehmer:in, die NUR
+-- Admins hinzufügen/ändern können. Bewusst eine eigene Tabelle statt
+-- einer weiteren Spalte in "responses" - die "update own response"-
+-- Policy oben erlaubt jeder Person, JEDE Spalte ihrer eigenen Zeile zu
+-- ändern (RLS ist zeilen-, nicht spaltenbasiert). Mit einer separaten
+-- Tabelle ohne jegliche Policy für normale Nutzer:innen ist die
+-- Notiz für sie komplett unsichtbar/nicht schreibbar (RLS blockt per
+-- Default alles), außer über die read-only View weiter unten.
+-- ============================================================
+
+create table if not exists public.admin_notes (
+  user_id uuid primary key references public.responses (user_id) on delete cascade,
+  note text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.admin_notes enable row level security;
+-- Absichtlich keine Policies hier: normale Nutzer:innen (anon key)
+-- haben dadurch weder Lese- noch Schreibzugriff. Nur der
+-- service_role-Key (Admin-Dashboard) umgeht RLS und darf schreiben.
+
 -- updated_at automatisch aktualisieren, wenn eine Zeile geändert wird
 create or replace function public.set_updated_at()
 returns trigger as $$
@@ -70,6 +92,12 @@ $$ language plpgsql;
 drop trigger if exists set_updated_at on public.responses;
 create trigger set_updated_at
   before update on public.responses
+  for each row
+  execute function public.set_updated_at();
+
+drop trigger if exists set_updated_at_notes on public.admin_notes;
+create trigger set_updated_at_notes
+  before update on public.admin_notes
   for each row
   execute function public.set_updated_at();
 
@@ -121,16 +149,18 @@ create policy "delete own response"
 -- (vor der class -> classes Migration).
 create view public.participants_overview as
   select
-    user_id,
-    display_name,
-    first_name,
-    avatar_url,
-    participation,
-    faction,
-    playstyle,
-    classes,
-    role
-  from public.responses;
+    r.user_id,
+    r.display_name,
+    r.first_name,
+    r.avatar_url,
+    r.participation,
+    r.faction,
+    r.playstyle,
+    r.classes,
+    r.role,
+    n.note as admin_note
+  from public.responses r
+  left join public.admin_notes n on n.user_id = r.user_id;
 
 revoke all on public.participants_overview from anon;
 grant select on public.participants_overview to authenticated;

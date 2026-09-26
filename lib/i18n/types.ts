@@ -71,6 +71,7 @@ export interface Dictionary {
     memeCaption: string;
     memeAlt: string;
     noResponses: string;
+    noteLabel: string;
   };
   admin: {
     title: string;
@@ -90,6 +91,8 @@ export interface Dictionary {
       comment: string;
       updated: string;
       empty: string;
+      adminNote: string;
+      adminNotePlaceholder: string;
     };
     stat: { yes: string; maybe: string; no: string; total: string };
     insightTemplate: string; // Platzhalter: {count} {total} {leader}

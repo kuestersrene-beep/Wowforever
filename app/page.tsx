@@ -36,10 +36,10 @@ export default async function HomePage() {
           World of Warcraft Forever
         </h1>
         <Ornament />
-        <blockquote className="mx-auto mt-4 max-w-md border-l-2 border-gold/50 pl-4 text-left italic leading-relaxed text-parchment/90">
-          {dict.home.quest}
+        <blockquote className="mx-auto mt-4 flex max-w-md flex-col gap-3 border-l-2 border-gold/50 pl-4 text-left italic leading-relaxed text-parchment/90">
+          <p>{dict.home.quest}</p>
+          <p>{dict.home.subtitle}</p>
         </blockquote>
-        <p className="mt-4 text-slate-300">{dict.home.subtitle}</p>
         {daysUntilLaunch !== null && daysUntilLaunch > 0 && (
           <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
             {formatCountdown(dict, daysUntilLaunch)}

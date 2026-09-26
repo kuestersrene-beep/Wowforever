@@ -12,6 +12,7 @@ import FactionChart from "@/components/admin/FactionChart";
 import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
+import Emblem from "@/components/ui/Emblem";
 
 export default async function UebersichtPage() {
   const supabase = await createClient();
@@ -39,6 +40,7 @@ export default async function UebersichtPage() {
 
   return (
     <main className="flex flex-col gap-8">
+      <Emblem className="mx-auto h-14 w-14" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.overview.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">
@@ -93,6 +95,11 @@ export default async function UebersichtPage() {
               <p className="text-xs text-slate-400">
                 {formatSummary(p, dict)}
               </p>
+              {p.admin_note && (
+                <p className="mt-0.5 text-xs italic text-gold-light">
+                  {dict.overview.noteLabel}: {p.admin_note}
+                </p>
+              )}
             </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${
