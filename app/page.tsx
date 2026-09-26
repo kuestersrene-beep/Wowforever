@@ -6,6 +6,7 @@ import { formatCountdown } from "@/lib/i18n/format";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import Ornament from "@/components/ui/Ornament";
+import Emblem from "@/components/ui/Emblem";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -30,7 +31,8 @@ export default async function HomePage() {
   return (
     <main className="flex flex-col gap-8">
       <header className="text-center">
-        <h1 className="heading-ornate text-3xl sm:text-4xl">
+        <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
+        <h1 className="heading-ornate mt-3 text-3xl sm:text-4xl">
           World of Warcraft Forever
         </h1>
         <Ornament />
