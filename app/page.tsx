@@ -2,11 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getDictionary, getLocale } from "@/lib/i18n";
-import { formatCountdown } from "@/lib/i18n/format";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import Ornament from "@/components/ui/Ornament";
 import Emblem from "@/components/ui/Emblem";
+import CountdownBanner from "@/components/CountdownBanner";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -16,17 +16,6 @@ export default async function HomePage() {
 
   const admin = user ? isAdmin(getDiscordId(user)) : false;
   const dict = getDictionary(await getLocale());
-
-  let daysUntilLaunch: number | null = null;
-  if (process.env.NEXT_PUBLIC_LAUNCH_DATE) {
-    const launch = new Date(process.env.NEXT_PUBLIC_LAUNCH_DATE);
-    const today = new Date();
-    launch.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    daysUntilLaunch = Math.round(
-      (launch.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-  }
 
   return (
     <main className="flex flex-col gap-8">
@@ -40,16 +29,7 @@ export default async function HomePage() {
           <p>{dict.home.quest}</p>
           <p>{dict.home.subtitle}</p>
         </blockquote>
-        {daysUntilLaunch !== null && daysUntilLaunch > 0 && (
-          <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
-            {formatCountdown(dict, daysUntilLaunch)}
-          </p>
-        )}
-        {daysUntilLaunch === 0 && (
-          <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
-            {dict.home.countdownToday}
-          </p>
-        )}
+        <CountdownBanner />
       </header>
 
       <section className="panel p-6">

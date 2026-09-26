@@ -6,13 +6,6 @@ import type { Dictionary } from "./types";
 // können - der Code hier wird stattdessen direkt in jeder Komponente
 // importiert, egal ob Server oder Client Component.
 
-export function formatCountdown(dict: Dictionary, days: number): string {
-  const unit = days === 1 ? dict.home.dayUnit : dict.home.daysUnit;
-  return dict.home.countdownTemplate
-    .replace("{days}", String(days))
-    .replace("{unit}", unit);
-}
-
 export function formatDeadline(dict: Dictionary, date: string): string {
   return dict.survey.deadlineTemplate.replace("{date}", date);
 }

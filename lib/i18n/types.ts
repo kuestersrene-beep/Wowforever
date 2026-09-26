@@ -34,9 +34,12 @@ export interface Dictionary {
     quest: string;
     privacyTitle: string;
     privacyText: string;
-    countdownTemplate: string; // Platzhalter: {days} {unit}
-    dayUnit: string;
-    daysUnit: string;
+    countdownLabels: {
+      days: string;
+      hours: string;
+      minutes: string;
+      seconds: string;
+    };
     countdownToday: string;
   };
   survey: {

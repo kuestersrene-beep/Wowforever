@@ -23,9 +23,12 @@ export const en: Dictionary = {
     privacyTitle: "Privacy",
     privacyText:
       "We only store your Discord user ID, display name, avatar image, and your survey answers. This data is used exclusively for this private survey among friends. You can change your answer at any time, or delete it completely on the survey page.",
-    countdownTemplate: "{days} {unit} until WoW Forever!",
-    dayUnit: "day",
-    daysUnit: "days",
+    countdownLabels: {
+      days: "Days",
+      hours: "Hrs",
+      minutes: "Min",
+      seconds: "Sec",
+    },
     countdownToday: "Today's the day!",
   },
   survey: {
