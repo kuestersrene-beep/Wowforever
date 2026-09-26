@@ -1,11 +1,11 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { EmptyState } from "./FactionChart";
 
-function countClasses(responses: SurveyResponse[], dict: Dictionary) {
+function countClasses(responses: ParticipantSummary[], dict: Dictionary) {
   const counts = new Map<string, number>();
   responses.forEach((r) => {
     r.classes?.forEach((c) => counts.set(c, (counts.get(c) ?? 0) + 1));
@@ -16,7 +16,7 @@ function countClasses(responses: SurveyResponse[], dict: Dictionary) {
   }));
 }
 
-function countRoles(responses: SurveyResponse[], dict: Dictionary) {
+function countRoles(responses: ParticipantSummary[], dict: Dictionary) {
   const counts = new Map<string, number>();
   responses.forEach((r) => {
     if (!r.role) return;
@@ -30,7 +30,7 @@ export default function ClassRoleCharts({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const classData = countClasses(responses, dict);

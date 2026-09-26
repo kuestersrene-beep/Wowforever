@@ -1,7 +1,7 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import type { SurveyResponse, Faction } from "@/lib/types";
+import type { Faction, ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 
 const COLORS: Record<Faction, string> = {
@@ -14,7 +14,7 @@ export default function FactionChart({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const counts: Record<Faction, number> = { horde: 0, allianz: 0, egal: 0 };

@@ -1,11 +1,11 @@
-import type { SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 
 export default function StatTiles({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const ja = responses.filter((r) => r.participation === "ja").length;

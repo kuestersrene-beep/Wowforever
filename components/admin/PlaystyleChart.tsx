@@ -1,7 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { Playstyle, SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary, Playstyle } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { EmptyState } from "./FactionChart";
 
@@ -9,7 +9,7 @@ export default function PlaystyleChart({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const counts: Record<Playstyle, number> = { pvp: 0, pve: 0, beides: 0 };

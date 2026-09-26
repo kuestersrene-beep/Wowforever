@@ -21,3 +21,22 @@ export interface SurveyResponse {
 }
 
 export type SurveyResponseInput = Omit<SurveyResponse, "updated_at">;
+
+// Reduzierter Ausschnitt einer Antwort - die Felder, die über die
+// participants_overview-View für ALLE eingeloggten Nutzer:innen sichtbar
+// sind (kein Kommentar, keine Häufigkeit, kein Zeitstempel, keine
+// Discord-ID). Charts/Banner, die nur diese Felder brauchen, werden mit
+// diesem Typ statt SurveyResponse getippt, damit sie sowohl auf
+// /uebersicht (mit dieser eingeschränkten Sicht) als auch im
+// Admin-Dashboard (mit vollen SurveyResponse-Daten) funktionieren.
+export interface ParticipantSummary {
+  user_id: string;
+  display_name: string;
+  first_name: string | null;
+  avatar_url: string | null;
+  participation: Participation;
+  faction: Faction | null;
+  playstyle: Playstyle | null;
+  classes: string[] | null;
+  role: Role | null;
+}

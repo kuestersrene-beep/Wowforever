@@ -1,4 +1,4 @@
-import type { SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { formatRoleMissing, formatRoleSummary } from "@/lib/i18n/format";
 
@@ -6,7 +6,7 @@ export default function RoleNeedBanner({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const active = responses.filter(

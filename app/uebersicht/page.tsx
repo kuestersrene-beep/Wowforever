@@ -4,18 +4,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/types";
-
-interface OverviewRow {
-  user_id: string;
-  display_name: string;
-  first_name: string | null;
-  avatar_url: string | null;
-  participation: "ja" | "vielleicht" | "nein";
-  faction: "horde" | "allianz" | "egal" | null;
-  playstyle: "pvp" | "pve" | "beides" | null;
-  classes: string[] | null;
-  role: "tank" | "heiler" | "dd" | null;
-}
+import type { ParticipantSummary } from "@/lib/types";
+import StatTiles from "@/components/admin/StatTiles";
+import InsightBanner from "@/components/admin/InsightBanner";
+import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
+import FactionChart from "@/components/admin/FactionChart";
+import PlaystyleChart from "@/components/admin/PlaystyleChart";
+import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
+import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
 
 export default async function UebersichtPage() {
   const supabase = await createClient();
@@ -32,7 +28,7 @@ export default async function UebersichtPage() {
   const { data: rows } = await supabase
     .from("participants_overview")
     .select("*")
-    .returns<OverviewRow[]>();
+    .returns<ParticipantSummary[]>();
 
   const participants = (rows ?? []).slice().sort((a, b) =>
     (a.first_name ?? a.display_name).localeCompare(
@@ -40,14 +36,9 @@ export default async function UebersichtPage() {
       "de"
     )
   );
-  const ja = participants.filter((p) => p.participation === "ja").length;
-  const vielleicht = participants.filter(
-    (p) => p.participation === "vielleicht"
-  ).length;
-  const nein = participants.filter((p) => p.participation === "nein").length;
 
   return (
-    <main className="flex flex-col gap-6">
+    <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.overview.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">
@@ -55,15 +46,17 @@ export default async function UebersichtPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <StatTile label={dict.labels.participation.ja} value={ja} color="text-emerald-400" />
-        <StatTile
-          label={dict.labels.participation.vielleicht}
-          value={vielleicht}
-          color="text-amber-400"
-        />
-        <StatTile label={dict.labels.participation.nein} value={nein} color="text-red-400" />
+      <StatTiles responses={participants} dict={dict} />
+      <InsightBanner responses={participants} dict={dict} />
+      <RoleNeedBanner responses={participants} dict={dict} />
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <FactionChart responses={participants} dict={dict} />
+        <PlaystyleChart responses={participants} dict={dict} />
       </div>
+
+      <ClassRoleCharts responses={participants} dict={dict} />
+      <ClassPriorityOverview responses={participants} dict={dict} />
 
       <div className="panel flex flex-col items-center gap-3 p-4 text-center">
         <p className="text-sm text-slate-400">{dict.overview.memeCaption}</p>
@@ -124,7 +117,7 @@ export default async function UebersichtPage() {
   );
 }
 
-function formatSummary(p: OverviewRow, dict: Dictionary): string {
+function formatSummary(p: ParticipantSummary, dict: Dictionary): string {
   return (
     [
       p.faction ? dict.labels.faction[p.faction] : null,
@@ -136,22 +129,5 @@ function formatSummary(p: OverviewRow, dict: Dictionary): string {
     ]
       .filter(Boolean)
       .join(" · ") || "–"
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="panel p-4 text-center">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-slate-400">{label}</p>
-    </div>
   );
 }

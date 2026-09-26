@@ -1,4 +1,4 @@
-import type { SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { formatClassConflict, formatPrio } from "@/lib/i18n/format";
 import { EmptyState } from "./FactionChart";
@@ -12,7 +12,7 @@ export default function ClassPriorityOverview({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const byClass = new Map<string, ClassPick[]>();

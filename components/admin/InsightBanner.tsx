@@ -1,4 +1,4 @@
-import type { SurveyResponse } from "@/lib/types";
+import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { formatInsight } from "@/lib/i18n/format";
 
@@ -8,7 +8,7 @@ export default function InsightBanner({
   responses,
   dict,
 }: {
-  responses: SurveyResponse[];
+  responses: ParticipantSummary[];
   dict: Dictionary;
 }) {
   const decided = responses.filter(
