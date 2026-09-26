@@ -1,41 +1,44 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import type { SurveyResponse } from "@/lib/types";
+import type { SurveyResponse, Faction } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
 
-const COLORS: Record<string, string> = {
-  Horde: "#c41f3b",
-  Allianz: "#2f6fed",
-  Egal: "#64748b",
+const COLORS: Record<Faction, string> = {
+  horde: "#c41f3b",
+  allianz: "#2f6fed",
+  egal: "#64748b",
 };
 
 export default function FactionChart({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
-  const counts: Record<string, number> = { Horde: 0, Allianz: 0, Egal: 0 };
+  const counts: Record<Faction, number> = { horde: 0, allianz: 0, egal: 0 };
   responses.forEach((r) => {
-    if (r.faction === "horde") counts.Horde++;
-    else if (r.faction === "allianz") counts.Allianz++;
-    else if (r.faction === "egal") counts.Egal++;
+    if (r.faction === "horde") counts.horde++;
+    else if (r.faction === "allianz") counts.allianz++;
+    else if (r.faction === "egal") counts.egal++;
   });
 
-  const data = Object.entries(counts)
-    .filter(([, value]) => value > 0)
-    .map(([name, value]) => ({ name, value }));
+  const data = (Object.keys(counts) as Faction[])
+    .filter((key) => counts[key] > 0)
+    .map((key) => ({ id: key, name: dict.labels.faction[key], value: counts[key] }));
 
   return (
     <div className="panel p-4">
-      <h3 className="mb-2 font-heading text-gold-light">Fraktion</h3>
+      <h3 className="mb-2 font-heading text-gold-light">{dict.admin.charts.faction}</h3>
       {data.length === 0 ? (
-        <EmptyState />
+        <EmptyState dict={dict} />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={data} dataKey="value" nameKey="name" outerRadius={80} label>
               {data.map((entry) => (
-                <Cell key={entry.name} fill={COLORS[entry.name]} />
+                <Cell key={entry.id} fill={COLORS[entry.id]} />
               ))}
             </Pie>
             <Tooltip />
@@ -47,10 +50,10 @@ export default function FactionChart({
   );
 }
 
-export function EmptyState() {
+export function EmptyState({ dict }: { dict: Dictionary }) {
   return (
     <p className="flex h-[220px] items-center justify-center text-sm text-slate-500">
-      Noch keine Daten
+      {dict.admin.charts.empty}
     </p>
   );
 }

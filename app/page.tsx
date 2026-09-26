@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
+import { getDictionary, getLocale } from "@/lib/i18n";
+import { formatCountdown } from "@/lib/i18n/format";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import Ornament from "@/components/ui/Ornament";
@@ -12,6 +14,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const admin = user ? isAdmin(getDiscordId(user)) : false;
+  const dict = getDictionary(await getLocale());
 
   let daysUntilLaunch: number | null = null;
   if (process.env.NEXT_PUBLIC_LAUNCH_DATE) {
@@ -32,26 +35,17 @@ export default async function HomePage() {
         </h1>
         <Ornament />
         <blockquote className="mx-auto mt-4 max-w-md border-l-2 border-gold/50 pl-4 text-left italic leading-relaxed text-parchment/90">
-          Sei gegrüßt, Abenteurer! Die Zeiten haben sich geändert – aus
-          Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die
-          Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch
-          immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst
-          uns die Rüstung noch einmal polieren und die alte Truppe
-          wiedervereinen!
+          {dict.home.quest}
         </blockquote>
-        <p className="mt-4 text-slate-300">
-          Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir
-          als Gruppe rechnen?
-        </p>
+        <p className="mt-4 text-slate-300">{dict.home.subtitle}</p>
         {daysUntilLaunch !== null && daysUntilLaunch > 0 && (
           <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
-            Noch {daysUntilLaunch} {daysUntilLaunch === 1 ? "Tag" : "Tage"} bis
-            WoW Forever!
+            {formatCountdown(dict, daysUntilLaunch)}
           </p>
         )}
         {daysUntilLaunch === 0 && (
           <p className="mt-3 inline-block rounded-full border border-gold/50 bg-gold/10 px-4 py-1 text-sm text-gold-light">
-            Heute ist es soweit!
+            {dict.home.countdownToday}
           </p>
         )}
       </header>
@@ -60,7 +54,7 @@ export default async function HomePage() {
         {user ? (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-slate-300">
-              Angemeldet als{" "}
+              {dict.nav.loggedInAs}{" "}
               <strong className="text-gold-light">
                 {user.user_metadata?.full_name ?? user.user_metadata?.name}
               </strong>
@@ -70,20 +64,20 @@ export default async function HomePage() {
                 href="/umfrage"
                 className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
               >
-                Zur Umfrage
+                {dict.nav.toSurvey}
               </Link>
               <Link
                 href="/uebersicht"
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
               >
-                Übersicht ansehen
+                {dict.nav.toOverview}
               </Link>
               {admin && (
                 <Link
                   href="/admin"
                   className="rounded-lg border border-horde/60 px-4 py-2 font-medium text-horde transition hover:bg-horde/10"
                 >
-                  Admin-Dashboard
+                  {dict.nav.toAdmin}
                 </Link>
               )}
               <LogoutButton />
@@ -91,9 +85,7 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <p className="text-center text-slate-300">
-              Melde dich mit deinem Discord-Account an, um mitzumachen.
-            </p>
+            <p className="text-center text-slate-300">{dict.nav.loginPrompt}</p>
             <div className="w-full max-w-xs">
               <LoginButton />
             </div>
@@ -103,15 +95,9 @@ export default async function HomePage() {
 
       <section className="panel p-5 text-sm text-slate-400">
         <h2 className="mb-2 font-heading text-base text-gold-light">
-          Datenschutz
+          {dict.home.privacyTitle}
         </h2>
-        <p>
-          Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein
-          Avatar-Bild und deine Antworten aus dieser Umfrage. Diese Daten
-          werden ausschließlich für diese private Freundes-Umfrage genutzt.
-          Du kannst deine Antwort jederzeit ändern oder auf der Umfrageseite
-          vollständig löschen.
-        </p>
+        <p>{dict.home.privacyText}</p>
       </section>
     </main>
   );

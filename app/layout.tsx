@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Cinzel, Inter } from "next/font/google";
 import "./globals.css";
+import { getDictionary, getLocale } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const cinzel = Cinzel({
   subsets: ["latin"],
@@ -18,15 +21,25 @@ export const metadata: Metadata = {
   description: "Umfrage unter Freunden zu World of Warcraft Forever",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   return (
-    <html lang="de" className={`${cinzel.variable} ${inter.variable}`}>
+    <html lang={locale} className={`${cinzel.variable} ${inter.variable}`}>
       <body className="min-h-screen font-sans">
-        <div className="mx-auto max-w-5xl px-4 py-8">{children}</div>
+        <LocaleProvider locale={locale} dict={dict}>
+          <div className="mx-auto max-w-5xl px-4 py-8">
+            <div className="mb-2 flex justify-end">
+              <LanguageSwitcher />
+            </div>
+            {children}
+          </div>
+        </LocaleProvider>
       </body>
     </html>
   );

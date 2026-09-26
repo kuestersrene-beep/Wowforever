@@ -1,29 +1,35 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { SurveyResponse } from "@/lib/types";
+import type { Playstyle, SurveyResponse } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
 import { EmptyState } from "./FactionChart";
 
 export default function PlaystyleChart({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
-  const counts: Record<string, number> = { PvP: 0, PvE: 0, Beides: 0 };
+  const counts: Record<Playstyle, number> = { pvp: 0, pve: 0, beides: 0 };
   responses.forEach((r) => {
-    if (r.playstyle === "pvp") counts.PvP++;
-    else if (r.playstyle === "pve") counts.PvE++;
-    else if (r.playstyle === "beides") counts.Beides++;
+    if (r.playstyle === "pvp") counts.pvp++;
+    else if (r.playstyle === "pve") counts.pve++;
+    else if (r.playstyle === "beides") counts.beides++;
   });
 
-  const data = Object.entries(counts).map(([name, value]) => ({ name, value }));
+  const data = (Object.keys(counts) as Playstyle[]).map((key) => ({
+    name: dict.labels.playstyle[key],
+    value: counts[key],
+  }));
   const hasData = data.some((d) => d.value > 0);
 
   return (
     <div className="panel p-4">
-      <h3 className="mb-2 font-heading text-gold-light">Spielstil</h3>
+      <h3 className="mb-2 font-heading text-gold-light">{dict.admin.charts.playstyle}</h3>
       {!hasData ? (
-        <EmptyState />
+        <EmptyState dict={dict} />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={data}>

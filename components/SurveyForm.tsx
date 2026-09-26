@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveResponse, deleteResponse } from "@/app/umfrage/actions";
 import { CLASS_PRIORITY_COUNT, WOW_CLASSES } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/LocaleProvider";
+import { formatPrioNone } from "@/lib/i18n/format";
 import type { SurveyResponse } from "@/lib/types";
 
 export default function SurveyForm({
@@ -11,6 +13,7 @@ export default function SurveyForm({
 }: {
   existing: SurveyResponse | null;
 }) {
+  const { dict } = useI18n();
   const [participation, setParticipation] = useState(
     existing?.participation ?? ""
   );
@@ -29,7 +32,7 @@ export default function SurveyForm({
   };
 
   const handleDelete = () => {
-    if (!confirm("Deine Antwort wirklich vollständig löschen?")) return;
+    if (!confirm(dict.survey.deleteConfirm)) return;
     startTransition(async () => {
       await deleteResponse();
       router.refresh();
@@ -41,31 +44,26 @@ export default function SurveyForm({
   return (
     <form action={handleSubmit} className="flex flex-col gap-6">
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 font-medium">Dein Vorname *</legend>
-        <p className="text-xs text-slate-400">
-          Damit dich alle erkennen, falls jemand deinen Discord-Namen nicht
-          kennt.
-        </p>
+        <legend className="mb-1 font-medium">{dict.survey.firstNameLabel}</legend>
+        <p className="text-xs text-slate-400">{dict.survey.firstNameHint}</p>
         <input
           type="text"
           name="first_name"
           defaultValue={existing?.first_name ?? ""}
           required
           maxLength={100}
-          placeholder="z. B. Max"
+          placeholder={dict.survey.firstNamePlaceholder}
           className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
         />
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 font-medium">
-          1. Bist du bei WoW Forever dabei? *
-        </legend>
+        <legend className="mb-1 font-medium">{dict.survey.q1Legend}</legend>
         <div className="flex flex-wrap gap-2">
           {[
-            { value: "ja", label: "Ja" },
-            { value: "vielleicht", label: "Vielleicht" },
-            { value: "nein", label: "Nein" },
+            { value: "ja", label: dict.labels.participation.ja },
+            { value: "vielleicht", label: dict.labels.participation.vielleicht },
+            { value: "nein", label: dict.labels.participation.nein },
           ].map((opt) => (
             <label
               key={opt.value}
@@ -93,42 +91,36 @@ export default function SurveyForm({
       {showRest && (
         <>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">2. Fraktion</legend>
+            <legend className="mb-1 font-medium">{dict.survey.q2Legend}</legend>
             <select
               name="faction"
               defaultValue={existing?.faction ?? ""}
               className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
-              <option value="">Bitte wählen</option>
-              <option value="horde">Horde</option>
-              <option value="allianz">Allianz</option>
-              <option value="egal">Egal</option>
+              <option value="">{dict.survey.pleaseChoose}</option>
+              <option value="horde">{dict.labels.faction.horde}</option>
+              <option value="allianz">{dict.labels.faction.allianz}</option>
+              <option value="egal">{dict.labels.faction.egal}</option>
             </select>
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">3. Spielstil</legend>
+            <legend className="mb-1 font-medium">{dict.survey.q3Legend}</legend>
             <select
               name="playstyle"
               defaultValue={existing?.playstyle ?? ""}
               className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
-              <option value="">Bitte wählen</option>
-              <option value="pvp">PvP</option>
-              <option value="pve">PvE</option>
-              <option value="beides">Beides</option>
+              <option value="">{dict.survey.pleaseChoose}</option>
+              <option value="pvp">{dict.labels.playstyle.pvp}</option>
+              <option value="pve">{dict.labels.playstyle.pve}</option>
+              <option value="beides">{dict.labels.playstyle.beides}</option>
             </select>
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">
-              4. Geplante Klasse(n) (optional)
-            </legend>
-            <p className="text-xs text-slate-400">
-              Bis zu {CLASS_PRIORITY_COUNT} Klassen nach Priorität – hilft
-              uns, wenn mehrere dasselbe spielen wollen, zu sehen, wer das am
-              liebsten möchte.
-            </p>
+            <legend className="mb-1 font-medium">{dict.survey.q4Legend}</legend>
+            <p className="text-xs text-slate-400">{dict.survey.q4Hint}</p>
             <div className="grid gap-2 sm:grid-cols-3">
               {Array.from({ length: CLASS_PRIORITY_COUNT }, (_, i) => i + 1).map(
                 (prio) => (
@@ -138,10 +130,10 @@ export default function SurveyForm({
                     defaultValue={existing?.classes?.[prio - 1] ?? ""}
                     className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
                   >
-                    <option value="">{prio}. Priorität – keine</option>
+                    <option value="">{formatPrioNone(dict, prio)}</option>
                     {WOW_CLASSES.map((c) => (
                       <option key={c} value={c}>
-                        {c}
+                        {dict.labels.class[c]}
                       </option>
                     ))}
                   </select>
@@ -151,45 +143,47 @@ export default function SurveyForm({
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">5. Rolle (optional)</legend>
+            <legend className="mb-1 font-medium">{dict.survey.q5Legend}</legend>
             <select
               name="role"
               defaultValue={existing?.role ?? ""}
               className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
-              <option value="">Noch unklar</option>
-              <option value="tank">Tank</option>
-              <option value="heiler">Heiler</option>
-              <option value="dd">Schadensausteiler (DD)</option>
+              <option value="">{dict.survey.notSureYet}</option>
+              <option value="tank">{dict.labels.role.tank}</option>
+              <option value="heiler">{dict.labels.role.heiler}</option>
+              <option value="dd">{dict.labels.role.dd}</option>
             </select>
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">
-              6. Wie oft spielst du voraussichtlich? (optional)
-            </legend>
+            <legend className="mb-1 font-medium">{dict.survey.q6Legend}</legend>
             <select
               name="frequency"
               defaultValue={existing?.frequency ?? ""}
               className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             >
-              <option value="">Noch unklar</option>
-              <option value="gelegentlich">Gelegentlich</option>
-              <option value="mehrmals_woche">Mehrmals pro Woche</option>
-              <option value="fast_taeglich">Fast täglich</option>
+              <option value="">{dict.survey.notSureYet}</option>
+              <option value="gelegentlich">
+                {dict.labels.frequency.gelegentlich}
+              </option>
+              <option value="mehrmals_woche">
+                {dict.labels.frequency.mehrmals_woche}
+              </option>
+              <option value="fast_taeglich">
+                {dict.labels.frequency.fast_taeglich}
+              </option>
             </select>
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">
-              7. Kommentar (optional)
-            </legend>
+            <legend className="mb-1 font-medium">{dict.survey.q7Legend}</legend>
             <textarea
               name="comment"
               defaultValue={existing?.comment ?? ""}
               rows={3}
               maxLength={1000}
-              placeholder="Alles was du sonst noch loswerden willst..."
+              placeholder={dict.survey.commentPlaceholder}
               className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
             />
           </fieldset>
@@ -202,10 +196,10 @@ export default function SurveyForm({
           disabled={isPending || !participation}
           className="rounded-lg bg-emerald-600 px-5 py-2.5 font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPending ? "Speichert..." : "Antwort speichern"}
+          {isPending ? dict.survey.saving : dict.survey.save}
         </button>
         {saved && (
-          <span className="text-sm text-emerald-400">Gespeichert ✓</span>
+          <span className="text-sm text-emerald-400">{dict.survey.saved}</span>
         )}
         {existing && (
           <button
@@ -213,7 +207,7 @@ export default function SurveyForm({
             onClick={handleDelete}
             className="ml-auto text-sm text-red-400 underline-offset-2 hover:underline"
           >
-            Antwort löschen
+            {dict.survey.deleteButton}
           </button>
         )}
       </div>

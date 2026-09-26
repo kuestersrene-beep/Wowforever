@@ -2,12 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  FACTION_LABELS,
-  PARTICIPATION_LABELS,
-  PLAYSTYLE_LABELS,
-  ROLE_LABELS,
-} from "@/lib/constants";
+import { getDictionary, getLocale } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/i18n/types";
 
 interface OverviewRow {
   user_id: string;
@@ -31,6 +27,8 @@ export default async function UebersichtPage() {
     redirect("/");
   }
 
+  const dict = getDictionary(await getLocale());
+
   const { data: rows } = await supabase
     .from("participants_overview")
     .select("*")
@@ -51,23 +49,27 @@ export default async function UebersichtPage() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="heading-ornate text-2xl">Übersicht</h1>
+        <h1 className="heading-ornate text-2xl">{dict.overview.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">
-          ← Zurück
+          {dict.nav.back}
         </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <StatTile label="Ja" value={ja} color="text-emerald-400" />
-        <StatTile label="Vielleicht" value={vielleicht} color="text-amber-400" />
-        <StatTile label="Nein" value={nein} color="text-red-400" />
+        <StatTile label={dict.labels.participation.ja} value={ja} color="text-emerald-400" />
+        <StatTile
+          label={dict.labels.participation.vielleicht}
+          value={vielleicht}
+          color="text-amber-400"
+        />
+        <StatTile label={dict.labels.participation.nein} value={nein} color="text-red-400" />
       </div>
 
       <div className="panel flex flex-col items-center gap-3 p-4 text-center">
-        <p className="text-sm text-slate-400">Kennt ihr das?</p>
+        <p className="text-sm text-slate-400">{dict.overview.memeCaption}</p>
         <Image
           src="/images/meme-adult-responsibilities.jpg"
-          alt="Meme: Ein Tauren versucht WoW wie früher zu spielen, während im Hintergrund die 'Adult Responsibilities' heranstürmen"
+          alt={dict.overview.memeAlt}
           width={640}
           height={906}
           className="max-w-[240px] rounded-lg border border-gold/30"
@@ -96,16 +98,7 @@ export default async function UebersichtPage() {
                 )}
               </p>
               <p className="text-xs text-slate-400">
-                {[
-                  p.faction ? FACTION_LABELS[p.faction] : null,
-                  p.playstyle ? PLAYSTYLE_LABELS[p.playstyle] : null,
-                  p.classes && p.classes.length > 0
-                    ? p.classes.join(" → ")
-                    : null,
-                  p.role ? ROLE_LABELS[p.role] : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "–"}
+                {formatSummary(p, dict)}
               </p>
             </div>
             <span
@@ -117,17 +110,32 @@ export default async function UebersichtPage() {
                     : "bg-red-950 text-red-400"
               }`}
             >
-              {PARTICIPATION_LABELS[p.participation]}
+              {dict.labels.participation[p.participation]}
             </span>
           </li>
         ))}
         {participants.length === 0 && (
           <li className="p-4 text-center text-sm text-slate-500">
-            Noch keine Antworten.
+            {dict.overview.noResponses}
           </li>
         )}
       </ul>
     </main>
+  );
+}
+
+function formatSummary(p: OverviewRow, dict: Dictionary): string {
+  return (
+    [
+      p.faction ? dict.labels.faction[p.faction] : null,
+      p.playstyle ? dict.labels.playstyle[p.playstyle] : null,
+      p.classes && p.classes.length > 0
+        ? p.classes.map((c) => dict.labels.class[c] ?? c).join(" → ")
+        : null,
+      p.role ? dict.labels.role[p.role] : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "–"
   );
 }
 

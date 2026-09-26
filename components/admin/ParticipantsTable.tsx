@@ -3,20 +3,18 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { SurveyResponse } from "@/lib/types";
-import {
-  FACTION_LABELS,
-  FREQUENCY_LABELS,
-  PARTICIPATION_LABELS,
-  PLAYSTYLE_LABELS,
-  ROLE_LABELS,
-} from "@/lib/constants";
+import type { Dictionary, Locale } from "@/lib/i18n/types";
 
 type SortKey = "display_name" | "participation" | "faction" | "updated_at";
 
 export default function ParticipantsTable({
   responses,
+  dict,
+  locale,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
+  locale: Locale;
 }) {
   const [filterParticipation, setFilterParticipation] = useState<string>("alle");
   const [sortKey, setSortKey] = useState<SortKey>("updated_at");
@@ -48,7 +46,7 @@ export default function ParticipantsTable({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-slate-400">Filter:</span>
+        <span className="text-slate-400">{dict.admin.filterLabel}</span>
         {["alle", "ja", "vielleicht", "nein"].map((value) => (
           <button
             key={value}
@@ -59,7 +57,9 @@ export default function ParticipantsTable({
                 : "bg-slate-800 text-slate-300"
             }`}
           >
-            {value === "alle" ? "Alle" : PARTICIPATION_LABELS[value as "ja" | "vielleicht" | "nein"]}
+            {value === "alle"
+              ? dict.admin.filterAll
+              : dict.labels.participation[value as "ja" | "vielleicht" | "nein"]}
           </button>
         ))}
       </div>
@@ -68,15 +68,15 @@ export default function ParticipantsTable({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-panel text-slate-400">
             <tr>
-              <Th label="Name" onClick={() => toggleSort("display_name")} />
-              <Th label="Status" onClick={() => toggleSort("participation")} />
-              <Th label="Fraktion" onClick={() => toggleSort("faction")} />
-              <th className="px-3 py-2">Spielstil</th>
-              <th className="px-3 py-2">Klasse</th>
-              <th className="px-3 py-2">Rolle</th>
-              <th className="px-3 py-2">Häufigkeit</th>
-              <th className="px-3 py-2">Kommentar</th>
-              <Th label="Aktualisiert" onClick={() => toggleSort("updated_at")} />
+              <Th label={dict.admin.table.name} onClick={() => toggleSort("display_name")} />
+              <Th label={dict.admin.table.status} onClick={() => toggleSort("participation")} />
+              <Th label={dict.admin.table.faction} onClick={() => toggleSort("faction")} />
+              <th className="px-3 py-2">{dict.admin.table.playstyle}</th>
+              <th className="px-3 py-2">{dict.admin.table.class}</th>
+              <th className="px-3 py-2">{dict.admin.table.role}</th>
+              <th className="px-3 py-2">{dict.admin.table.frequency}</th>
+              <th className="px-3 py-2">{dict.admin.table.comment}</th>
+              <Th label={dict.admin.table.updated} onClick={() => toggleSort("updated_at")} />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -100,38 +100,40 @@ export default function ParticipantsTable({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  {PARTICIPATION_LABELS[r.participation]}
+                  {dict.labels.participation[r.participation]}
                 </td>
                 <td className="px-3 py-2">
-                  {r.faction ? FACTION_LABELS[r.faction] : "–"}
+                  {r.faction ? dict.labels.faction[r.faction] : "–"}
                 </td>
                 <td className="px-3 py-2">
-                  {r.playstyle ? PLAYSTYLE_LABELS[r.playstyle] : "–"}
+                  {r.playstyle ? dict.labels.playstyle[r.playstyle] : "–"}
                 </td>
                 <td className="px-3 py-2">
                   {r.classes && r.classes.length > 0
-                    ? r.classes.join(" → ")
+                    ? r.classes.map((c) => dict.labels.class[c] ?? c).join(" → ")
                     : "–"}
                 </td>
-                <td className="px-3 py-2">{r.role ? ROLE_LABELS[r.role] : "–"}</td>
                 <td className="px-3 py-2">
-                  {r.frequency ? FREQUENCY_LABELS[r.frequency] : "–"}
+                  {r.role ? dict.labels.role[r.role] : "–"}
+                </td>
+                <td className="px-3 py-2">
+                  {r.frequency ? dict.labels.frequency[r.frequency] : "–"}
                 </td>
                 <td className="max-w-[220px] truncate px-3 py-2" title={r.comment ?? ""}>
                   {r.comment ?? "–"}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                  {new Date(r.updated_at).toLocaleString("de-DE", {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
+                  {new Date(r.updated_at).toLocaleString(
+                    locale === "en" ? "en-US" : "de-DE",
+                    { dateStyle: "short", timeStyle: "short" }
+                  )}
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
-                  Keine Einträge.
+                  {dict.admin.table.empty}
                 </td>
               </tr>
             )}

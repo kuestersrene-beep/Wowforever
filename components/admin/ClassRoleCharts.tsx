@@ -2,22 +2,25 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { SurveyResponse } from "@/lib/types";
-import { ROLE_LABELS } from "@/lib/constants";
+import type { Dictionary } from "@/lib/i18n/types";
 import { EmptyState } from "./FactionChart";
 
-function countClasses(responses: SurveyResponse[]) {
+function countClasses(responses: SurveyResponse[], dict: Dictionary) {
   const counts = new Map<string, number>();
   responses.forEach((r) => {
     r.classes?.forEach((c) => counts.set(c, (counts.get(c) ?? 0) + 1));
   });
-  return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
+  return Array.from(counts.entries()).map(([cls, value]) => ({
+    name: dict.labels.class[cls] ?? cls,
+    value,
+  }));
 }
 
-function countRoles(responses: SurveyResponse[]) {
+function countRoles(responses: SurveyResponse[], dict: Dictionary) {
   const counts = new Map<string, number>();
   responses.forEach((r) => {
     if (!r.role) return;
-    const label = ROLE_LABELS[r.role];
+    const label = dict.labels.role[r.role];
     counts.set(label, (counts.get(label) ?? 0) + 1);
   });
   return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
@@ -25,18 +28,20 @@ function countRoles(responses: SurveyResponse[]) {
 
 export default function ClassRoleCharts({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
-  const classData = countClasses(responses);
-  const roleData = countRoles(responses);
+  const classData = countClasses(responses, dict);
+  const roleData = countRoles(responses, dict);
 
   return (
     <div className="grid gap-6 sm:grid-cols-2">
       <div className="panel p-4">
-        <h3 className="mb-2 font-heading text-gold-light">Klassen</h3>
+        <h3 className="mb-2 font-heading text-gold-light">{dict.admin.charts.classes}</h3>
         {classData.length === 0 ? (
-          <EmptyState />
+          <EmptyState dict={dict} />
         ) : (
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={classData} layout="vertical" margin={{ left: 20 }}>
@@ -51,9 +56,9 @@ export default function ClassRoleCharts({
       </div>
 
       <div className="panel p-4">
-        <h3 className="mb-2 font-heading text-gold-light">Rollen</h3>
+        <h3 className="mb-2 font-heading text-gold-light">{dict.admin.charts.roles}</h3>
         {roleData.length === 0 ? (
-          <EmptyState />
+          <EmptyState dict={dict} />
         ) : (
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={roleData}>

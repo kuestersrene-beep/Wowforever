@@ -1,0 +1,133 @@
+import type { Dictionary } from "./types";
+
+export const en: Dictionary = {
+  nav: {
+    back: "← Back",
+    toSurvey: "Go to survey",
+    toOverview: "View overview",
+    toAdmin: "Admin dashboard",
+    loggedInAs: "Logged in as",
+    loginPrompt: "Sign in with your Discord account to take part.",
+  },
+  login: {
+    withDiscord: "Sign in with Discord",
+  },
+  logout: {
+    label: "Log out",
+  },
+  home: {
+    subtitle:
+      "Quick survey among friends – who's in, and what can we expect as a group?",
+    quest:
+      "Hail, adventurer! Times have changed - raid nights turned into date nights, guild chat turned into the family group chat. But deep down, the call of Azeroth still lives in us. Before adulting catches up with us for good: let's polish the armor one more time and reunite the old crew!",
+    privacyTitle: "Privacy",
+    privacyText:
+      "We only store your Discord user ID, display name, avatar image, and your survey answers. This data is used exclusively for this private survey among friends. You can change your answer at any time, or delete it completely on the survey page.",
+    countdownTemplate: "{days} {unit} until WoW Forever!",
+    dayUnit: "day",
+    daysUnit: "days",
+    countdownToday: "Today's the day!",
+  },
+  survey: {
+    title: "Your answer",
+    backHint:
+      "You can change your answer here at any time while the survey is running.",
+    deadlineTemplate: "Please respond by {date}.",
+    firstNameLabel: "Your first name *",
+    firstNameHint:
+      "So everyone recognizes you in case someone doesn't know your Discord name.",
+    firstNamePlaceholder: "e.g. Max",
+    q1Legend: "1. Are you in for WoW Forever? *",
+    q2Legend: "2. Faction",
+    q3Legend: "3. Playstyle",
+    pleaseChoose: "Please choose",
+    q4Legend: "4. Planned class(es) (optional)",
+    q4Hint:
+      "Up to 3 classes ranked by priority – helps us see who wants it most if several people pick the same class.",
+    prioNoneTemplate: "Priority {n} – none",
+    q5Legend: "5. Role (optional)",
+    notSureYet: "Not sure yet",
+    q6Legend: "6. How often do you expect to play? (optional)",
+    q7Legend: "7. Comment (optional)",
+    commentPlaceholder: "Anything else you'd like to add...",
+    saving: "Saving...",
+    save: "Save answer",
+    saved: "Saved ✓",
+    deleteButton: "Delete answer",
+    deleteConfirm: "Really delete your answer completely?",
+  },
+  overview: {
+    title: "Overview",
+    memeCaption: "Know the feeling?",
+    memeAlt:
+      "Meme: A Tauren tries to play WoW like the good old days, while 'Adult Responsibilities' close in from behind",
+    noResponses: "No responses yet.",
+  },
+  admin: {
+    title: "Admin dashboard",
+    allParticipants: "All participants",
+    loadErrorTemplate: "Error loading data: {msg}",
+    exportCsv: "Export as CSV",
+    filterLabel: "Filter:",
+    filterAll: "All",
+    table: {
+      name: "Name",
+      status: "Status",
+      faction: "Faction",
+      playstyle: "Playstyle",
+      class: "Class",
+      role: "Role",
+      frequency: "Frequency",
+      comment: "Comment",
+      updated: "Updated",
+      empty: "No entries.",
+    },
+    stat: { yes: "Yes", maybe: "Maybe", no: "No", total: "Total" },
+    insightTemplate: "{count} of {total} with a faction preference want to play {leader}.",
+    roleNeed: {
+      summaryTemplate: "{tank} {tankUnit} · {healer} {healerUnit} · {dd} DPS signed up.",
+      missingTemplate: "Still needed: {roles}!",
+      tankUnitSingular: "tank",
+      tankUnitPlural: "tanks",
+      healerUnitSingular: "healer",
+      healerUnitPlural: "healers",
+      tanks: "tanks",
+      healers: "healers",
+    },
+    classPriority: {
+      title: "Class priorities",
+      hint: "Who picked which class at which priority? Helps spot overlaps in first choices.",
+      conflictTemplate: "{n}x as first choice – worth discussing!",
+      prioTemplate: "Prio {n}",
+    },
+    charts: {
+      faction: "Faction",
+      playstyle: "Playstyle",
+      classes: "Classes",
+      roles: "Roles",
+      empty: "No data yet",
+    },
+  },
+  labels: {
+    participation: { ja: "Yes", vielleicht: "Maybe", nein: "No" },
+    faction: { horde: "Horde", allianz: "Alliance", egal: "Doesn't matter" },
+    playstyle: { pvp: "PvP", pve: "PvE", beides: "Both" },
+    role: { tank: "Tank", heiler: "Healer", dd: "Damage dealer (DPS)" },
+    frequency: {
+      gelegentlich: "Occasionally",
+      mehrmals_woche: "Several times a week",
+      fast_taeglich: "Almost daily",
+    },
+    class: {
+      Krieger: "Warrior",
+      Paladin: "Paladin",
+      Jäger: "Hunter",
+      Schurke: "Rogue",
+      Priester: "Priest",
+      Schamane: "Shaman",
+      Magier: "Mage",
+      Hexenmeister: "Warlock",
+      Druide: "Druid",
+    },
+  },
+};

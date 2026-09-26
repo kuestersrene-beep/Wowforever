@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDictionary, getLocale } from "@/lib/i18n";
+import { formatDeadline } from "@/lib/i18n/format";
 import SurveyForm from "@/components/SurveyForm";
 import type { SurveyResponse } from "@/lib/types";
 
@@ -20,6 +22,9 @@ export default async function UmfragePage() {
     .eq("user_id", user.id)
     .maybeSingle<SurveyResponse>();
 
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
+
   const deadline = process.env.NEXT_PUBLIC_SURVEY_DEADLINE
     ? new Date(process.env.NEXT_PUBLIC_SURVEY_DEADLINE)
     : null;
@@ -27,24 +32,22 @@ export default async function UmfragePage() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="heading-ornate text-2xl">Deine Antwort</h1>
+        <h1 className="heading-ornate text-2xl">{dict.survey.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">
-          ← Zurück
+          {dict.nav.back}
         </Link>
       </div>
-      <p className="text-sm text-slate-400">
-        Du kannst deine Antwort jederzeit hier ändern, solange die Umfrage
-        läuft.
-      </p>
+      <p className="text-sm text-slate-400">{dict.survey.backHint}</p>
       {deadline && (
         <p className="rounded-lg border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-gold-light">
-          Bitte antworte bis zum{" "}
-          {deadline.toLocaleDateString("de-DE", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
-          .
+          {formatDeadline(
+            dict,
+            deadline.toLocaleDateString(locale === "en" ? "en-US" : "de-DE", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })
+          )}
         </p>
       )}
       <div className="panel p-6">

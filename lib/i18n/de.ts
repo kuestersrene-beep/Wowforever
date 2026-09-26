@@ -1,0 +1,133 @@
+import type { Dictionary } from "./types";
+
+export const de: Dictionary = {
+  nav: {
+    back: "← Zurück",
+    toSurvey: "Zur Umfrage",
+    toOverview: "Übersicht ansehen",
+    toAdmin: "Admin-Dashboard",
+    loggedInAs: "Angemeldet als",
+    loginPrompt: "Melde dich mit deinem Discord-Account an, um mitzumachen.",
+  },
+  login: {
+    withDiscord: "Mit Discord anmelden",
+  },
+  logout: {
+    label: "Abmelden",
+  },
+  home: {
+    subtitle:
+      "Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir als Gruppe rechnen?",
+    quest:
+      "Sei gegrüßt, Abenteurer! Die Zeiten haben sich geändert – aus Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst uns die Rüstung noch einmal polieren und die alte Truppe wiedervereinen!",
+    privacyTitle: "Datenschutz",
+    privacyText:
+      "Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein Avatar-Bild und deine Antworten aus dieser Umfrage. Diese Daten werden ausschließlich für diese private Freundes-Umfrage genutzt. Du kannst deine Antwort jederzeit ändern oder auf der Umfrageseite vollständig löschen.",
+    countdownTemplate: "Noch {days} {unit} bis WoW Forever!",
+    dayUnit: "Tag",
+    daysUnit: "Tage",
+    countdownToday: "Heute ist es soweit!",
+  },
+  survey: {
+    title: "Deine Antwort",
+    backHint:
+      "Du kannst deine Antwort jederzeit hier ändern, solange die Umfrage läuft.",
+    deadlineTemplate: "Bitte antworte bis zum {date}.",
+    firstNameLabel: "Dein Vorname *",
+    firstNameHint:
+      "Damit dich alle erkennen, falls jemand deinen Discord-Namen nicht kennt.",
+    firstNamePlaceholder: "z. B. Max",
+    q1Legend: "1. Bist du bei WoW Forever dabei? *",
+    q2Legend: "2. Fraktion",
+    q3Legend: "3. Spielstil",
+    pleaseChoose: "Bitte wählen",
+    q4Legend: "4. Geplante Klasse(n) (optional)",
+    q4Hint:
+      "Bis zu 3 Klassen nach Priorität – hilft uns, wenn mehrere dasselbe spielen wollen, zu sehen, wer das am liebsten möchte.",
+    prioNoneTemplate: "{n}. Priorität – keine",
+    q5Legend: "5. Rolle (optional)",
+    notSureYet: "Noch unklar",
+    q6Legend: "6. Wie oft spielst du voraussichtlich? (optional)",
+    q7Legend: "7. Kommentar (optional)",
+    commentPlaceholder: "Alles was du sonst noch loswerden willst...",
+    saving: "Speichert...",
+    save: "Antwort speichern",
+    saved: "Gespeichert ✓",
+    deleteButton: "Antwort löschen",
+    deleteConfirm: "Deine Antwort wirklich vollständig löschen?",
+  },
+  overview: {
+    title: "Übersicht",
+    memeCaption: "Kennt ihr das?",
+    memeAlt:
+      "Meme: Ein Tauren versucht WoW wie früher zu spielen, während im Hintergrund die 'Adult Responsibilities' heranstürmen",
+    noResponses: "Noch keine Antworten.",
+  },
+  admin: {
+    title: "Admin-Dashboard",
+    allParticipants: "Alle Teilnehmer:innen",
+    loadErrorTemplate: "Fehler beim Laden der Daten: {msg}",
+    exportCsv: "Als CSV exportieren",
+    filterLabel: "Filter:",
+    filterAll: "Alle",
+    table: {
+      name: "Name",
+      status: "Status",
+      faction: "Fraktion",
+      playstyle: "Spielstil",
+      class: "Klasse",
+      role: "Rolle",
+      frequency: "Häufigkeit",
+      comment: "Kommentar",
+      updated: "Aktualisiert",
+      empty: "Keine Einträge.",
+    },
+    stat: { yes: "Ja", maybe: "Vielleicht", no: "Nein", total: "Gesamt" },
+    insightTemplate: "{count} von {total} mit Fraktionswunsch wollen {leader} spielen.",
+    roleNeed: {
+      summaryTemplate: "{tank} {tankUnit} · {healer} {healerUnit} · {dd} DDs angemeldet.",
+      missingTemplate: "Noch gesucht: {roles}!",
+      tankUnitSingular: "Tank",
+      tankUnitPlural: "Tanks",
+      healerUnitSingular: "Heiler",
+      healerUnitPlural: "Heiler",
+      tanks: "Tanks",
+      healers: "Heiler",
+    },
+    classPriority: {
+      title: "Klassen-Prioritäten",
+      hint: "Wer hat welche Klasse mit welcher Priorität gewählt? Hilfreich, um Überschneidungen bei der 1. Wahl zu erkennen.",
+      conflictTemplate: "{n}x als 1. Wahl – hier lohnt sich Absprache!",
+      prioTemplate: "Prio {n}",
+    },
+    charts: {
+      faction: "Fraktion",
+      playstyle: "Spielstil",
+      classes: "Klassen",
+      roles: "Rollen",
+      empty: "Noch keine Daten",
+    },
+  },
+  labels: {
+    participation: { ja: "Ja", vielleicht: "Vielleicht", nein: "Nein" },
+    faction: { horde: "Horde", allianz: "Allianz", egal: "Egal" },
+    playstyle: { pvp: "PvP", pve: "PvE", beides: "Beides" },
+    role: { tank: "Tank", heiler: "Heiler", dd: "Schadensausteiler (DD)" },
+    frequency: {
+      gelegentlich: "Gelegentlich",
+      mehrmals_woche: "Mehrmals pro Woche",
+      fast_taeglich: "Fast täglich",
+    },
+    class: {
+      Krieger: "Krieger",
+      Paladin: "Paladin",
+      Jäger: "Jäger",
+      Schurke: "Schurke",
+      Priester: "Priester",
+      Schamane: "Schamane",
+      Magier: "Magier",
+      Hexenmeister: "Hexenmeister",
+      Druide: "Druide",
+    },
+  },
+};

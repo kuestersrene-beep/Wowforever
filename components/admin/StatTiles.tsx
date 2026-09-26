@@ -1,9 +1,12 @@
 import type { SurveyResponse } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
 
 export default function StatTiles({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
   const ja = responses.filter((r) => r.participation === "ja").length;
   const vielleicht = responses.filter(
@@ -12,10 +15,10 @@ export default function StatTiles({
   const nein = responses.filter((r) => r.participation === "nein").length;
 
   const tiles = [
-    { label: "Ja", value: ja, color: "text-emerald-400" },
-    { label: "Vielleicht", value: vielleicht, color: "text-amber-400" },
-    { label: "Nein", value: nein, color: "text-red-400" },
-    { label: "Gesamt", value: responses.length, color: "text-slate-200" },
+    { label: dict.admin.stat.yes, value: ja, color: "text-emerald-400" },
+    { label: dict.admin.stat.maybe, value: vielleicht, color: "text-amber-400" },
+    { label: dict.admin.stat.no, value: nein, color: "text-red-400" },
+    { label: dict.admin.stat.total, value: responses.length, color: "text-slate-200" },
   ];
 
   return (

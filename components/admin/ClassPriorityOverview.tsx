@@ -1,4 +1,6 @@
 import type { SurveyResponse } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
+import { formatClassConflict, formatPrio } from "@/lib/i18n/format";
 import { EmptyState } from "./FactionChart";
 
 interface ClassPick {
@@ -8,8 +10,10 @@ interface ClassPick {
 
 export default function ClassPriorityOverview({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
   const byClass = new Map<string, ClassPick[]>();
 
@@ -31,14 +35,13 @@ export default function ClassPriorityOverview({
   return (
     <div className="panel p-4">
       <h3 className="mb-1 font-heading text-gold-light">
-        Klassen-Prioritäten
+        {dict.admin.classPriority.title}
       </h3>
       <p className="mb-3 text-xs text-slate-400">
-        Wer hat welche Klasse mit welcher Priorität gewählt? Hilfreich, um
-        Überschneidungen bei der 1. Wahl zu erkennen.
+        {dict.admin.classPriority.hint}
       </p>
       {classes.length === 0 ? (
-        <EmptyState />
+        <EmptyState dict={dict} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {classes.map(({ cls, picks }) => {
@@ -50,21 +53,22 @@ export default function ClassPriorityOverview({
                 key={cls}
                 className="rounded-lg border border-gold/20 bg-ink/40 p-3"
               >
-                <p className="font-medium text-parchment">{cls}</p>
+                <p className="font-medium text-parchment">
+                  {dict.labels.class[cls] ?? cls}
+                </p>
                 <ul className="mt-1 flex flex-col gap-0.5 text-sm text-slate-300">
                   {picks.map((p, i) => (
                     <li key={`${p.name}-${i}`}>
                       {p.name}{" "}
                       <span className="text-slate-500">
-                        (Prio {p.priority})
+                        ({formatPrio(dict, p.priority)})
                       </span>
                     </li>
                   ))}
                 </ul>
                 {firstChoiceCount > 1 && (
                   <p className="mt-1 text-xs text-gold-light">
-                    {firstChoiceCount}x als 1. Wahl – hier lohnt sich
-                    Absprache!
+                    {formatClassConflict(dict, firstChoiceCount)}
                   </p>
                 )}
               </div>

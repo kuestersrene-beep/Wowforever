@@ -1,11 +1,15 @@
 import type { SurveyResponse } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
+import { formatInsight } from "@/lib/i18n/format";
 
 const LEAD_THRESHOLD = 0.6;
 
 export default function InsightBanner({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
   const decided = responses.filter(
     (r) => r.faction === "horde" || r.faction === "allianz"
@@ -16,16 +20,17 @@ export default function InsightBanner({
 
   if (total === 0) return null;
 
-  const [leader, count] =
-    horde >= allianz ? (["Horde", horde] as const) : (["Allianz", allianz] as const);
+  const [leaderKey, count] =
+    horde >= allianz
+      ? (["horde", horde] as const)
+      : (["allianz", allianz] as const);
   const ratio = count / total;
 
   if (ratio < LEAD_THRESHOLD) return null;
 
   return (
     <div className="rounded-xl border border-gold bg-gold/10 p-4 text-gold-light">
-      <strong>{count} von {total}</strong> mit Fraktionswunsch wollen{" "}
-      <strong>{leader}</strong> spielen.
+      {formatInsight(dict, count, total, dict.labels.faction[leaderKey])}
     </div>
   );
 }

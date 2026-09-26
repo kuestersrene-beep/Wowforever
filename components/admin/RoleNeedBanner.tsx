@@ -1,9 +1,13 @@
 import type { SurveyResponse } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/types";
+import { formatRoleMissing, formatRoleSummary } from "@/lib/i18n/format";
 
 export default function RoleNeedBanner({
   responses,
+  dict,
 }: {
   responses: SurveyResponse[];
+  dict: Dictionary;
 }) {
   const active = responses.filter(
     (r) => r.participation !== "nein" && r.role
@@ -16,19 +20,15 @@ export default function RoleNeedBanner({
   if (total === 0) return null;
 
   const missing: string[] = [];
-  if (tank === 0) missing.push("Tanks");
-  if (heiler === 0) missing.push("Heiler");
+  if (tank === 0) missing.push(dict.admin.roleNeed.tanks);
+  if (heiler === 0) missing.push(dict.admin.roleNeed.healers);
 
   return (
     <div className="rounded-xl border border-gold bg-gold/10 p-4 text-gold-light">
-      <p>
-        <strong>{tank}</strong> Tank{tank === 1 ? "" : "s"} ·{" "}
-        <strong>{heiler}</strong> Heiler · <strong>{dd}</strong> DDs
-        angemeldet.
-      </p>
+      <p>{formatRoleSummary(dict, tank, heiler, dd)}</p>
       {missing.length > 0 && (
         <p className="mt-1 text-sm">
-          Noch gesucht: {missing.join(" und ")}!
+          {formatRoleMissing(dict, missing.join(" & "))}
         </p>
       )}
     </div>
