@@ -43,11 +43,20 @@ export default function ClassRoleCharts({
         {classData.length === 0 ? (
           <EmptyState dict={dict} />
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer
+            width="100%"
+            height={Math.max(240, classData.length * 40)}
+          >
             <BarChart data={classData} layout="vertical" margin={{ left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis type="number" allowDecimals={false} stroke="#94a3b8" />
-              <YAxis type="category" dataKey="name" width={90} stroke="#94a3b8" />
+              <YAxis
+                type="category"
+                dataKey="name"
+                width={90}
+                interval={0}
+                stroke="#94a3b8"
+              />
               <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #1e293b" }} />
               <Bar dataKey="value" fill="#a78bfa" radius={[0, 4, 4, 0]} />
             </BarChart>
