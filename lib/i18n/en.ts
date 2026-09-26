@@ -17,7 +17,7 @@ export const en: Dictionary = {
   },
   home: {
     subtitle:
-      "Quick survey among friends – who's in, and what can we expect as a group?",
+      "No matter which guild you're otherwise part of, or whether you even have one - this survey changes nothing about that. We just want to find out whether our ideas of playing together are a good match, and who actually wants to set out for WoW Forever.",
     quest:
       "Hail, adventurer! Times have changed - raid nights turned into date nights, guild chat turned into the family group chat. But deep down, the call of Azeroth still lives in us. Before adulting catches up with us for good: let's polish the armor one more time and reunite the old crew!",
     privacyTitle: "Privacy",
@@ -31,7 +31,7 @@ export const en: Dictionary = {
   survey: {
     title: "Your answer",
     backHint:
-      "You can change your answer here at any time while the survey is running.",
+      "You can come back here and adjust your answer at any time - for example if new insights during the beta change your mind.",
     deadlineTemplate: "Please respond by {date}.",
     firstNameLabel: "Your first name *",
     firstNameHint:
@@ -39,7 +39,11 @@ export const en: Dictionary = {
     firstNamePlaceholder: "e.g. Max",
     q1Legend: "1. Are you in for WoW Forever? *",
     q2Legend: "2. Faction",
+    q2Hint:
+      "Matters for playing together: only people on the same faction can quest, raid, and chat together.",
     q3Legend: "3. Playstyle",
+    q3Hint:
+      "Matters for playing together: PvP and PvE fans often want different things from a server – your answers help us spot that early.",
     pleaseChoose: "Please choose",
     q4Legend: "4. Planned class(es) (optional)",
     q4Hint:

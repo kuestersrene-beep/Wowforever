@@ -37,7 +37,9 @@ export default async function UmfragePage() {
           {dict.nav.back}
         </Link>
       </div>
-      <p className="text-sm text-slate-400">{dict.survey.backHint}</p>
+      <p className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90">
+        {dict.survey.backHint}
+      </p>
       {deadline && (
         <p className="rounded-lg border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-gold-light">
           {formatDeadline(

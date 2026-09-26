@@ -17,7 +17,7 @@ export const de: Dictionary = {
   },
   home: {
     subtitle:
-      "Kurze Umfrage unter Freunden – wer ist dabei, und womit können wir als Gruppe rechnen?",
+      "Ganz gleich, in welcher Gilde ihr sonst unterwegs seid, oder ob ihr überhaupt schon eine habt – daran ändert diese Umfrage nichts. Wir wollen nur herausfinden, ob unsere Vorstellungen vom gemeinsamen Abenteuer zueinander passen, und wer sich überhaupt aufmachen will nach WoW Forever.",
     quest:
       "Sei gegrüßt, Abenteurer! Die Zeiten haben sich geändert – aus Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst uns die Rüstung noch einmal polieren und die alte Truppe wiedervereinen!",
     privacyTitle: "Datenschutz",
@@ -31,7 +31,7 @@ export const de: Dictionary = {
   survey: {
     title: "Deine Antwort",
     backHint:
-      "Du kannst deine Antwort jederzeit hier ändern, solange die Umfrage läuft.",
+      "Du kannst jederzeit hierher zurückkommen und deine Antwort anpassen – zum Beispiel, wenn sich während der Beta neue Erkenntnisse ergeben, die deine Entscheidung beeinflussen.",
     deadlineTemplate: "Bitte antworte bis zum {date}.",
     firstNameLabel: "Dein Vorname *",
     firstNameHint:
@@ -39,7 +39,11 @@ export const de: Dictionary = {
     firstNamePlaceholder: "z. B. Max",
     q1Legend: "1. Bist du bei WoW Forever dabei? *",
     q2Legend: "2. Fraktion",
+    q2Hint:
+      "Wichtig fürs gemeinsame Spielen: Nur wer dieselbe Fraktion wählt, kann zusammen questen, raiden und im selben Chat quatschen.",
     q3Legend: "3. Spielstil",
+    q3Hint:
+      "Wichtig fürs gemeinsame Spielen: PvP- und PvE-Fans haben oft unterschiedliche Vorstellungen vom Server – eure Antworten helfen, das früh abzugleichen.",
     pleaseChoose: "Bitte wählen",
     q4Legend: "4. Geplante Klasse(n) (optional)",
     q4Hint:

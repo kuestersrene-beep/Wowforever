@@ -48,7 +48,9 @@ export interface Dictionary {
     firstNamePlaceholder: string;
     q1Legend: string;
     q2Legend: string;
+    q2Hint: string;
     q3Legend: string;
+    q3Hint: string;
     pleaseChoose: string;
     q4Legend: string;
     q4Hint: string;

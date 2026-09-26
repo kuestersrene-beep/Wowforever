@@ -18,16 +18,14 @@ export default function SurveyForm({
     existing?.participation ?? ""
   );
   const [isPending, startTransition] = useTransition();
-  const [saved, setSaved] = useState(false);
   const router = useRouter();
 
   const showRest = participation === "ja" || participation === "vielleicht";
 
   const handleSubmit = (formData: FormData) => {
-    setSaved(false);
     startTransition(async () => {
       await saveResponse(formData);
-      setSaved(true);
+      router.push("/uebersicht");
     });
   };
 
@@ -37,7 +35,6 @@ export default function SurveyForm({
       await deleteResponse();
       router.refresh();
       setParticipation("");
-      setSaved(false);
     });
   };
 
@@ -92,6 +89,7 @@ export default function SurveyForm({
         <>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-medium">{dict.survey.q2Legend}</legend>
+            <p className="text-xs text-slate-400">{dict.survey.q2Hint}</p>
             <select
               name="faction"
               defaultValue={existing?.faction ?? ""}
@@ -106,6 +104,7 @@ export default function SurveyForm({
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-medium">{dict.survey.q3Legend}</legend>
+            <p className="text-xs text-slate-400">{dict.survey.q3Hint}</p>
             <select
               name="playstyle"
               defaultValue={existing?.playstyle ?? ""}
@@ -198,9 +197,6 @@ export default function SurveyForm({
         >
           {isPending ? dict.survey.saving : dict.survey.save}
         </button>
-        {saved && (
-          <span className="text-sm text-emerald-400">{dict.survey.saved}</span>
-        )}
         {existing && (
           <button
             type="button"
