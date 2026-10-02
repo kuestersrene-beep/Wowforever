@@ -30,6 +30,10 @@ export const de: Dictionary = {
       seconds: "Sek",
     },
     countdownToday: "Heute ist es soweit!",
+    downloadGuide: {
+      title: "Leveling-Guide",
+      caption: "Download RXPGuides-v4.11.12",
+    },
   },
   survey: {
     title: "Deine Antwort",

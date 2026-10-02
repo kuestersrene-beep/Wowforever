@@ -41,6 +41,10 @@ export interface Dictionary {
       seconds: string;
     };
     countdownToday: string;
+    downloadGuide: {
+      title: string;
+      caption: string;
+    };
   };
   survey: {
     title: string;
