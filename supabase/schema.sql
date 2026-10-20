@@ -164,3 +164,97 @@ create view public.participants_overview as
 
 revoke all on public.participants_overview from anon;
 grant select on public.participants_overview to authenticated;
+
+-- ============================================================
+-- Verfügbarkeit: grobe Zeitfenster (Wochentag x Tagesabschnitt), damit
+-- sich Leute vorab zu Spielgruppen verabreden können. Eine Zeile pro
+-- Nutzer:in, "slots" enthält Codes wie "mon_evening", "sat_afternoon".
+-- Eigene Tabelle mit denselben "nur eigene Zeile"-Policies wie
+-- "responses" - für die Überschneidungs-Ansicht auf /uebersicht gibt
+-- es unten eine eigene View (wie bei participants_overview).
+-- ============================================================
+
+create table if not exists public.availability (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  slots text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.availability enable row level security;
+
+drop policy if exists "select own availability" on public.availability;
+create policy "select own availability"
+  on public.availability for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "insert own availability" on public.availability;
+create policy "insert own availability"
+  on public.availability for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "update own availability" on public.availability;
+create policy "update own availability"
+  on public.availability for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "delete own availability" on public.availability;
+create policy "delete own availability"
+  on public.availability for delete
+  using (auth.uid() = user_id);
+
+drop trigger if exists set_updated_at_availability on public.availability;
+create trigger set_updated_at_availability
+  before update on public.availability
+  for each row
+  execute function public.set_updated_at();
+
+-- DROP + CREATE statt CREATE OR REPLACE, aus demselben Grund wie bei
+-- participants_overview weiter oben (siehe Kommentar dort).
+drop view if exists public.availability_overview;
+create view public.availability_overview as
+  select
+    a.user_id,
+    a.slots,
+    r.first_name,
+    r.display_name,
+    r.avatar_url
+  from public.availability a
+  left join public.responses r on r.user_id = a.user_id;
+
+revoke all on public.availability_overview from anon;
+grant select on public.availability_overview to authenticated;
+
+-- ============================================================
+-- Downloads: eine Liste von Dateien/Links (z. B. Leveling-Guides),
+-- die nur Admins anlegen/ändern/löschen können (service_role, siehe
+-- app/admin/actions.ts), aber alle eingeloggten Nutzer:innen sehen
+-- dürfen. Bewusst eine einfache "select (true)"-Policy statt einer
+-- View, weil hier (anders als bei admin_notes) keine Spalten vor
+-- normalen Nutzer:innen versteckt werden müssen.
+-- ============================================================
+
+create table if not exists public.downloads (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  url text not null,
+  image_url text,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.downloads enable row level security;
+
+drop policy if exists "select all downloads" on public.downloads;
+create policy "select all downloads"
+  on public.downloads for select
+  using (true);
+-- Absichtlich keine insert/update/delete-Policy für normale
+-- Nutzer:innen - nur der service_role Key (Admin-Dashboard) darf
+-- schreiben.
+
+-- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
+-- sonst meldet die App "Could not find the table ... in the schema
+-- cache" für neue Tabellen/Views.
+notify pgrst, 'reload schema';

@@ -4,8 +4,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/i18n/types";
-import type { ParticipantSummary } from "@/lib/types";
+import type { AvailabilitySummary, ParticipantSummary } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
+import AvailabilityOverview from "@/components/AvailabilityOverview";
 import InsightBanner from "@/components/admin/InsightBanner";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import FactionChart from "@/components/admin/FactionChart";
@@ -38,6 +39,11 @@ export default async function UebersichtPage() {
     )
   );
 
+  const { data: availabilityRows } = await supabase
+    .from("availability_overview")
+    .select("*")
+    .returns<AvailabilitySummary[]>();
+
   return (
     <main className="flex flex-col gap-8">
       <Emblem className="mx-auto h-14 w-14" />
@@ -59,6 +65,8 @@ export default async function UebersichtPage() {
 
       <ClassRoleCharts responses={participants} dict={dict} />
       <ClassPriorityOverview responses={participants} dict={dict} />
+
+      <AvailabilityOverview rows={availabilityRows ?? []} dict={dict} />
 
       <div className="panel flex flex-col items-center gap-3 p-4 text-center">
         <p className="text-sm text-slate-400">{dict.overview.memeCaption}</p>

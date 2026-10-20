@@ -14,6 +14,8 @@ import InsightBanner from "@/components/admin/InsightBanner";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ParticipantsTable from "@/components/admin/ParticipantsTable";
 import CsvExportButton from "@/components/admin/CsvExportButton";
+import DownloadsManager from "@/components/admin/DownloadsManager";
+import type { DownloadItem } from "@/lib/types";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -58,6 +60,13 @@ export default async function AdminPage() {
     admin_note: notesByUser.get(r.user_id) ?? null,
   }));
 
+  const { data: downloadsData } = await adminSupabase
+    .from("downloads")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
+    .returns<DownloadItem[]>();
+
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -86,6 +95,11 @@ export default async function AdminPage() {
         <CsvExportButton responses={responses} dict={dict} />
       </div>
       <ParticipantsTable responses={responses} dict={dict} locale={locale} />
+
+      <h2 className="font-heading text-lg text-gold-light">
+        {dict.downloads.title}
+      </h2>
+      <DownloadsManager downloads={downloadsData ?? []} dict={dict} />
     </main>
   );
 }

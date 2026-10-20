@@ -1,9 +1,11 @@
 import type {
+  Daypart,
   Faction,
   Frequency,
   Participation,
   Playstyle,
   Role,
+  Weekday,
 } from "@/lib/types";
 
 export type Locale = "de" | "en";
@@ -20,6 +22,8 @@ export interface Dictionary {
     toSurvey: string;
     toOverview: string;
     toAdmin: string;
+    toAvailability: string;
+    toDownloads: string;
     loggedInAs: string;
     loginPrompt: string;
   };
@@ -41,10 +45,6 @@ export interface Dictionary {
       seconds: string;
     };
     countdownToday: string;
-    downloadGuide: {
-      title: string;
-      caption: string;
-    };
   };
   survey: {
     title: string;
@@ -79,6 +79,39 @@ export interface Dictionary {
     memeAlt: string;
     noResponses: string;
     noteLabel: string;
+    availabilityTitle: string;
+    availabilityHint: string;
+    availabilityHeatmapEmpty: string;
+    availabilityListEmpty: string;
+  };
+  availability: {
+    title: string;
+    hint: string;
+    backHint: string;
+    noSlotsHint: string;
+    save: string;
+    saving: string;
+    saved: string;
+    clearButton: string;
+    clearConfirm: string;
+  };
+  downloads: {
+    title: string;
+    hint: string;
+    empty: string;
+    downloadButton: string;
+    admin: {
+      addTitle: string;
+      titleLabel: string;
+      descriptionLabel: string;
+      urlLabel: string;
+      imageUrlLabel: string;
+      imageUrlHint: string;
+      addButton: string;
+      adding: string;
+      deleteButton: string;
+      deleteConfirm: string;
+    };
   };
   admin: {
     title: string;
@@ -134,5 +167,7 @@ export interface Dictionary {
     role: Record<Role, string>;
     frequency: Record<Frequency, string>;
     class: Record<string, string>;
+    weekday: Record<Weekday, string>;
+    daypart: Record<Daypart, string>;
   };
 }

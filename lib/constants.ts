@@ -1,4 +1,12 @@
-import type { Faction, Frequency, Participation, Playstyle, Role } from "./types";
+import type {
+  Daypart,
+  Faction,
+  Frequency,
+  Participation,
+  Playstyle,
+  Role,
+  Weekday,
+} from "./types";
 
 export const WOW_CLASSES = [
   "Krieger",
@@ -13,6 +21,10 @@ export const WOW_CLASSES = [
 ] as const;
 
 export const CLASS_PRIORITY_COUNT = 3;
+
+export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const satisfies readonly Weekday[];
+
+export const DAYPARTS = ["morning", "afternoon", "evening", "night"] as const satisfies readonly Daypart[];
 
 export const PARTICIPATION_LABELS: Record<Participation, string> = {
   ja: "Ja",

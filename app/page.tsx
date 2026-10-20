@@ -32,30 +32,6 @@ export default async function HomePage() {
         <CountdownBanner />
       </header>
 
-      <section className="panel flex flex-col items-center gap-3 p-6 text-center">
-        <h2 className="heading-ornate text-lg">
-          {dict.home.downloadGuide.title}
-        </h2>
-        <a
-          href="https://cdn.discordapp.com/attachments/775355218917195776/1555647131057131572/RXPGuides-v4.11.12.rar?ex=6ac148ca&is=6abff74a&hm=168336108268a5aa6eec0f0ce677ebf9e46a4988ac3269551fcb9597fd7c5521&"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-xl border border-gold/40 bg-ink/40 p-2 transition hover:border-gold/70 hover:brightness-110"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/rxpguides-download.gif"
-            alt={dict.home.downloadGuide.caption}
-            width={96}
-            height={96}
-            className="h-24 w-24"
-          />
-        </a>
-        <p className="font-heading text-sm text-gold-light">
-          {dict.home.downloadGuide.caption}
-        </p>
-      </section>
-
       <section className="panel p-6">
         {user ? (
           <div className="flex flex-col gap-4">
@@ -77,6 +53,18 @@ export default async function HomePage() {
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
               >
                 {dict.nav.toOverview}
+              </Link>
+              <Link
+                href="/verfuegbarkeit"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toAvailability}
+              </Link>
+              <Link
+                href="/downloads"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toDownloads}
               </Link>
               {admin && (
                 <Link
