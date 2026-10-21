@@ -22,6 +22,22 @@ export const WOW_CLASSES = [
 
 export const CLASS_PRIORITY_COUNT = 3;
 
+export const WOW_PROFESSIONS = [
+  "Alchemie",
+  "Schmiedekunst",
+  "Verzauberkunst",
+  "Ingenieurskunst",
+  "Kräuterkunde",
+  "Inschriftenkunde",
+  "Juwelierskunst",
+  "Lederverarbeitung",
+  "Bergbau",
+  "Kürschnerei",
+  "Schneiderei",
+] as const;
+
+export const PROFESSION_PICK_COUNT = 2;
+
 export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const satisfies readonly Weekday[];
 
 export const DAYPARTS = ["morning", "afternoon", "evening", "night"] as const satisfies readonly Daypart[];

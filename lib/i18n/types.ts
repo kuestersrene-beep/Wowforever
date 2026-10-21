@@ -63,9 +63,14 @@ export interface Dictionary {
     q4Hint: string;
     prioNoneTemplate: string; // Platzhalter: {n}
     q5Legend: string;
-    notSureYet: string;
+    q5Hint: string;
+    profession1Label: string;
+    profession2Label: string;
+    professionDuplicateError: string;
     q6Legend: string;
+    notSureYet: string;
     q7Legend: string;
+    q8Legend: string;
     commentPlaceholder: string;
     saving: string;
     save: string;
@@ -126,6 +131,7 @@ export interface Dictionary {
       playstyle: string;
       class: string;
       role: string;
+      profession: string;
       frequency: string;
       comment: string;
       updated: string;
@@ -166,6 +172,7 @@ export interface Dictionary {
     role: Record<Role, string>;
     frequency: Record<Frequency, string>;
     class: Record<string, string>;
+    profession: Record<string, string>;
     weekday: Record<Weekday, string>;
     daypart: Record<Daypart, string>;
   };

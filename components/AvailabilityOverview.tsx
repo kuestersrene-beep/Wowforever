@@ -4,6 +4,13 @@ import { useState } from "react";
 import { DAYPARTS, WEEKDAYS } from "@/lib/constants";
 import type { Dictionary } from "@/lib/i18n/types";
 import type { AvailabilitySummary } from "@/lib/types";
+import DiscordNameLink from "@/components/ui/DiscordNameLink";
+
+interface SlotPerson {
+  userId: string;
+  discordId: string | null;
+  name: string;
+}
 
 export default function AvailabilityOverview({
   rows,
@@ -15,19 +22,23 @@ export default function AvailabilityOverview({
   const [openSlot, setOpenSlot] = useState<string | null>(null);
   const withSlots = rows.filter((r) => r.slots.length > 0);
 
-  const namesBySlot = new Map<string, string[]>();
+  const peopleBySlot = new Map<string, SlotPerson[]>();
   for (const row of withSlots) {
-    const name = row.first_name ?? row.display_name ?? "?";
+    const person: SlotPerson = {
+      userId: row.user_id,
+      discordId: row.discord_id,
+      name: row.first_name ?? row.display_name ?? "?",
+    };
     for (const slot of row.slots) {
-      const list = namesBySlot.get(slot);
+      const list = peopleBySlot.get(slot);
       if (list) {
-        list.push(name);
+        list.push(person);
       } else {
-        namesBySlot.set(slot, [name]);
+        peopleBySlot.set(slot, [person]);
       }
     }
   }
-  const maxCount = Math.max(1, ...Array.from(namesBySlot.values(), (v) => v.length));
+  const maxCount = Math.max(1, ...Array.from(peopleBySlot.values(), (v) => v.length));
 
   return (
     <section className="panel flex flex-col gap-4 p-6">
@@ -61,8 +72,8 @@ export default function AvailabilityOverview({
                   </th>
                   {WEEKDAYS.map((day) => {
                     const slot = `${day}_${part}`;
-                    const names = namesBySlot.get(slot) ?? [];
-                    const count = names.length;
+                    const people = peopleBySlot.get(slot) ?? [];
+                    const count = people.length;
                     const opacity = count === 0 ? 0 : 0.25 + 0.75 * (count / maxCount);
                     const isOpen = openSlot === slot;
                     return (
@@ -89,8 +100,14 @@ export default function AvailabilityOverview({
                           {count > 0 ? count : ""}
                         </button>
                         {isOpen && (
-                          <div className="absolute left-1/2 top-full z-20 mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg border border-gold/40 bg-ink px-3 py-1.5 text-xs text-parchment shadow-lg">
-                            {names.join(", ")}
+                          <div className="absolute left-1/2 top-full z-20 mt-1 flex -translate-x-1/2 flex-col gap-1 whitespace-nowrap rounded-lg border border-gold/40 bg-ink px-3 py-1.5 text-xs text-parchment shadow-lg">
+                            {people.map((person) => (
+                              <DiscordNameLink
+                                key={person.userId}
+                                discordId={person.discordId}
+                                name={person.name}
+                              />
+                            ))}
                           </div>
                         )}
                       </td>

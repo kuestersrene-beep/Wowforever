@@ -14,6 +14,7 @@ import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
 import Emblem from "@/components/ui/Emblem";
+import DiscordNameLink from "@/components/ui/DiscordNameLink";
 
 export default async function UebersichtPage() {
   const supabase = await createClient();
@@ -95,7 +96,7 @@ export default async function UebersichtPage() {
             )}
             <div className="flex-1">
               <p className="font-medium">
-                {p.display_name}
+                <DiscordNameLink discordId={p.discord_id} name={p.display_name} />
                 {p.first_name && (
                   <span className="text-slate-400"> ({p.first_name})</span>
                 )}
@@ -141,6 +142,9 @@ function formatSummary(p: ParticipantSummary, dict: Dictionary): string {
         ? p.classes.map((c) => dict.labels.class[c] ?? c).join(" → ")
         : null,
       p.role ? dict.labels.role[p.role] : null,
+      p.professions && p.professions.length > 0
+        ? p.professions.map((prof) => dict.labels.profession[prof] ?? prof).join(" + ")
+        : null,
     ]
       .filter(Boolean)
       .join(" · ") || "–"

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveResponse, deleteResponse } from "@/app/umfrage/actions";
-import { CLASS_PRIORITY_COUNT, WOW_CLASSES } from "@/lib/constants";
+import { CLASS_PRIORITY_COUNT, WOW_CLASSES, WOW_PROFESSIONS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
 import { formatPrioNone } from "@/lib/i18n/format";
 import type { SurveyResponse } from "@/lib/types";
@@ -23,6 +23,14 @@ export default function SurveyForm({
   const showRest = participation === "ja" || participation === "vielleicht";
 
   const handleSubmit = (formData: FormData) => {
+    if (showRest) {
+      const p1 = formData.get("profession_1");
+      const p2 = formData.get("profession_2");
+      if (p1 && p2 && p1 === p2) {
+        alert(dict.survey.professionDuplicateError);
+        return;
+      }
+    }
     startTransition(async () => {
       await saveResponse(formData);
       router.push("/uebersicht");
@@ -143,6 +151,39 @@ export default function SurveyForm({
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-medium">{dict.survey.q5Legend}</legend>
+            <p className="text-xs text-slate-400">{dict.survey.q5Hint}</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select
+                name="profession_1"
+                defaultValue={existing?.professions?.[0] ?? ""}
+                required
+                className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
+              >
+                <option value="">{dict.survey.profession1Label}</option>
+                {WOW_PROFESSIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {dict.labels.profession[p]}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="profession_2"
+                defaultValue={existing?.professions?.[1] ?? ""}
+                required
+                className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
+              >
+                <option value="">{dict.survey.profession2Label}</option>
+                {WOW_PROFESSIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {dict.labels.profession[p]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 font-medium">{dict.survey.q6Legend}</legend>
             <select
               name="role"
               defaultValue={existing?.role ?? ""}
@@ -156,7 +197,7 @@ export default function SurveyForm({
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">{dict.survey.q6Legend}</legend>
+            <legend className="mb-1 font-medium">{dict.survey.q7Legend}</legend>
             <select
               name="frequency"
               defaultValue={existing?.frequency ?? ""}
@@ -176,7 +217,7 @@ export default function SurveyForm({
           </fieldset>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">{dict.survey.q7Legend}</legend>
+            <legend className="mb-1 font-medium">{dict.survey.q8Legend}</legend>
             <textarea
               name="comment"
               defaultValue={existing?.comment ?? ""}

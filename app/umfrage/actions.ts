@@ -38,6 +38,7 @@ export async function saveResponse(formData: FormData) {
     playstyle: null,
     classes: null,
     role: null,
+    professions: null,
     frequency: null,
     comment: null,
   };
@@ -47,6 +48,17 @@ export async function saveResponse(formData: FormData) {
   if (participation !== "nein") {
     payload.faction = formData.get("faction") || null;
     payload.playstyle = formData.get("playstyle") || null;
+
+    // Pflichtfeld: genau 2 unterschiedliche Berufe. Die Selects sind im
+    // Formular als "required" markiert, daher sind sie bei normaler
+    // Bedienung schon gefüllt - diese Prüfung fängt nur Umgehungen ab
+    // (z. B. direkter POST ohne Formular).
+    const profession1 = String(formData.get("profession_1") ?? "").trim();
+    const profession2 = String(formData.get("profession_2") ?? "").trim();
+    if (!profession1 || !profession2 || profession1 === profession2) {
+      throw new Error("Bitte genau 2 unterschiedliche Berufe wählen.");
+    }
+    payload.professions = [profession1, profession2];
 
     // Bis zu CLASS_PRIORITY_COUNT Klassen in Prioritäts-Reihenfolge.
     // Doppelte Auswahl derselben Klasse wird entfernt (die erste, also
@@ -79,6 +91,7 @@ export async function saveResponse(formData: FormData) {
     playstyle: payload.playstyle as Playstyle | null,
     classes: payload.classes as string[] | null,
     role: payload.role as Role | null,
+    professions: payload.professions as string[] | null,
   });
 
   revalidatePath("/umfrage");

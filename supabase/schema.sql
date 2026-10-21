@@ -21,6 +21,7 @@ create table if not exists public.responses (
   -- Bis zu 3 Klassen in Prioritäts-Reihenfolge (Index 0 = 1. Wahl).
   classes text[],
   role text check (role in ('tank', 'heiler', 'dd')),
+  professions text[],
   frequency text check (frequency in ('gelegentlich', 'mehrmals_woche', 'fast_taeglich')),
   comment text,
 
@@ -38,6 +39,7 @@ alter table public.responses add column if not exists first_name text;
 -- (eine Prioritätenliste). Bestehende Werte werden als 1. Priorität
 -- übernommen, danach wird die alte Spalte entfernt.
 alter table public.responses add column if not exists classes text[];
+alter table public.responses add column if not exists professions text[];
 
 -- Muss VOR dem Drop von "class" passieren, weil die View unten sonst
 -- noch von der alten Spalte abhängt und Postgres das Löschen verweigert
@@ -150,6 +152,7 @@ create policy "delete own response"
 create view public.participants_overview as
   select
     r.user_id,
+    r.discord_id,
     r.display_name,
     r.first_name,
     r.avatar_url,
@@ -158,6 +161,7 @@ create view public.participants_overview as
     r.playstyle,
     r.classes,
     r.role,
+    r.professions,
     n.note as admin_note
   from public.responses r
   left join public.admin_notes n on n.user_id = r.user_id;
@@ -216,6 +220,7 @@ create view public.availability_overview as
   select
     a.user_id,
     a.slots,
+    r.discord_id,
     r.first_name,
     r.display_name,
     r.avatar_url

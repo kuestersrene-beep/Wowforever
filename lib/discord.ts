@@ -6,6 +6,14 @@ import {
 } from "./constants";
 import type { Faction, Participation, Playstyle, Role } from "./types";
 
+// Discord bietet keine öffentlich dokumentierte "DM direkt öffnen"-URL
+// ohne Bot. Dieser Link zum Profil ist die zuverlässigste Variante ohne
+// eigenen Bot: Discord öffnet (App oder Web) die Profilkarte der Person,
+// von der aus man mit einem Klick auf "Nachricht" den Chat startet.
+export function discordUserUrl(discordId: string): string {
+  return `https://discord.com/users/${discordId}`;
+}
+
 interface NotifyParams {
   name: string;
   avatarUrl: string | null;
@@ -15,6 +23,7 @@ interface NotifyParams {
   playstyle: Playstyle | null;
   classes: string[] | null;
   role: Role | null;
+  professions: string[] | null;
 }
 
 // Postet eine kurze Zusammenfassung in einen Discord-Kanal, wenn jemand die
@@ -61,6 +70,13 @@ export async function notifyDiscord(params: NotifyParams): Promise<void> {
       fields.push({
         name: "Rolle",
         value: ROLE_LABELS[params.role],
+        inline: true,
+      });
+    }
+    if (params.professions && params.professions.length > 0) {
+      fields.push({
+        name: "Berufe",
+        value: params.professions.join(" + "),
         inline: true,
       });
     }

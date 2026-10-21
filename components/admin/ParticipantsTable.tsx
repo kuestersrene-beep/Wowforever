@@ -75,6 +75,7 @@ export default function ParticipantsTable({
               <th className="px-3 py-2">{dict.admin.table.playstyle}</th>
               <th className="px-3 py-2">{dict.admin.table.class}</th>
               <th className="px-3 py-2">{dict.admin.table.role}</th>
+              <th className="px-3 py-2">{dict.admin.table.profession}</th>
               <th className="px-3 py-2">{dict.admin.table.frequency}</th>
               <th className="px-3 py-2">{dict.admin.table.comment}</th>
               <Th label={dict.admin.table.updated} onClick={() => toggleSort("updated_at")} />
@@ -119,6 +120,11 @@ export default function ParticipantsTable({
                   {r.role ? dict.labels.role[r.role] : "–"}
                 </td>
                 <td className="px-3 py-2">
+                  {r.professions && r.professions.length > 0
+                    ? r.professions.map((p) => dict.labels.profession[p] ?? p).join(" + ")
+                    : "–"}
+                </td>
+                <td className="px-3 py-2">
                   {r.frequency ? dict.labels.frequency[r.frequency] : "–"}
                 </td>
                 <td className="max-w-[220px] truncate px-3 py-2" title={r.comment ?? ""}>
@@ -141,7 +147,7 @@ export default function ParticipantsTable({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={11} className="px-3 py-6 text-center text-slate-500">
                   {dict.admin.table.empty}
                 </td>
               </tr>

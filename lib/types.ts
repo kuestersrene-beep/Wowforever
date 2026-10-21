@@ -17,6 +17,7 @@ export interface SurveyResponse {
   playstyle: Playstyle | null;
   classes: string[] | null;
   role: Role | null;
+  professions: string[] | null;
   frequency: Frequency | null;
   comment: string | null;
   updated_at: string;
@@ -33,13 +34,17 @@ export interface AdminResponseRow extends SurveyResponse {
 
 // Reduzierter Ausschnitt einer Antwort - die Felder, die über die
 // participants_overview-View für ALLE eingeloggten Nutzer:innen sichtbar
-// sind (kein Kommentar, keine Häufigkeit, kein Zeitstempel, keine
-// Discord-ID). Charts/Banner, die nur diese Felder brauchen, werden mit
-// diesem Typ statt SurveyResponse getippt, damit sie sowohl auf
-// /uebersicht (mit dieser eingeschränkten Sicht) als auch im
-// Admin-Dashboard (mit vollen SurveyResponse-Daten) funktionieren.
+// sind (kein Kommentar, keine Häufigkeit, kein Zeitstempel). Charts/
+// Banner, die nur diese Felder brauchen, werden mit diesem Typ statt
+// SurveyResponse getippt, damit sie sowohl auf /uebersicht (mit dieser
+// eingeschränkten Sicht) als auch im Admin-Dashboard (mit vollen
+// SurveyResponse-Daten) funktionieren. discord_id ist bewusst mit drin
+// (anders als früher) - alle Teilnehmer:innen sind ohnehin per Discord
+// eingeloggt und sehen sich gegenseitig, die ID wird für den
+// Discord-Icon-Link ("Nachricht schreiben") auf /uebersicht gebraucht.
 export interface ParticipantSummary {
   user_id: string;
+  discord_id: string;
   display_name: string;
   first_name: string | null;
   avatar_url: string | null;
@@ -48,6 +53,7 @@ export interface ParticipantSummary {
   playstyle: Playstyle | null;
   classes: string[] | null;
   role: Role | null;
+  professions: string[] | null;
   admin_note: string | null;
 }
 
@@ -64,6 +70,7 @@ export interface Availability {
 export interface AvailabilitySummary {
   user_id: string;
   slots: string[];
+  discord_id: string | null;
   first_name: string | null;
   display_name: string | null;
   avatar_url: string | null;
