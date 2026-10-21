@@ -8,8 +8,6 @@ import { MAX_REPEAT_WEEKS, ROSTER_SLOTS, SIGNUP_STATUSES } from "@/lib/constants
 import { notifyEventCreated, postRoster } from "@/lib/discord";
 import type { EventSignupRow, GuildEvent, RosterSlot, SignupStatus } from "@/lib/types";
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
 function revalidateEvents() {
   revalidatePath("/termine", "layout");
 }
@@ -42,26 +40,31 @@ export async function createEvent(formData: FormData) {
   const instance = String(formData.get("instance") ?? "").trim().slice(0, 120) || null;
   const description =
     String(formData.get("description") ?? "").trim().slice(0, 1000) || null;
-  // starts_at kommt bereits als ISO-String (UTC) aus dem Browser, damit
-  // die lokale Uhrzeit der Admin-Person gilt und nicht die des Servers.
-  const startsAt = new Date(String(formData.get("starts_at") ?? ""));
+  // starts_at kommt bereits als ISO-Strings (UTC) aus dem Browser, einer
+  // pro Woche - dort sind Uhrzeit und Zeitumstellung schon berücksichtigt
+  // (siehe components/events/EventCreateForm.tsx).
+  const startDates = formData
+    .getAll("starts_at")
+    .slice(0, MAX_REPEAT_WEEKS)
+    .map((v) => new Date(String(v)));
   const maxSize = Math.min(40, Math.max(1, Number(formData.get("max_size")) || 40));
-  const repeatWeeks = Math.min(
-    MAX_REPEAT_WEEKS,
-    Math.max(1, Number(formData.get("repeat_weeks")) || 1)
-  );
 
-  if (!title || Number.isNaN(startsAt.getTime())) {
+  if (
+    !title ||
+    startDates.length === 0 ||
+    startDates.some((d) => Number.isNaN(d.getTime()))
+  ) {
     throw new Error("Titel und Beginn sind erforderlich.");
   }
 
+  const repeatWeeks = startDates.length;
   const seriesId = repeatWeeks > 1 ? randomUUID() : null;
-  const rows = Array.from({ length: repeatWeeks }, (_, i) => ({
+  const rows = startDates.map((startsAt) => ({
     series_id: seriesId,
     title,
     instance,
     description,
-    starts_at: new Date(startsAt.getTime() + i * WEEK_MS).toISOString(),
+    starts_at: startsAt.toISOString(),
     max_size: maxSize,
   }));
 
@@ -160,6 +163,16 @@ export async function removeSignup(eventId: string) {
   if (error) {
     throw new Error(`Löschen fehlgeschlagen: ${error.message}`);
   }
+
+  // Auch die eigene Einteilung entfernen, sonst wäre man bei einer
+  // erneuten Anmeldung sofort wieder bestätigt. event_roster hat keine
+  // Policies, daher service_role - aber nur für die eigene Zeile.
+  const adminSupabase = createAdminClient();
+  await adminSupabase
+    .from("event_roster")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("user_id", user.id);
 
   revalidateEvents();
 }

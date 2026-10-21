@@ -139,6 +139,7 @@ export const en: Dictionary = {
     deleteButton: "Delete",
     deleteConfirm: "Really delete this character? Its sign-ups will be removed as well.",
     countTemplate: "{n} characters",
+    countOne: "1 character",
   },
   events: {
     title: "Events & raids",

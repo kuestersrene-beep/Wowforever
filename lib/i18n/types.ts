@@ -145,6 +145,7 @@ export interface Dictionary {
     deleteButton: string;
     deleteConfirm: string;
     countTemplate: string; // Platzhalter: {n}
+    countOne: string;
   };
   events: {
     title: string;

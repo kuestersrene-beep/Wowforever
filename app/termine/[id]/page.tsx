@@ -104,7 +104,16 @@ export default async function TerminDetailPage({
             </Link>
           </p>
         ) : (
-          <SignupForm eventId={event.id} characters={myCharacters ?? []} existing={mine} />
+          // key: React setzt Formulare mit action nach dem Absenden auf
+          // ihre defaultValues zurück - mit neuem key nach jedem Speichern
+          // zeigen sie wieder die gespeicherte Anmeldung statt der
+          // ursprünglichen Vorauswahl.
+          <SignupForm
+            key={mine?.updated_at ?? "none"}
+            eventId={event.id}
+            characters={myCharacters ?? []}
+            existing={mine}
+          />
         )}
       </section>
 

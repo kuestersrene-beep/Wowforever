@@ -140,6 +140,7 @@ export const de: Dictionary = {
     deleteButton: "Löschen",
     deleteConfirm: "Diesen Charakter wirklich löschen? Seine Anmeldungen werden ebenfalls entfernt.",
     countTemplate: "{n} Charaktere",
+    countOne: "1 Charakter",
   },
   events: {
     title: "Termine & Raids",

@@ -66,6 +66,7 @@ export function formatPrio(dict: Dictionary, n: number): string {
 }
 
 export function formatCharacterCount(dict: Dictionary, n: number): string {
+  if (n === 1) return dict.characters.countOne;
   return dict.characters.countTemplate.replace("{n}", String(n));
 }
 

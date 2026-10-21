@@ -94,9 +94,10 @@ export default function CharacterManager({
       </ul>
 
       {/* key erzwingt ein frisches Formular, wenn zwischen "neu" und
-          "bearbeiten" gewechselt wird (defaultValue greift nur beim Mount). */}
+          "bearbeiten" gewechselt wird oder ein Charakter dazukommt
+          (defaultValue greift nur beim Mount). */}
       <form
-        key={editing?.id ?? "new"}
+        key={editing?.id ?? `new-${characters.length}`}
         ref={formRef}
         action={handleSubmit}
         className="panel flex flex-col gap-3 p-4"

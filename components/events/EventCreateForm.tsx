@@ -17,10 +17,21 @@ export default function EventCreateForm() {
 
   const handleSubmit = (formData: FormData) => {
     // datetime-local liefert die Uhrzeit ohne Zeitzone. Im Browser in
-    // einen ISO-String umrechnen, damit die lokale Zeit der Admin-Person
-    // gilt und nicht die Zeitzone des Servers.
+    // ISO-Strings umrechnen, damit die lokale Zeit der Admin-Person gilt
+    // und nicht die Zeitzone des Servers. Wiederholungen werden hier per
+    // setDate(+7) berechnet statt serverseitig mit +7x24h, damit sie über
+    // die Zeitumstellung hinweg dieselbe Uhrzeit behalten.
     const local = String(formData.get("starts_at_local") ?? "");
-    formData.set("starts_at", new Date(local).toISOString());
+    const weeks = Math.min(
+      MAX_REPEAT_WEEKS,
+      Math.max(1, Number(formData.get("repeat_weeks")) || 1)
+    );
+    formData.delete("starts_at");
+    for (let i = 0; i < weeks; i++) {
+      const date = new Date(local);
+      date.setDate(date.getDate() + i * 7);
+      formData.append("starts_at", date.toISOString());
+    }
     startTransition(async () => {
       await createEvent(formData);
       formRef.current?.reset();
