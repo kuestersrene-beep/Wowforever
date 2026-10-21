@@ -55,6 +55,18 @@ export default async function HomePage() {
                 {dict.nav.toOverview}
               </Link>
               <Link
+                href="/termine"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toEvents}
+              </Link>
+              <Link
+                href="/charaktere"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toCharacters}
+              </Link>
+              <Link
                 href="/verfuegbarkeit"
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
               >

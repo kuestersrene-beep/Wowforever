@@ -5,6 +5,8 @@ import type {
   Participation,
   Playstyle,
   Role,
+  RosterSlot,
+  SignupStatus,
   Weekday,
 } from "./types";
 
@@ -104,3 +106,27 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   mehrmals_woche: "Mehrmals pro Woche",
   fast_taeglich: "Fast täglich",
 };
+
+export const ROLES = ["tank", "heiler", "dd"] as const satisfies readonly Role[];
+
+export const SIGNUP_STATUSES = ["dabei", "vorlaeufig", "abgemeldet"] as const satisfies readonly SignupStatus[];
+
+export const ROSTER_SLOTS = ["bestaetigt", "bank"] as const satisfies readonly RosterSlot[];
+
+// Instanzen als Vorschläge im Termin-Formular (Freitext bleibt möglich).
+export const INSTANCES = [
+  "Geschmolzener Kern",
+  "Onyxias Hort",
+  "Pechschwingenhort",
+  "Zul'Gurub",
+  "Ruinen von Ahn'Qiraj",
+  "Tempel von Ahn'Qiraj",
+  "Naxxramas",
+] as const;
+
+// Termine werden in dieser Zeitzone angezeigt, unabhängig davon, in
+// welcher Zeitzone der Server (z. B. der Docker-Container, meist UTC) läuft.
+export const APP_TIME_ZONE = process.env.NEXT_PUBLIC_TIME_ZONE || "Europe/Berlin";
+
+// Wie viele Wochen ein wiederkehrender Termin maximal im Voraus angelegt wird.
+export const MAX_REPEAT_WEEKS = 12;

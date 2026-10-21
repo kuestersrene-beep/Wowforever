@@ -88,3 +88,55 @@ export interface DownloadItem {
   sort_order: number;
   created_at: string;
 }
+
+// Ein Charakter im Gilden-Roster. Für WoW Forever gibt es keine
+// Armory, daher von Hand gepflegt (siehe supabase/schema.sql).
+export interface Character {
+  id: string;
+  user_id: string;
+  discord_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  name: string;
+  class: string;
+  role: Role;
+  level: number;
+  is_main: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SignupStatus = "dabei" | "vorlaeufig" | "abgemeldet";
+export type RosterSlot = "bestaetigt" | "bank";
+
+// Ein Termin (Raid, Dungeon-Abend, ...). Wiederkehrende Termine teilen
+// sich eine series_id.
+export interface GuildEvent {
+  id: string;
+  series_id: string | null;
+  title: string;
+  instance: string | null;
+  description: string | null;
+  starts_at: string;
+  max_size: number;
+  created_at: string;
+}
+
+// Eine Anmeldung inkl. Charakter und Aufstellungs-Status (über die
+// event_signups_overview-View).
+export interface EventSignupRow {
+  event_id: string;
+  user_id: string;
+  status: SignupStatus;
+  comment: string | null;
+  updated_at: string;
+  character_id: string;
+  character_name: string;
+  class: string;
+  role: Role;
+  level: number;
+  discord_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  roster_slot: RosterSlot | null;
+}
