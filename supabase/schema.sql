@@ -259,6 +259,200 @@ create policy "select all downloads"
 -- Nutzer:innen - nur der service_role Key (Admin-Dashboard) darf
 -- schreiben.
 
+-- ============================================================
+-- Charaktere: jede Person kann mehrere Charaktere anlegen (Main +
+-- Twinks). Für WoW Forever gibt es keine öffentliche Armory, deshalb
+-- werden sie von Hand gepflegt. Anzeigename/Avatar werden beim
+-- Speichern aus der Discord-Session übernommen (wie bei "responses"),
+-- damit Roster und Anmeldungen auch für Leute ohne Umfrageantwort
+-- einen Namen haben.
+-- Alle eingeloggten Nutzer:innen dürfen alle Charaktere sehen (das ist
+-- das Gilden-Roster), aber nur die eigenen anlegen/ändern/löschen.
+-- ============================================================
+
+create table if not exists public.characters (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  discord_id text not null,
+  display_name text not null,
+  avatar_url text,
+  name text not null check (char_length(name) between 2 and 24),
+  class text not null,
+  role text not null check (role in ('tank', 'heiler', 'dd')),
+  level int not null default 1 check (level between 1 and 100),
+  is_main boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Höchstens ein Main pro Person.
+create unique index if not exists characters_one_main_per_user
+  on public.characters (user_id) where is_main;
+
+alter table public.characters enable row level security;
+
+drop policy if exists "select all characters" on public.characters;
+create policy "select all characters"
+  on public.characters for select
+  to authenticated
+  using (true);
+
+drop policy if exists "insert own character" on public.characters;
+create policy "insert own character"
+  on public.characters for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "update own character" on public.characters;
+create policy "update own character"
+  on public.characters for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "delete own character" on public.characters;
+create policy "delete own character"
+  on public.characters for delete
+  using (auth.uid() = user_id);
+
+drop trigger if exists set_updated_at_characters on public.characters;
+create trigger set_updated_at_characters
+  before update on public.characters
+  for each row
+  execute function public.set_updated_at();
+
+-- ============================================================
+-- Termine (Raids, Dungeon-Abende, ...): nur Admins legen an/ändern/
+-- löschen (service_role, siehe app/termine/actions.ts), alle
+-- eingeloggten Nutzer:innen dürfen lesen. Wiederkehrende Termine
+-- werden als einzelne Zeilen mit gemeinsamer series_id angelegt, damit
+-- jeder Abend eigene Anmeldungen hat.
+-- ============================================================
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  series_id uuid,
+  title text not null,
+  instance text,
+  description text,
+  starts_at timestamptz not null,
+  max_size int not null default 40 check (max_size between 1 and 40),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists events_starts_at on public.events (starts_at);
+
+alter table public.events enable row level security;
+
+drop policy if exists "select all events" on public.events;
+create policy "select all events"
+  on public.events for select
+  to authenticated
+  using (true);
+-- Absichtlich keine insert/update/delete-Policy - nur service_role.
+
+-- ============================================================
+-- Anmeldungen: eine Zeile pro Person und Termin. Jede Person darf nur
+-- ihre eigene Anmeldung anlegen/ändern/löschen, und nur mit einem
+-- eigenen Charakter (Prüfung über exists() in der Policy).
+-- ============================================================
+
+create table if not exists public.event_signups (
+  event_id uuid not null references public.events (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  character_id uuid not null references public.characters (id) on delete cascade,
+  status text not null check (status in ('dabei', 'vorlaeufig', 'abgemeldet')),
+  comment text,
+  updated_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
+alter table public.event_signups enable row level security;
+
+drop policy if exists "select all signups" on public.event_signups;
+create policy "select all signups"
+  on public.event_signups for select
+  to authenticated
+  using (true);
+
+drop policy if exists "insert own signup" on public.event_signups;
+create policy "insert own signup"
+  on public.event_signups for insert
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.characters c
+      where c.id = character_id and c.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "update own signup" on public.event_signups;
+create policy "update own signup"
+  on public.event_signups for update
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.characters c
+      where c.id = character_id and c.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "delete own signup" on public.event_signups;
+create policy "delete own signup"
+  on public.event_signups for delete
+  using (auth.uid() = user_id);
+
+drop trigger if exists set_updated_at_signups on public.event_signups;
+create trigger set_updated_at_signups
+  before update on public.event_signups
+  for each row
+  execute function public.set_updated_at();
+
+-- ============================================================
+-- Aufstellung: Admins setzen Angemeldete auf "bestaetigt" oder "bank".
+-- Bewusst eine eigene Tabelle statt einer Spalte in event_signups -
+-- aus demselben Grund wie bei admin_notes: RLS ist zeilen-, nicht
+-- spaltenbasiert, sonst könnte sich jede Person selbst bestätigen.
+-- Keine Policies: nur service_role schreibt, gelesen wird über die
+-- View unten.
+-- ============================================================
+
+create table if not exists public.event_roster (
+  event_id uuid not null references public.events (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  slot text not null check (slot in ('bestaetigt', 'bank')),
+  primary key (event_id, user_id)
+);
+
+alter table public.event_roster enable row level security;
+
+-- Anmeldungen inkl. Charakter und Aufstellungs-Status für alle
+-- eingeloggten Nutzer:innen (läuft mit den Rechten des Erstellers, siehe
+-- Kommentar bei participants_overview).
+drop view if exists public.event_signups_overview;
+create view public.event_signups_overview as
+  select
+    s.event_id,
+    s.user_id,
+    s.status,
+    s.comment,
+    s.updated_at,
+    c.id as character_id,
+    c.name as character_name,
+    c.class,
+    c.role,
+    c.level,
+    c.discord_id,
+    c.display_name,
+    c.avatar_url,
+    r.slot as roster_slot
+  from public.event_signups s
+  join public.characters c on c.id = s.character_id
+  left join public.event_roster r
+    on r.event_id = s.event_id and r.user_id = s.user_id;
+
+revoke all on public.event_signups_overview from anon;
+grant select on public.event_signups_overview to authenticated;
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

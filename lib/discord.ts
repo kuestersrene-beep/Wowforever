@@ -4,7 +4,15 @@ import {
   PLAYSTYLE_LABELS,
   ROLE_LABELS,
 } from "./constants";
-import type { Faction, Participation, Playstyle, Role } from "./types";
+import { formatEventDate } from "./i18n/format";
+import type {
+  EventSignupRow,
+  Faction,
+  GuildEvent,
+  Participation,
+  Playstyle,
+  Role,
+} from "./types";
 
 // Discord bietet keine öffentlich dokumentierte "DM direkt öffnen"-URL
 // ohne Bot. Dieser Link zum Profil ist die zuverlässigste Variante ohne
@@ -82,26 +90,113 @@ export async function notifyDiscord(params: NotifyParams): Promise<void> {
     }
   }
 
+  await postWebhook(webhookUrl, {
+    username: "WoW Forever Umfrage",
+    embeds: [
+      {
+        author: {
+          name: params.name,
+          icon_url: params.avatarUrl ?? undefined,
+        },
+        title: params.isUpdate ? "Antwort aktualisiert" : "Neue Antwort",
+        color: 0xc9a86a,
+        fields,
+      },
+    ],
+  });
+}
+
+// Gemeinsamer Versand für alle Webhook-Nachrichten. Fehler werden nur
+// geloggt, nie geworfen (siehe Kommentar bei notifyDiscord).
+async function postWebhook(webhookUrl: string, body: unknown): Promise<boolean> {
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username: "WoW Forever Umfrage",
-        embeds: [
-          {
-            author: {
-              name: params.name,
-              icon_url: params.avatarUrl ?? undefined,
-            },
-            title: params.isUpdate ? "Antwort aktualisiert" : "Neue Antwort",
-            color: 0xc9a86a,
-            fields,
-          },
-        ],
-      }),
+      body: JSON.stringify(body),
     });
+    return res.ok;
   } catch (err) {
     console.error("Discord-Webhook fehlgeschlagen:", err);
+    return false;
   }
+}
+
+function eventFields(event: GuildEvent, repeatWeeks: number) {
+  const fields: { name: string; value: string; inline: boolean }[] = [
+    { name: "Beginn", value: formatEventDate("de", event.starts_at), inline: true },
+    { name: "Plätze", value: String(event.max_size), inline: true },
+  ];
+  if (event.instance) {
+    fields.push({ name: "Instanz", value: event.instance, inline: true });
+  }
+  if (repeatWeeks > 1) {
+    fields.push({ name: "Wiederholung", value: `${repeatWeeks} Wochen, wöchentlich`, inline: true });
+  }
+  return fields;
+}
+
+// Kündigt einen neu angelegten Termin (bzw. den ersten Termin einer
+// Serie) im Discord-Kanal an.
+export async function notifyEventCreated(
+  event: GuildEvent,
+  repeatWeeks: number
+): Promise<void> {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  await postWebhook(webhookUrl, {
+    username: "WoW Forever Termine",
+    embeds: [
+      {
+        title: `Neuer Termin: ${event.title}`,
+        description: event.description ?? undefined,
+        color: 0xc9a86a,
+        fields: eventFields(event, repeatWeeks),
+      },
+    ],
+  });
+}
+
+// Postet die aktuelle Aufstellung (bestätigt + Bank) eines Termins.
+// Gibt zurück, ob Discord die Nachricht angenommen hat, damit der Admin
+// eine Rückmeldung bekommt.
+export async function postRoster(
+  event: GuildEvent,
+  signups: EventSignupRow[]
+): Promise<boolean> {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return false;
+
+  const line = (s: EventSignupRow) => `${s.character_name} (${s.class})`;
+  const confirmed = signups.filter((s) => s.roster_slot === "bestaetigt");
+  const bench = signups.filter((s) => s.roster_slot === "bank");
+
+  const fields = (["tank", "heiler", "dd"] as const).map((role) => {
+    const inRole = confirmed.filter((s) => s.role === role);
+    return {
+      name: `${ROLE_LABELS[role]} (${inRole.length})`,
+      value: inRole.map(line).join("\n") || "–",
+      inline: true,
+    };
+  });
+  if (bench.length > 0) {
+    fields.push({
+      name: `Bank (${bench.length})`,
+      value: bench.map(line).join("\n"),
+      inline: false,
+    });
+  }
+
+  return postWebhook(webhookUrl, {
+    username: "WoW Forever Termine",
+    embeds: [
+      {
+        title: `Aufstellung: ${event.title}`,
+        description: formatEventDate("de", event.starts_at),
+        color: 0x2e8b57,
+        fields,
+      },
+    ],
+  });
 }

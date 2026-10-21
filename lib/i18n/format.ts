@@ -1,4 +1,5 @@
-import type { Dictionary } from "./types";
+import { APP_TIME_ZONE } from "@/lib/constants";
+import type { Dictionary, Locale } from "./types";
 
 // Reine Hilfsfunktionen für Texte mit eingesetzten Werten (Zahlen, Namen
 // usw.). Bewusst getrennt vom Dictionary-Objekt, weil Funktionen nicht
@@ -62,4 +63,40 @@ export function formatClassConflict(dict: Dictionary, n: number): string {
 
 export function formatPrio(dict: Dictionary, n: number): string {
   return dict.admin.classPriority.prioTemplate.replace("{n}", String(n));
+}
+
+export function formatCharacterCount(dict: Dictionary, n: number): string {
+  return dict.characters.countTemplate.replace("{n}", String(n));
+}
+
+export function formatSignedUp(dict: Dictionary, n: number, max: number): string {
+  return dict.events.signedUpTemplate
+    .replace("{n}", String(n))
+    .replace("{max}", String(max));
+}
+
+export function formatRoleCounts(
+  dict: Dictionary,
+  tank: number,
+  healer: number,
+  dd: number
+): string {
+  return dict.events.roleCountsTemplate
+    .replace("{tank}", String(tank))
+    .replace("{healer}", String(healer))
+    .replace("{dd}", String(dd));
+}
+
+// Datum/Uhrzeit eines Termins, immer in APP_TIME_ZONE (nicht in der
+// Zeitzone des Servers).
+export function formatEventDate(locale: Locale, iso: string): string {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "de-DE", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: APP_TIME_ZONE,
+  }).format(new Date(iso));
 }

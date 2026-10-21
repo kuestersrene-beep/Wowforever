@@ -300,6 +300,42 @@ docker compose logs -f app
 
 ---
 
+## 8. Gilden-Funktionen: Charaktere, Termine & Aufstellung
+
+Zusätzlich zur Umfrage gibt es eine kleine Raid-Planung (Idee und
+Funktionsumfang angelehnt an Gilden-Tools wie GuildKit, siehe
+[`docs/GUILDKIT-ANALYSIS.md`](./docs/GUILDKIT-ANALYSIS.md)):
+
+- **`/charaktere`**: Jede Person trägt ihre Charaktere ein (Name, Klasse,
+  Rolle, Level, Main/Twink). Für WoW Forever gibt es keine Armory, deshalb
+  von Hand. Klasse und Rolle werden beim ersten Charakter aus der
+  Umfrageantwort vorausgefüllt. Darunter steht das Gilden-Roster nach Rollen.
+- **`/termine`**: Kommende und vergangene Termine mit Anmeldezahlen pro
+  Rolle. Admins sehen oben ein Formular zum Anlegen, optional wöchentlich
+  wiederkehrend (bis zu 12 Wochen, jeder Abend mit eigenen Anmeldungen).
+- **`/termine/[id]`**: Anmeldung mit einem eigenen Charakter (*Dabei*,
+  *Vorläufig*, *Abgemeldet*, mit Kommentar). Admins setzen Angemeldete auf
+  *Bestätigt* oder *Bank*, posten die Aufstellung per Discord-Webhook und
+  löschen Termine oder ganze Serien.
+
+**Einrichtung:** `supabase/schema.sql` einfach erneut komplett im SQL
+Editor ausführen. Das Skript ist wiederholbar und legt die neuen Tabellen
+`characters`, `events`, `event_signups`, `event_roster` sowie die View
+`event_signups_overview` an, ohne bestehende Daten zu verändern.
+
+Neue Termine und gepostete Aufstellungen landen im selben Kanal wie die
+Umfrage-Benachrichtigungen (`DISCORD_WEBHOOK_URL`). Termine werden in
+`Europe/Berlin` angezeigt. Eine andere Zeitzone setzt du optional über
+`NEXT_PUBLIC_TIME_ZONE`, zum Beispiel `NEXT_PUBLIC_TIME_ZONE=Europe/Vienna`.
+
+**Rechte (per Row Level Security):** Alle Eingeloggten sehen Roster,
+Termine und Anmeldungen. Jede Person ändert nur ihre eigenen Charaktere und
+Anmeldungen, und nur mit eigenen Charakteren. Termine und die Aufstellung
+schreiben ausschließlich Admins (`ADMIN_DISCORD_IDS`) serverseitig über
+den `service_role`-Key.
+
+---
+
 ## Projektstruktur
 
 ```
@@ -310,7 +346,11 @@ app/
   umfrage/actions.ts         Server Actions: speichern & löschen
   uebersicht/page.tsx        Übersicht für alle eingeloggten Teilnehmer:innen
   admin/page.tsx              Admin-Dashboard
+  charaktere/                 Eigene Charaktere + Gilden-Roster
+  termine/                    Terminliste, Detailseite, Server Actions
 components/
+  CharacterManager.tsx        Charaktere anlegen/bearbeiten/löschen
+  events/                     Termin-Formular, Anmeldung, Aufstellung
   LoginButton.tsx, LogoutButton.tsx, SurveyForm.tsx
   admin/                      Charts, Tabelle, CSV-Export, Kacheln
 lib/

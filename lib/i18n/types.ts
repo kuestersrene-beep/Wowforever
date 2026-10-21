@@ -5,6 +5,8 @@ import type {
   Participation,
   Playstyle,
   Role,
+  RosterSlot,
+  SignupStatus,
   Weekday,
 } from "@/lib/types";
 
@@ -24,6 +26,8 @@ export interface Dictionary {
     toAdmin: string;
     toAvailability: string;
     toDownloads: string;
+    toCharacters: string;
+    toEvents: string;
     loggedInAs: string;
     loginPrompt: string;
   };
@@ -117,6 +121,84 @@ export interface Dictionary {
       deleteConfirm: string;
     };
   };
+  characters: {
+    title: string;
+    hint: string;
+    mine: string;
+    noneYet: string;
+    roster: string;
+    rosterHint: string;
+    rosterEmpty: string;
+    nameLabel: string;
+    classLabel: string;
+    roleLabel: string;
+    levelLabel: string;
+    mainLabel: string;
+    mainBadge: string;
+    addTitle: string;
+    editTitle: string;
+    prefillHint: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    edit: string;
+    deleteButton: string;
+    deleteConfirm: string;
+    countTemplate: string; // Platzhalter: {n}
+  };
+  events: {
+    title: string;
+    hint: string;
+    upcoming: string;
+    past: string;
+    empty: string;
+    detailsLink: string;
+    mySignupLabel: string;
+    notSignedUp: string;
+    signedUpTemplate: string; // Platzhalter: {n} {max}
+    roleCountsTemplate: string; // Platzhalter: {tank} {healer} {dd}
+    signupTitle: string;
+    needCharacter: string;
+    characterLabel: string;
+    statusLabel: string;
+    commentLabel: string;
+    commentPlaceholder: string;
+    signupSave: string;
+    signupSaving: string;
+    signupRemove: string;
+    signupRemoveConfirm: string;
+    signupsTitle: string;
+    signupsEmpty: string;
+    rosterTitle: string;
+    rosterEmpty: string;
+    benchTitle: string;
+    openTitle: string;
+    declinedTitle: string;
+    admin: {
+      createTitle: string;
+      titleLabel: string;
+      titlePlaceholder: string;
+      instanceLabel: string;
+      descriptionLabel: string;
+      startsAtLabel: string;
+      maxSizeLabel: string;
+      repeatLabel: string;
+      repeatHint: string;
+      create: string;
+      creating: string;
+      confirm: string;
+      bench: string;
+      reset: string;
+      postRoster: string;
+      postingRoster: string;
+      rosterPosted: string;
+      rosterPostFailed: string;
+      deleteEvent: string;
+      deleteEventConfirm: string;
+      deleteSeries: string;
+      deleteSeriesConfirm: string;
+    };
+  };
   admin: {
     title: string;
     allParticipants: string;
@@ -175,5 +257,7 @@ export interface Dictionary {
     profession: Record<string, string>;
     weekday: Record<Weekday, string>;
     daypart: Record<Daypart, string>;
+    signupStatus: Record<SignupStatus, string>;
+    rosterSlot: Record<RosterSlot, string>;
   };
 }
