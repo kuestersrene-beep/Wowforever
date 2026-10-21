@@ -82,7 +82,6 @@ export interface Dictionary {
     availabilityTitle: string;
     availabilityHint: string;
     availabilityHeatmapEmpty: string;
-    availabilityListEmpty: string;
   };
   availability: {
     title: string;

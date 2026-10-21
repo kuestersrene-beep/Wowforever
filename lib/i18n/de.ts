@@ -76,7 +76,6 @@ export const de: Dictionary = {
     availabilityHint:
       "Wer hat wann grob Zeit? Hilft, euch vorab zu Gruppen zu verabreden – sprecht euch dafür einfach im Discord ab.",
     availabilityHeatmapEmpty: "Noch keine Verfügbarkeiten eingetragen.",
-    availabilityListEmpty: "Noch niemand hat seine Verfügbarkeit eingetragen.",
   },
   availability: {
     title: "Deine Verfügbarkeit",

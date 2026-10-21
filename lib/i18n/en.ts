@@ -76,7 +76,6 @@ export const en: Dictionary = {
     availabilityHint:
       "Who's roughly free when? Helps you arrange groups ahead of time - just coordinate the details on Discord.",
     availabilityHeatmapEmpty: "No availability entered yet.",
-    availabilityListEmpty: "Nobody has entered their availability yet.",
   },
   availability: {
     title: "Your availability",
