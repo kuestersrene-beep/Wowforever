@@ -28,8 +28,6 @@ export const WOW_PROFESSIONS = [
   "Verzauberkunst",
   "Ingenieurskunst",
   "Kräuterkunde",
-  "Inschriftenkunde",
-  "Juwelierskunst",
   "Lederverarbeitung",
   "Bergbau",
   "Kürschnerei",

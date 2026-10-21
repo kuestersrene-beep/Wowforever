@@ -188,8 +188,6 @@ export const en: Dictionary = {
       Verzauberkunst: "Enchanting",
       Ingenieurskunst: "Engineering",
       Kräuterkunde: "Herbalism",
-      Inschriftenkunde: "Inscription",
-      Juwelierskunst: "Jewelcrafting",
       Lederverarbeitung: "Leatherworking",
       Bergbau: "Mining",
       Kürschnerei: "Skinning",

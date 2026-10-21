@@ -189,8 +189,6 @@ export const de: Dictionary = {
       Verzauberkunst: "Verzauberkunst",
       Ingenieurskunst: "Ingenieurskunst",
       Kräuterkunde: "Kräuterkunde",
-      Inschriftenkunde: "Inschriftenkunde",
-      Juwelierskunst: "Juwelierskunst",
       Lederverarbeitung: "Lederverarbeitung",
       Bergbau: "Bergbau",
       Kürschnerei: "Kürschnerei",
