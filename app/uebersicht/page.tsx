@@ -3,7 +3,6 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDictionary, getLocale } from "@/lib/i18n";
-import type { Dictionary } from "@/lib/i18n/types";
 import type { AvailabilitySummary, ParticipantSummary } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
 import AvailabilityOverview from "@/components/AvailabilityOverview";
@@ -15,6 +14,7 @@ import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
 import Emblem from "@/components/ui/Emblem";
 import DiscordNameLink from "@/components/ui/DiscordNameLink";
+import ParticipantSummaryLine from "@/components/ParticipantSummaryLine";
 
 export default async function UebersichtPage() {
   const supabase = await createClient();
@@ -101,9 +101,7 @@ export default async function UebersichtPage() {
                   <span className="text-slate-400"> ({p.first_name})</span>
                 )}
               </p>
-              <p className="text-xs text-slate-400">
-                {formatSummary(p, dict)}
-              </p>
+              <ParticipantSummaryLine p={p} dict={dict} />
               {p.admin_note && (
                 <p className="mt-0.5 text-xs italic text-gold-light">
                   {dict.overview.noteLabel}: {p.admin_note}
@@ -130,23 +128,5 @@ export default async function UebersichtPage() {
         )}
       </ul>
     </main>
-  );
-}
-
-function formatSummary(p: ParticipantSummary, dict: Dictionary): string {
-  return (
-    [
-      p.faction ? dict.labels.faction[p.faction] : null,
-      p.playstyle ? dict.labels.playstyle[p.playstyle] : null,
-      p.classes && p.classes.length > 0
-        ? p.classes.map((c) => dict.labels.class[c] ?? c).join(" → ")
-        : null,
-      p.role ? dict.labels.role[p.role] : null,
-      p.professions && p.professions.length > 0
-        ? p.professions.map((prof) => dict.labels.profession[prof] ?? prof).join(" + ")
-        : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "–"
   );
 }

@@ -36,6 +36,41 @@ export const WOW_PROFESSIONS = [
 
 export const PROFESSION_PICK_COUNT = 2;
 
+// Die bekannten, offiziellen WoW-Klassenfarben (reine Hex-Werte, kein
+// Blizzard-Bildmaterial) - macht Klassen in Textlisten auf einen Blick
+// unterscheidbar.
+export const CLASS_COLORS: Record<string, string> = {
+  Krieger: "#C79C6E",
+  Paladin: "#F58CBA",
+  Jäger: "#ABD473",
+  Schurke: "#FFF569",
+  Priester: "#F0EBE0",
+  Schamane: "#2459FF",
+  Magier: "#69CCF0",
+  Hexenmeister: "#9482C9",
+  Druide: "#FF7D0A",
+};
+
+export const FACTION_COLORS: Record<Faction, string> = {
+  horde: "#e0414d",
+  allianz: "#4a8fd4",
+  egal: "",
+};
+
+// Eigene, generische Symbole (Emoji) statt Blizzard-Berufssymbolen -
+// nur zur groben Wiedererkennung in der Liste.
+export const PROFESSION_ICONS: Record<string, string> = {
+  Alchemie: "🧪",
+  Schmiedekunst: "🔨",
+  Verzauberkunst: "✨",
+  Ingenieurskunst: "⚙️",
+  Kräuterkunde: "🌿",
+  Lederverarbeitung: "🥾",
+  Bergbau: "⛏️",
+  Kürschnerei: "🔪",
+  Schneiderei: "🧵",
+};
+
 export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const satisfies readonly Weekday[];
 
 export const DAYPARTS = ["morning", "afternoon", "evening", "night"] as const satisfies readonly Daypart[];
