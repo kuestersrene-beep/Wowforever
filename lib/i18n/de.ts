@@ -25,10 +25,10 @@ export const de: Dictionary = {
     decisionTag: "Horde · PvP",
     decisionTitle: "Der Rat hat entschieden",
     decisionText:
-      "Die Stimmen sind gezählt, die Kriegstrommeln schlagen: Wir ziehen gemeinsam für die Horde in die Schlacht. Danke an alle, die ihre Stimme abgegeben haben!",
+      "Die Stimmen sind gezählt, die Kriegstrommeln schlagen: Wir ziehen gemeinsam für die Horde in die Schlacht.\n\nDanke an alle, die ihre Stimme abgegeben haben!",
     callTitle: "Bevor sich die Tore Azeroths öffnen",
     callText:
-      "Damit niemand allein durchs Brachland irren muss: Trag deine Berufe und deine Verfügbarkeit ein – vor allem für die ersten ein bis zwei Wochen nach dem Start. So findet jede:r schnell passende Mitstreiter, ob für die ersten Quests, für Dungeons oder einen Abstecher nach Tarrens Mühle.",
+      "Damit niemand allein durchs Brachland irren muss: Trag deine Berufe und deine Verfügbarkeit ein – vor allem für die ersten ein bis zwei Wochen nach dem Start.\n\nSo findet jede:r schnell passende Mitstreiter, ob für die ersten Quests, für Dungeons oder einen Abstecher nach Tarrens Mühle.",
     professionsTitle: "Deine Berufe",
     professionsText:
       "Kräuterkunde, Schmiedekunst, Alchemie … Trag ein, was du lernen möchtest – so weiß jede:r in der Gilde, wer welchen Beruf macht.",
@@ -37,7 +37,6 @@ export const de: Dictionary = {
     availabilityText:
       "Wann bist du in den ersten Wochen online? Je mehr Zeitfenster eingetragen sind, desto leichter finden sich Gruppen.",
     availabilityButton: "Verfügbarkeit eintragen",
-    farewell: "Lok'tar ogar – wir sehen uns in Durotar!",
     privacyTitle: "Datenschutz",
     privacyText:
       "Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein Avatar-Bild und deine Antworten aus dieser Umfrage. Diese Daten werden ausschließlich für diese private Freundes-Umfrage genutzt. Du kannst deine Antwort jederzeit ändern oder auf der Umfrageseite vollständig löschen.",

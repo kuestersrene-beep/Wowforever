@@ -25,10 +25,10 @@ export const en: Dictionary = {
     decisionTag: "Horde · PvP",
     decisionTitle: "The council has decided",
     decisionText:
-      "The votes are counted and the war drums are beating: we ride into battle together for the Horde. Thanks to everyone who cast their vote!",
+      "The votes are counted and the war drums are beating: we ride into battle together for the Horde.\n\nThanks to everyone who cast their vote!",
     callTitle: "Before the gates of Azeroth open",
     callText:
-      "So nobody has to wander the Barrens alone: enter your professions and your availability – especially for the first one to two weeks after launch. That way everyone quickly finds the right companions, whether for the first quests, dungeons or a detour to Tarren Mill.",
+      "So nobody has to wander the Barrens alone: enter your professions and your availability – especially for the first one to two weeks after launch.\n\nThat way everyone quickly finds the right companions, whether for the first quests, dungeons or a detour to Tarren Mill.",
     professionsTitle: "Your professions",
     professionsText:
       "Herbalism, Blacksmithing, Alchemy … Enter what you plan to learn – so everyone in the guild knows who does which profession.",
@@ -37,7 +37,6 @@ export const en: Dictionary = {
     availabilityText:
       "When will you be online during the first weeks? The more time slots are entered, the easier it is to form groups.",
     availabilityButton: "Enter availability",
-    farewell: "Lok'tar ogar – see you in Durotar!",
     privacyTitle: "Privacy",
     privacyText:
       "We only store your Discord user ID, display name, avatar image, and your survey answers. This data is used exclusively for this private survey among friends. You can change your answer at any time, or delete it completely on the survey page.",
