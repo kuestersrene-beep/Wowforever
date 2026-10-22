@@ -89,6 +89,43 @@ export async function createEvent(formData: FormData) {
   revalidateEvents();
 }
 
+// Bearbeitet genau einen Termin (auch wenn er zu einer Serie gehört).
+// Anmeldungen und Aufstellung bleiben erhalten.
+export async function updateEvent(formData: FormData) {
+  await requireAdmin();
+
+  const eventId = String(formData.get("event_id") ?? "");
+  const title = String(formData.get("title") ?? "").trim().slice(0, 120);
+  const instance = String(formData.get("instance") ?? "").trim().slice(0, 120) || null;
+  const description =
+    String(formData.get("description") ?? "").trim().slice(0, 1000) || null;
+  // Wie beim Anlegen: ISO-String aus dem Browser (dessen Zeitzone gilt).
+  const startsAt = new Date(String(formData.get("starts_at") ?? ""));
+  const maxSize = Math.min(40, Math.max(1, Number(formData.get("max_size")) || 40));
+
+  if (!eventId || !title || Number.isNaN(startsAt.getTime())) {
+    throw new Error("Titel und Beginn sind erforderlich.");
+  }
+
+  const adminSupabase = createAdminClient();
+  const { error } = await adminSupabase
+    .from("events")
+    .update({
+      title,
+      instance,
+      description,
+      starts_at: startsAt.toISOString(),
+      max_size: maxSize,
+    })
+    .eq("id", eventId);
+
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+
+  revalidateEvents();
+}
+
 export async function deleteEvent(eventId: string, wholeSeries: boolean) {
   await requireAdmin();
 

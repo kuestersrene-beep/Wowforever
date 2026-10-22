@@ -3,7 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveResponse, deleteResponse } from "@/app/umfrage/actions";
-import { CLASS_PRIORITY_COUNT, WOW_CLASSES, WOW_PROFESSIONS } from "@/lib/constants";
+import {
+  CLASS_PRIORITY_COUNT,
+  FIXED_FACTION,
+  FIXED_PLAYSTYLE,
+  WOW_CLASSES,
+  WOW_PROFESSIONS,
+} from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
 import { formatPrioNone } from "@/lib/i18n/format";
 import type { SurveyResponse } from "@/lib/types";
@@ -95,35 +101,21 @@ export default function SurveyForm({
 
       {showRest && (
         <>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">{dict.survey.q2Legend}</legend>
-            <p className="text-xs text-slate-400">{dict.survey.q2Hint}</p>
-            <select
-              name="faction"
-              defaultValue={existing?.faction ?? ""}
-              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
-            >
-              <option value="">{dict.survey.pleaseChoose}</option>
-              <option value="horde">{dict.labels.faction.horde}</option>
-              <option value="allianz">{dict.labels.faction.allianz}</option>
-              <option value="egal">{dict.labels.faction.egal}</option>
-            </select>
-          </fieldset>
-
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 font-medium">{dict.survey.q3Legend}</legend>
-            <p className="text-xs text-slate-400">{dict.survey.q3Hint}</p>
-            <select
-              name="playstyle"
-              defaultValue={existing?.playstyle ?? ""}
-              className="rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
-            >
-              <option value="">{dict.survey.pleaseChoose}</option>
-              <option value="pvp">{dict.labels.playstyle.pvp}</option>
-              <option value="pve">{dict.labels.playstyle.pve}</option>
-              <option value="beides">{dict.labels.playstyle.beides}</option>
-            </select>
-          </fieldset>
+          {/* Fraktion und Spielstil sind entschieden (Horde, PvP) und
+              nicht mehr wählbar - der Server setzt sie ohnehin fest, siehe
+              app/umfrage/actions.ts. */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <LockedChoice
+              legend={dict.survey.q2Legend}
+              value={dict.labels.faction[FIXED_FACTION]}
+              hint={dict.survey.lockedHint}
+            />
+            <LockedChoice
+              legend={dict.survey.q3Legend}
+              value={dict.labels.playstyle[FIXED_PLAYSTYLE]}
+              hint={dict.survey.lockedHint}
+            />
+          </div>
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-medium">{dict.survey.q4Legend}</legend>
@@ -249,5 +241,27 @@ export default function SurveyForm({
         )}
       </div>
     </form>
+  );
+}
+
+// Anzeige einer festgelegten, nicht änderbaren Antwort.
+function LockedChoice({
+  legend,
+  value,
+  hint,
+}: {
+  legend: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="font-medium">{legend}</p>
+      <div className="flex items-center gap-2 rounded-lg border border-horde/60 bg-horde-dark/40 px-3 py-2 text-parchment">
+        <span aria-hidden="true">🔒</span>
+        <span className="font-medium text-red-200">{value}</span>
+      </div>
+      <p className="text-xs text-slate-400">{hint}</p>
+    </div>
   );
 }

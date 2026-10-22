@@ -10,6 +10,7 @@ import { summarizeSignups } from "@/lib/events";
 import SignupForm from "@/components/events/SignupForm";
 import RosterButtons from "@/components/events/RosterButtons";
 import EventAdminActions from "@/components/events/EventAdminActions";
+import EventEditToggle from "@/components/events/EventEditToggle";
 import Emblem from "@/components/ui/Emblem";
 import type { Character, EventSignupRow, GuildEvent } from "@/lib/types";
 
@@ -93,6 +94,9 @@ export default async function TerminDetailPage({
           </p>
         )}
       </section>
+
+      {/* key: nach dem Speichern mit den neuen Werten neu aufbauen. */}
+      {admin && <EventEditToggle key={JSON.stringify(event)} event={event} />}
 
       <section className="panel flex flex-col gap-3 p-4">
         <h2 className="font-heading text-base text-gold-light">{dict.events.signupTitle}</h2>

@@ -15,6 +15,8 @@ import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ParticipantsTable from "@/components/admin/ParticipantsTable";
 import CsvExportButton from "@/components/admin/CsvExportButton";
 import DownloadsManager from "@/components/admin/DownloadsManager";
+import LogoSettings from "@/components/admin/LogoSettings";
+import { getSiteSettings } from "@/lib/siteSettings";
 import type { DownloadItem } from "@/lib/types";
 
 export default async function AdminPage() {
@@ -100,6 +102,11 @@ export default async function AdminPage() {
         {dict.downloads.title}
       </h2>
       <DownloadsManager downloads={downloadsData ?? []} dict={dict} />
+
+      <h2 className="font-heading text-lg text-gold-light">
+        {dict.admin.logo.title}
+      </h2>
+      <LogoSettings settings={await getSiteSettings()} dict={dict} />
     </main>
   );
 }

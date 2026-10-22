@@ -453,6 +453,55 @@ create view public.event_signups_overview as
 revoke all on public.event_signups_overview from anon;
 grant select on public.event_signups_overview to authenticated;
 
+-- ============================================================
+-- Seiten-Einstellungen: genau eine Zeile (id = 1), z. B. die URL eines
+-- eigenen Logos. Lesen darf jede:r - auch nicht eingeloggte Besucher,
+-- weil das Logo schon auf der Startseite vor dem Login erscheint.
+-- Schreiben nur Admins über den service_role Key (siehe
+-- app/admin/actions.ts).
+-- ============================================================
+
+create table if not exists public.site_settings (
+  id int primary key default 1 check (id = 1),
+  logo_url text,
+  updated_at timestamptz not null default now()
+);
+
+-- Eigenes Logo nur für den Countdown auf der Startseite (unabhängig vom
+-- Haupt-Logo und dessen Größe). Leer = eingebautes Emblem.
+alter table public.site_settings
+  add column if not exists timer_logo_url text;
+
+-- Größe des Logos in Prozent der jeweiligen Standardgröße (100 = normal).
+alter table public.site_settings
+  add column if not exists logo_scale int not null default 100;
+
+-- Erlaubter Bereich 100-400 %. Constraint immer neu anlegen, damit auch
+-- Datenbanken mit der früheren Grenze (50-200 %) aktualisiert werden.
+alter table public.site_settings
+  drop constraint if exists site_settings_logo_scale_check;
+update public.site_settings
+  set logo_scale = least(400, greatest(100, logo_scale));
+alter table public.site_settings
+  add constraint site_settings_logo_scale_check
+  check (logo_scale between 100 and 400);
+
+insert into public.site_settings (id) values (1) on conflict (id) do nothing;
+
+alter table public.site_settings enable row level security;
+
+drop policy if exists "select site settings" on public.site_settings;
+create policy "select site settings"
+  on public.site_settings for select
+  using (true);
+-- Absichtlich keine insert/update/delete-Policy - nur service_role.
+
+drop trigger if exists set_updated_at_site_settings on public.site_settings;
+create trigger set_updated_at_site_settings
+  before update on public.site_settings
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

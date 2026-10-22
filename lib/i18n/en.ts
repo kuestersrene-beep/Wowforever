@@ -11,7 +11,7 @@ export const en: Dictionary = {
     toCharacters: "Characters",
     toEvents: "Events & raids",
     loggedInAs: "Logged in as",
-    loginPrompt: "Sign in with your Discord account to take part.",
+    loginPrompt: "Sign in with your Discord account to enter your professions and availability.",
   },
   login: {
     withDiscord: "Sign in with Discord",
@@ -20,10 +20,22 @@ export const en: Dictionary = {
     label: "Log out",
   },
   home: {
-    subtitle:
-      "No matter which guild you're otherwise part of, or whether you even have one - this survey changes nothing about that. We just want to find out whether our ideas of playing together are a good match, and who actually wants to set out for WoW Forever.",
-    quest:
-      "Hail, adventurer! Times have changed - raid nights turned into date nights, guild chat turned into the family group chat. But deep down, the call of Azeroth still lives in us. Before adulting catches up with us for good: let's polish the armor one more time and reunite the old crew!",
+    decisionTag: "Horde · PvP",
+    decisionTitle: "The council has decided",
+    decisionText:
+      "The votes are counted and the war drums are beating: we ride into battle together for the Horde. Thanks to everyone who cast their vote!",
+    callTitle: "Before the gates of Azeroth open",
+    callText:
+      "So nobody has to wander the Barrens alone: enter your professions and your availability – especially for the first one to two weeks after launch. That way everyone quickly finds the right companions, whether for the first quests, dungeons or a detour to Tarren Mill.",
+    professionsTitle: "Your professions",
+    professionsText:
+      "Herbalism, Blacksmithing, Alchemy … Enter what you plan to learn – so everyone in the guild knows who does which profession.",
+    professionsButton: "Enter professions",
+    availabilityTitle: "Your availability",
+    availabilityText:
+      "When will you be online during the first weeks? The more time slots are entered, the easier it is to form groups.",
+    availabilityButton: "Enter availability",
+    farewell: "Lok'tar ogar – see you in Durotar!",
     privacyTitle: "Privacy",
     privacyText:
       "We only store your Discord user ID, display name, avatar image, and your survey answers. This data is used exclusively for this private survey among friends. You can change your answer at any time, or delete it completely on the survey page.",
@@ -51,6 +63,7 @@ export const en: Dictionary = {
     q3Legend: "3. Playstyle",
     q3Hint:
       "Matters for playing together: PvP and PvE fans often want different things from a server – your answers help us spot that early.",
+    lockedHint: "Final decision – the same for everyone.",
     pleaseChoose: "Please choose",
     q4Legend: "4. Planned class(es) (optional)",
     q4Hint:
@@ -75,9 +88,11 @@ export const en: Dictionary = {
   },
   overview: {
     title: "Overview",
-    memeCaption: "Know the feeling?",
-    memeAlt:
-      "Meme: A Tauren tries to play WoW like the good old days, while 'Adult Responsibilities' close in from behind",
+    participantsTitle: "Who's in?",
+    professionsTitle: "Professions in the guild",
+    professionsHint: "Who learns what? Dashed professions haven't been picked yet – maybe by you.",
+    professionMissing: "Nobody yet",
+    analysisTitle: "Classes & roles",
     noResponses: "No responses yet.",
     noteLabel: "Note",
     availabilityTitle: "Availability overview",
@@ -87,7 +102,7 @@ export const en: Dictionary = {
   },
   availability: {
     title: "Your availability",
-    hint: "Roughly pick which weekdays and times of day you usually have time. Helps us find groups whose schedules line up.",
+    hint: "Roughly pick which weekdays and times of day you have time – especially during the first one to two weeks after launch. Helps us find groups whose schedules line up.",
     backHint: "You can adjust this anytime, e.g. if your shift schedule changes.",
     noSlotsHint: "No time slots selected - that's fine too.",
     save: "Save availability",
@@ -126,7 +141,6 @@ export const en: Dictionary = {
     nameLabel: "Name",
     classLabel: "Class",
     roleLabel: "Role",
-    levelLabel: "Level",
     mainLabel: "This is my main",
     mainBadge: "Main",
     addTitle: "Add character",
@@ -181,6 +195,11 @@ export const en: Dictionary = {
       repeatHint: "Number of weeks including this one (1 = one-off).",
       create: "Create event",
       creating: "Creating...",
+      edit: "Edit event",
+      editTitle: "Edit event",
+      editHint: "Changes apply to this event only, not to the other events of a series. Sign-ups are kept.",
+      saveChanges: "Save changes",
+      saving: "Saving...",
       confirm: "Confirm",
       bench: "Bench",
       reset: "Reset",
@@ -196,6 +215,28 @@ export const en: Dictionary = {
   },
   admin: {
     title: "Admin dashboard",
+    logo: {
+      title: "Logo",
+      hint: "Direct https link to an image file. Recommended: square PNG with transparent background, 512 × 512 px. The logo appears on every page, as the browser tab icon and as the sender image of Discord messages.",
+      urlLabel: "Logo URL",
+      preview: "Preview",
+      current: "Current:",
+      defaultActive: "Default emblem",
+      save: "Save logo",
+      saving: "Saving...",
+      saved: "Saved ✓",
+      reset: "Use default emblem",
+      resetConfirm: "Remove the custom logo and use the default emblem again?",
+      invalid: "Please enter a valid https address.",
+      loadError: "Image could not be loaded – is it a direct link to the image file?",
+      sizeLabel: "Size",
+      sizeHint: "Applies to the logo on every page (preview at homepage size). Tab icon and Discord image stay unchanged.",
+      sizeSave: "Save size",
+      sizeDefault: "100 %",
+      saveError: "Saving failed – is the latest supabase/schema.sql applied?",
+      timerTitle: "Countdown logo",
+      timerHint: "Separate image just for the countdown on the homepage, independent of the main logo and its size. Recommended: square PNG with transparent background. Empty = default emblem.",
+    },
     allParticipants: "All participants",
     loadErrorTemplate: "Error loading data: {msg}",
     exportCsv: "Export as CSV",

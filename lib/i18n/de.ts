@@ -11,7 +11,7 @@ export const de: Dictionary = {
     toCharacters: "Charaktere",
     toEvents: "Termine & Raids",
     loggedInAs: "Angemeldet als",
-    loginPrompt: "Melde dich mit deinem Discord-Account an, um mitzumachen.",
+    loginPrompt: "Melde dich mit deinem Discord-Account an, um deine Berufe und Verfügbarkeit einzutragen.",
   },
   login: {
     withDiscord: "Mit Discord anmelden",
@@ -20,10 +20,22 @@ export const de: Dictionary = {
     label: "Abmelden",
   },
   home: {
-    subtitle:
-      "Ganz gleich, in welcher Gilde ihr sonst unterwegs seid, oder ob ihr überhaupt schon eine habt – daran ändert diese Umfrage nichts. Wir wollen nur herausfinden, ob unsere Vorstellungen vom gemeinsamen Abenteuer zueinander passen, und wer sich überhaupt aufmachen will nach WoW Forever.",
-    quest:
-      "Sei gegrüßt, Abenteurer! Die Zeiten haben sich geändert – aus Raid-Abenden wurden Feierabende, aus dem Gilden-Chat die Familien-Gruppe. Doch tief in uns lebt der Ruf von Azeroth noch immer. Bevor uns die Erwachsenenpflichten endgültig einholen: Lasst uns die Rüstung noch einmal polieren und die alte Truppe wiedervereinen!",
+    decisionTag: "Horde · PvP",
+    decisionTitle: "Der Rat hat entschieden",
+    decisionText:
+      "Die Stimmen sind gezählt, die Kriegstrommeln schlagen: Wir ziehen gemeinsam für die Horde in die Schlacht. Danke an alle, die ihre Stimme abgegeben haben!",
+    callTitle: "Bevor sich die Tore Azeroths öffnen",
+    callText:
+      "Damit niemand allein durchs Brachland irren muss: Trag deine Berufe und deine Verfügbarkeit ein – vor allem für die ersten ein bis zwei Wochen nach dem Start. So findet jede:r schnell passende Mitstreiter, ob für die ersten Quests, für Dungeons oder einen Abstecher nach Tarrens Mühle.",
+    professionsTitle: "Deine Berufe",
+    professionsText:
+      "Kräuterkunde, Schmiedekunst, Alchemie … Trag ein, was du lernen möchtest – so weiß jede:r in der Gilde, wer welchen Beruf macht.",
+    professionsButton: "Berufe eintragen",
+    availabilityTitle: "Deine Verfügbarkeit",
+    availabilityText:
+      "Wann bist du in den ersten Wochen online? Je mehr Zeitfenster eingetragen sind, desto leichter finden sich Gruppen.",
+    availabilityButton: "Verfügbarkeit eintragen",
+    farewell: "Lok'tar ogar – wir sehen uns in Durotar!",
     privacyTitle: "Datenschutz",
     privacyText:
       "Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein Avatar-Bild und deine Antworten aus dieser Umfrage. Diese Daten werden ausschließlich für diese private Freundes-Umfrage genutzt. Du kannst deine Antwort jederzeit ändern oder auf der Umfrageseite vollständig löschen.",
@@ -51,6 +63,7 @@ export const de: Dictionary = {
     q3Legend: "3. Spielstil",
     q3Hint:
       "Wichtig fürs gemeinsame Spielen: PvP- und PvE-Fans haben oft unterschiedliche Vorstellungen vom Server – eure Antworten helfen, das früh abzugleichen.",
+    lockedHint: "Final entschieden – für alle gleich.",
     pleaseChoose: "Bitte wählen",
     q4Legend: "4. Geplante Klasse(n) (optional)",
     q4Hint:
@@ -75,9 +88,11 @@ export const de: Dictionary = {
   },
   overview: {
     title: "Übersicht",
-    memeCaption: "Kennt ihr das?",
-    memeAlt:
-      "Meme: Ein Tauren versucht WoW wie früher zu spielen, während im Hintergrund die 'Adult Responsibilities' heranstürmen",
+    participantsTitle: "Wer ist dabei?",
+    professionsTitle: "Berufe in der Gilde",
+    professionsHint: "Wer lernt was? Gestrichelte Berufe hat noch niemand gewählt – vielleicht ja du.",
+    professionMissing: "Noch niemand",
+    analysisTitle: "Klassen & Rollen",
     noResponses: "Noch keine Antworten.",
     noteLabel: "Anmerkung",
     availabilityTitle: "Verfügbarkeit im Überblick",
@@ -87,7 +102,7 @@ export const de: Dictionary = {
   },
   availability: {
     title: "Deine Verfügbarkeit",
-    hint: "Wähle grob, an welchen Wochentagen und Tagesabschnitten du meistens Zeit hast. Hilft uns, Spielgruppen zu finden, die zeitlich zusammenpassen.",
+    hint: "Wähle grob, an welchen Wochentagen und Tagesabschnitten du Zeit hast – vor allem in den ersten ein bis zwei Wochen nach dem Start. Hilft uns, Spielgruppen zu finden, die zeitlich zusammenpassen.",
     backHint:
       "Du kannst das jederzeit anpassen, z. B. wenn sich dein Schichtplan ändert.",
     noSlotsHint: "Keine Zeitfenster ausgewählt – das ist auch völlig ok.",
@@ -127,7 +142,6 @@ export const de: Dictionary = {
     nameLabel: "Name",
     classLabel: "Klasse",
     roleLabel: "Rolle",
-    levelLabel: "Level",
     mainLabel: "Das ist mein Main",
     mainBadge: "Main",
     addTitle: "Charakter hinzufügen",
@@ -182,6 +196,11 @@ export const de: Dictionary = {
       repeatHint: "Anzahl Wochen inkl. diesem Termin (1 = einmalig).",
       create: "Termin anlegen",
       creating: "Legt an...",
+      edit: "Termin bearbeiten",
+      editTitle: "Termin bearbeiten",
+      editHint: "Änderungen gelten nur für diesen Termin, nicht für die übrigen Termine einer Serie. Anmeldungen bleiben erhalten.",
+      saveChanges: "Änderungen speichern",
+      saving: "Speichert...",
       confirm: "Bestätigen",
       bench: "Bank",
       reset: "Zurücksetzen",
@@ -198,6 +217,28 @@ export const de: Dictionary = {
   admin: {
     title: "Admin-Dashboard",
     allParticipants: "Alle Teilnehmer:innen",
+    logo: {
+      title: "Logo",
+      hint: "Direkter https-Link auf eine Bilddatei. Empfohlen: quadratisches PNG mit transparentem Hintergrund, 512 × 512 px. Das Logo erscheint auf allen Seiten, als Browser-Tab-Icon und als Absenderbild der Discord-Nachrichten.",
+      urlLabel: "Logo-URL",
+      preview: "Vorschau",
+      current: "Aktuell:",
+      defaultActive: "Standard-Emblem",
+      save: "Logo speichern",
+      saving: "Speichert...",
+      saved: "Gespeichert ✓",
+      reset: "Standard-Emblem verwenden",
+      resetConfirm: "Eigenes Logo entfernen und wieder das Standard-Emblem verwenden?",
+      invalid: "Bitte eine gültige https-Adresse eingeben.",
+      loadError: "Bild konnte nicht geladen werden – ist es ein direkter Link auf die Bilddatei?",
+      sizeLabel: "Größe",
+      sizeHint: "Gilt für das Logo auf allen Seiten (Vorschau in Startseiten-Größe). Tab-Icon und Discord-Bild bleiben unverändert.",
+      sizeSave: "Größe speichern",
+      sizeDefault: "100 %",
+      saveError: "Speichern fehlgeschlagen – ist supabase/schema.sql auf dem neuesten Stand eingespielt?",
+      timerTitle: "Logo im Countdown",
+      timerHint: "Eigenes Bild nur für den Countdown auf der Startseite, unabhängig vom Haupt-Logo und dessen Größe. Empfohlen: quadratisches PNG mit transparentem Hintergrund. Leer = Standard-Emblem.",
+    },
     loadErrorTemplate: "Fehler beim Laden der Daten: {msg}",
     exportCsv: "Als CSV exportieren",
     filterLabel: "Filter:",

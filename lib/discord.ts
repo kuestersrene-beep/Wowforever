@@ -5,6 +5,7 @@ import {
   ROLE_LABELS,
 } from "./constants";
 import { formatEventDate } from "./i18n/format";
+import { getLogoUrl } from "./siteSettings";
 import type {
   EventSignupRow,
   Faction,
@@ -14,13 +15,9 @@ import type {
   Role,
 } from "./types";
 
-// Discord bietet keine öffentlich dokumentierte "DM direkt öffnen"-URL
-// ohne Bot. Dieser Link zum Profil ist die zuverlässigste Variante ohne
-// eigenen Bot: Discord öffnet (App oder Web) die Profilkarte der Person,
-// von der aus man mit einem Klick auf "Nachricht" den Chat startet.
-export function discordUserUrl(discordId: string): string {
-  return `https://discord.com/users/${discordId}`;
-}
+// Nur serverseitig verwenden (Webhook-URL, Logo aus der Datenbank). Der
+// Profil-Link für Client Components liegt in lib/discordUrl.ts.
+export { discordUserUrl } from "./discordUrl";
 
 interface NotifyParams {
   name: string;
@@ -108,12 +105,22 @@ export async function notifyDiscord(params: NotifyParams): Promise<void> {
 
 // Gemeinsamer Versand für alle Webhook-Nachrichten. Fehler werden nur
 // geloggt, nie geworfen (siehe Kommentar bei notifyDiscord).
-async function postWebhook(webhookUrl: string, body: unknown): Promise<boolean> {
+// Ist ein eigenes Logo gesetzt, wird es als Absenderbild verwendet -
+// außer SVG, das Discord als Avatar nicht anzeigen kann.
+async function postWebhook(
+  webhookUrl: string,
+  body: Record<string, unknown>
+): Promise<boolean> {
+  const logoUrl = await getLogoUrl();
+  const avatarUrl =
+    logoUrl && !new URL(logoUrl).pathname.toLowerCase().endsWith(".svg")
+      ? logoUrl
+      : undefined;
   try {
     const res = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ avatar_url: avatarUrl, ...body }),
     });
     return res.ok;
   } catch (err) {

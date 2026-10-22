@@ -92,7 +92,7 @@ export default async function CharakterePage() {
                       <li key={c.id} className="flex items-center gap-2">
                         <span className="font-medium text-parchment">{c.name}</span>
                         <span className="text-xs text-slate-400">
-                          {dict.labels.class[c.class] ?? c.class} · {c.level}
+                          {dict.labels.class[c.class] ?? c.class}
                         </span>
                         {c.is_main && (
                           <span className="rounded border border-gold/40 px-1 text-[10px] uppercase text-gold">

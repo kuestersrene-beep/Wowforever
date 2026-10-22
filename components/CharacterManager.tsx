@@ -45,7 +45,6 @@ export default function CharacterManager({
     name: "",
     class: prefill?.class ?? "",
     role: prefill?.role ?? "",
-    level: 1,
     is_main: characters.length === 0,
   };
 
@@ -65,7 +64,7 @@ export default function CharacterManager({
               </p>
               <p className="text-xs text-slate-400">
                 {dict.labels.class[c.class] ?? c.class} ·{" "}
-                {dict.labels.role[c.role]} · {dict.characters.levelLabel} {c.level}
+                {dict.labels.role[c.role]}
               </p>
             </div>
             <button
@@ -109,7 +108,7 @@ export default function CharacterManager({
           <p className="text-xs text-slate-400">{dict.characters.prefillHint}</p>
         )}
         {editing && <input type="hidden" name="id" value={editing.id} />}
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-xs text-slate-400 sm:col-span-2">
             {dict.characters.nameLabel}
             <input
@@ -139,17 +138,6 @@ export default function CharacterManager({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-slate-400">
-            {dict.characters.levelLabel}
-            <input
-              type="number"
-              name="level"
-              min={1}
-              max={100}
-              defaultValue={defaults.level}
-              className={inputClass}
-            />
           </label>
         </div>
         <fieldset className="flex flex-wrap gap-3">

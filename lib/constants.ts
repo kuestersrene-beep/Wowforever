@@ -24,6 +24,11 @@ export const WOW_CLASSES = [
 
 export const CLASS_PRIORITY_COUNT = 3;
 
+// Final entschieden: alle spielen Horde auf einem PvP-Reich. Die Umfrage
+// fragt das nicht mehr ab, sondern setzt diese Werte fest.
+export const FIXED_FACTION: Faction = "horde";
+export const FIXED_PLAYSTYLE: Playstyle = "pvp";
+
 export const WOW_PROFESSIONS = [
   "Alchemie",
   "Schmiedekunst",
@@ -130,3 +135,9 @@ export const APP_TIME_ZONE = process.env.NEXT_PUBLIC_TIME_ZONE || "Europe/Berlin
 
 // Wie viele Wochen ein wiederkehrender Termin maximal im Voraus angelegt wird.
 export const MAX_REPEAT_WEEKS = 12;
+
+// Logo-Größe in Prozent der jeweiligen Standardgröße (siehe site_settings
+// in supabase/schema.sql - die Grenzen dort müssen hierzu passen).
+export const LOGO_SCALE_MIN = 100;
+export const LOGO_SCALE_MAX = 400;
+export const LOGO_SCALE_DEFAULT = 100;

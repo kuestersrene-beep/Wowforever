@@ -6,7 +6,7 @@ import { getDictionary, getLocale } from "@/lib/i18n";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { formatEventDate, formatRoleCounts, formatSignedUp } from "@/lib/i18n/format";
 import { summarizeSignups, UPCOMING_GRACE_MS } from "@/lib/events";
-import EventCreateForm from "@/components/events/EventCreateForm";
+import EventForm from "@/components/events/EventForm";
 import Emblem from "@/components/ui/Emblem";
 import type { EventSignupRow, GuildEvent } from "@/lib/types";
 
@@ -64,7 +64,7 @@ export default async function TerminePage() {
         {dict.events.hint}
       </p>
 
-      {admin && <EventCreateForm />}
+      {admin && <EventForm />}
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg text-gold-light">{dict.events.upcoming}</h2>

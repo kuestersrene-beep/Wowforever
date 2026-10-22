@@ -6,10 +6,8 @@ import { getDictionary, getLocale } from "@/lib/i18n";
 import type { AvailabilitySummary, ParticipantSummary } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
 import AvailabilityOverview from "@/components/AvailabilityOverview";
-import InsightBanner from "@/components/admin/InsightBanner";
+import ProfessionOverview from "@/components/ProfessionOverview";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
-import FactionChart from "@/components/admin/FactionChart";
-import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
 import Emblem from "@/components/ui/Emblem";
@@ -55,31 +53,20 @@ export default async function UebersichtPage() {
         </Link>
       </div>
 
+      {/* Reihenfolge nach dem, was beim Finden von Mitstreitern für die
+          ersten Wochen am meisten hilft: Kurzstand -> wann hat wer Zeit ->
+          wer kann welchen Beruf -> wer ist dabei -> Klassen-Auswertung.
+          Fraktion und Spielstil sind entschieden und tauchen nicht mehr auf. */}
       <StatTiles responses={participants} dict={dict} />
-      <InsightBanner responses={participants} dict={dict} />
       <RoleNeedBanner responses={participants} dict={dict} />
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <FactionChart responses={participants} dict={dict} />
-        <PlaystyleChart responses={participants} dict={dict} />
-      </div>
-
-      <ClassRoleCharts responses={participants} dict={dict} />
-      <ClassPriorityOverview responses={participants} dict={dict} />
 
       <AvailabilityOverview rows={availabilityRows ?? []} dict={dict} />
 
-      <div className="panel flex flex-col items-center gap-3 p-4 text-center">
-        <p className="text-sm text-slate-400">{dict.overview.memeCaption}</p>
-        <Image
-          src="/images/meme-adult-responsibilities.jpg"
-          alt={dict.overview.memeAlt}
-          width={640}
-          height={906}
-          className="max-w-[240px] rounded-lg border border-gold/30"
-        />
-      </div>
+      <ProfessionOverview responses={participants} dict={dict} />
 
+      <h2 className="-mb-4 font-heading text-lg text-gold-light">
+        {dict.overview.participantsTitle}
+      </h2>
       <ul className="flex flex-col divide-y divide-slate-800 panel">
         {participants.map((p) => (
           <li key={p.user_id} className="flex items-center gap-3 p-3">
@@ -127,6 +114,12 @@ export default async function UebersichtPage() {
           </li>
         )}
       </ul>
+
+      <h2 className="-mb-4 font-heading text-lg text-gold-light">
+        {dict.overview.analysisTitle}
+      </h2>
+      <ClassRoleCharts responses={participants} dict={dict} />
+      <ClassPriorityOverview responses={participants} dict={dict} />
     </main>
   );
 }
