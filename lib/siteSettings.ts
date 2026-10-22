@@ -48,6 +48,14 @@ export async function getLogoUrl(): Promise<string | null> {
   return (await getSiteSettings()).logoUrl;
 }
 
+// Bild für quadratische Stellen (Browser-Tab-Icon, Discord-Absenderbild):
+// bevorzugt das Countdown-Logo, weil das Haupt-Logo auch eine breite
+// Kopfgrafik sein kann, die dort winzig bzw. abgeschnitten wäre.
+export async function getIconUrl(): Promise<string | null> {
+  const { timerLogoUrl, logoUrl } = await getSiteSettings();
+  return timerLogoUrl ?? logoUrl;
+}
+
 export function clampLogoScale(value: number): number {
   if (!Number.isFinite(value)) return LOGO_SCALE_DEFAULT;
   return Math.min(LOGO_SCALE_MAX, Math.max(LOGO_SCALE_MIN, Math.round(value)));

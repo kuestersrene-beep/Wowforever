@@ -141,3 +141,8 @@ export const MAX_REPEAT_WEEKS = 12;
 export const LOGO_SCALE_MIN = 100;
 export const LOGO_SCALE_MAX = 400;
 export const LOGO_SCALE_DEFAULT = 100;
+
+// Gildennamen-Umfrage: wie viele Namen eine Person höchstens vorschlagen
+// kann (offen + freigegeben zusammen; abgelehnte zählen nicht).
+export const MAX_GUILD_NAME_SUGGESTIONS = 3;
+export const GUILD_NAME_MAX_LENGTH = 40;

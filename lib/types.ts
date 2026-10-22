@@ -140,3 +140,22 @@ export interface EventSignupRow {
   avatar_url: string | null;
   roster_slot: RosterSlot | null;
 }
+
+export type GuildNameStatus = "offen" | "freigegeben" | "abgelehnt";
+
+// Ein Vorschlag für den Gildennamen (siehe guild_name_suggestions in
+// supabase/schema.sql).
+export interface GuildNameSuggestion {
+  id: string;
+  name: string;
+  user_id: string;
+  display_name: string;
+  status: GuildNameStatus;
+  created_at: string;
+}
+
+// Ergebnis eines Namensvorschlags. Rückgabe statt Exception, damit das
+// Formular eine verständliche Meldung anzeigen kann.
+export type SuggestResult =
+  | { ok: true }
+  | { ok: false; reason: "duplicate" | "limit" | "invalid" };

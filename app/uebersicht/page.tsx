@@ -45,7 +45,7 @@ export default async function UebersichtPage() {
 
   return (
     <main className="flex flex-col gap-8">
-      <Emblem className="mx-auto h-14 w-14" />
+      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.overview.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

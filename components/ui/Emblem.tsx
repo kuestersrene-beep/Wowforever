@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useBranding } from "@/lib/branding";
 
+// Standardhöhe des Haupt-Logos bei 100 % (6rem = 96 px, wie das Emblem
+// in den Seitenköpfen).
+const LOGO_BASE_HEIGHT_REM = 6;
+
 // Eigenständig entworfenes Emblem - keine Blizzard-Assets. Ein
 // Kompass-Rahmen um einen zweigeteilten Horde/Allianz-Kreis, in der
 // Mitte zwei verschlungene Ringe als Sinnbild für "für immer verbunden,
@@ -26,10 +30,10 @@ function starPoints(
 }
 
 // Zeigt das im Admin-Dashboard hinterlegte Logo, falls gesetzt - sonst
-// (oder wenn das Bild nicht lädt) das eingebaute Emblem. Die im Admin-
-// Dashboard eingestellte Größe wird per CSS "zoom" auf die jeweilige
-// Standardgröße (className) angewendet - anders als transform: scale()
-// verschiebt zoom auch das Layout, nichts überlappt.
+// (oder wenn das Bild nicht lädt) das eingebaute Emblem. Beim Emblem wird
+// die eingestellte Größe per CSS "zoom" auf die Standardgröße (className)
+// angewendet - anders als transform: scale() verschiebt zoom auch das
+// Layout, nichts überlappt.
 // "scale" überschreibt die gespeicherte Größe (für die Admin-Vorschau).
 // variant="timer" nutzt stattdessen das separate Countdown-Logo, immer in
 // Originalgröße (der Größenregler gilt nur für das Haupt-Logo).
@@ -49,13 +53,31 @@ export default function Emblem({
     variant === "timer" ? {} : { zoom: (scale ?? branding.logoScale) / 100 };
 
   if (logoUrl && failedUrl !== logoUrl) {
+    if (variant === "timer") {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logoUrl}
+          alt="Logo"
+          className={`${className} object-contain`}
+          onError={() => setFailedUrl(logoUrl)}
+        />
+      );
+    }
+
+    // Eigenes Haupt-Logo in beliebigem Seitenverhältnis (z. B. eine
+    // rechteckige Kopfgrafik): Die Höhe ist begrenzt (Standardhöhe x
+    // Größenregler), die Breite ergibt sich aus dem Seitenverhältnis und
+    // ist höchstens so breit wie die Seite. Ein quadratisches Logo wird
+    // dadurch genauso groß wie bisher, eine 3:1-Grafik dreimal so breit.
+    const maxHeightRem = (LOGO_BASE_HEIGHT_REM * (scale ?? branding.logoScale)) / 100;
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={logoUrl}
         alt="Logo"
-        className={`${className} object-contain`}
-        style={style}
+        className="mx-auto block h-auto w-auto max-w-full object-contain"
+        style={{ maxHeight: `${maxHeightRem}rem` }}
         onError={() => setFailedUrl(logoUrl)}
       />
     );

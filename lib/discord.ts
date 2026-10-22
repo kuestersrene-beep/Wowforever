@@ -5,7 +5,7 @@ import {
   ROLE_LABELS,
 } from "./constants";
 import { formatEventDate } from "./i18n/format";
-import { getLogoUrl } from "./siteSettings";
+import { getIconUrl } from "./siteSettings";
 import type {
   EventSignupRow,
   Faction,
@@ -105,13 +105,14 @@ export async function notifyDiscord(params: NotifyParams): Promise<void> {
 
 // Gemeinsamer Versand für alle Webhook-Nachrichten. Fehler werden nur
 // geloggt, nie geworfen (siehe Kommentar bei notifyDiscord).
-// Ist ein eigenes Logo gesetzt, wird es als Absenderbild verwendet -
+// Ist ein eigenes Logo gesetzt (bevorzugt das Countdown-Logo, siehe
+// getIconUrl), wird es als Absenderbild verwendet -
 // außer SVG, das Discord als Avatar nicht anzeigen kann.
 async function postWebhook(
   webhookUrl: string,
   body: Record<string, unknown>
 ): Promise<boolean> {
-  const logoUrl = await getLogoUrl();
+  const logoUrl = await getIconUrl();
   const avatarUrl =
     logoUrl && !new URL(logoUrl).pathname.toLowerCase().endsWith(".svg")
       ? logoUrl

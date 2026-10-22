@@ -502,6 +502,98 @@ create trigger set_updated_at_site_settings
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Gildennamen-Umfrage: jede Person kann eigene Namen vorschlagen. Ein
+-- Vorschlag ist zunächst "offen" und nur für die vorschlagende Person
+-- sichtbar. Erst wenn ein Admin ihn freigibt ("freigegeben"), sehen ihn
+-- alle und können dafür stimmen. Freigeben/Ablehnen/Löschen nur über den
+-- service_role Key (siehe app/gildenname/actions.ts).
+-- ============================================================
+
+create table if not exists public.guild_name_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 2 and 40),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  display_name text not null,
+  status text not null default 'offen'
+    check (status in ('offen', 'freigegeben', 'abgelehnt')),
+  created_at timestamptz not null default now()
+);
+
+-- Jeder Name nur einmal (Groß-/Kleinschreibung egal).
+create unique index if not exists guild_name_suggestions_name_unique
+  on public.guild_name_suggestions (lower(name));
+
+alter table public.guild_name_suggestions enable row level security;
+
+drop policy if exists "select approved or own suggestions" on public.guild_name_suggestions;
+create policy "select approved or own suggestions"
+  on public.guild_name_suggestions for select
+  to authenticated
+  using (status = 'freigegeben' or auth.uid() = user_id);
+
+-- Eigene Vorschläge nur als "offen" anlegen - freigeben kann sich
+-- niemand selbst.
+drop policy if exists "insert own suggestion" on public.guild_name_suggestions;
+create policy "insert own suggestion"
+  on public.guild_name_suggestions for insert
+  with check (auth.uid() = user_id and status = 'offen');
+
+-- Eigene, noch offene Vorschläge darf man zurückziehen.
+drop policy if exists "delete own open suggestion" on public.guild_name_suggestions;
+create policy "delete own open suggestion"
+  on public.guild_name_suggestions for delete
+  using (auth.uid() = user_id and status = 'offen');
+
+-- Stimmen: eine Stimme pro Person (änderbar), nur für freigegebene Namen.
+create table if not exists public.guild_name_votes (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  suggestion_id uuid not null references public.guild_name_suggestions (id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.guild_name_votes enable row level security;
+
+drop policy if exists "select all votes" on public.guild_name_votes;
+create policy "select all votes"
+  on public.guild_name_votes for select
+  to authenticated
+  using (true);
+
+drop policy if exists "insert own vote" on public.guild_name_votes;
+create policy "insert own vote"
+  on public.guild_name_votes for insert
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.guild_name_suggestions s
+      where s.id = suggestion_id and s.status = 'freigegeben'
+    )
+  );
+
+drop policy if exists "update own vote" on public.guild_name_votes;
+create policy "update own vote"
+  on public.guild_name_votes for update
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.guild_name_suggestions s
+      where s.id = suggestion_id and s.status = 'freigegeben'
+    )
+  );
+
+drop policy if exists "delete own vote" on public.guild_name_votes;
+create policy "delete own vote"
+  on public.guild_name_votes for delete
+  using (auth.uid() = user_id);
+
+drop trigger if exists set_updated_at_guild_name_votes on public.guild_name_votes;
+create trigger set_updated_at_guild_name_votes
+  before update on public.guild_name_votes
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.
