@@ -51,7 +51,6 @@ export interface Dictionary {
     availabilityTitle: string;
     availabilityText: string;
     availabilityButton: string;
-    farewell: string;
     privacyTitle: string;
     privacyText: string;
     countdownLabels: {

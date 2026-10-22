@@ -32,10 +32,9 @@ export default async function HomePage() {
     <main className="flex flex-col gap-8">
       <header className="text-center">
         <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
-        {/* Seitenüberschrift, etwas größer als "Der Rat hat entschieden". */}
-        <h1 className="heading-ornate mt-3 text-3xl sm:text-4xl">
-          {dict.home.farewell}
-        </h1>
+        {/* Kein sichtbarer Titel - die Kopfgrafik übernimmt das. Für
+            Screenreader und Suchmaschinen bleibt eine Überschrift erhalten. */}
+        <h1 className="sr-only">World of Warcraft Forever</h1>
         <Ornament />
       </header>
 
@@ -47,9 +46,10 @@ export default async function HomePage() {
         <h2 className="heading-ornate mt-3 text-2xl sm:text-3xl">
           {dict.home.decisionTitle}
         </h2>
-        <p className="mx-auto mt-3 max-w-xl leading-relaxed text-parchment/90">
-          {dict.home.decisionText}
-        </p>
+        <Paragraphs
+          text={dict.home.decisionText}
+          className="mx-auto mt-3 flex max-w-xl flex-col gap-2 leading-relaxed text-parchment/90"
+        />
         <div className="mt-5">
           <CountdownBanner />
         </div>
@@ -59,9 +59,10 @@ export default async function HomePage() {
       <section className="flex flex-col gap-4">
         <div className="text-center">
           <h2 className="heading-ornate text-xl">{dict.home.callTitle}</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-parchment/85">
-            {dict.home.callText}
-          </p>
+          <Paragraphs
+            text={dict.home.callText}
+            className="mx-auto mt-2 flex max-w-2xl flex-col gap-2 text-sm leading-relaxed text-parchment/85"
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <CallCard
@@ -185,6 +186,18 @@ function CallCard({
           {button}
         </Link>
       )}
+    </div>
+  );
+}
+
+// Texte aus dem Wörterbuch dürfen Absätze mit einer Leerzeile ("\n\n")
+// trennen - hier wird daraus je ein <p>.
+function Paragraphs({ text, className }: { text: string; className: string }) {
+  return (
+    <div className={className}>
+      {text.split("\n\n").map((paragraph) => (
+        <p key={paragraph}>{paragraph}</p>
+      ))}
     </div>
   );
 }
