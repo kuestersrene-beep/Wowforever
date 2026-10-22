@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
+import RichText from "@/components/RichText";
 import GuildNamePoll from "@/components/guildname/GuildNamePoll";
 import SuggestGuildNameForm from "@/components/guildname/SuggestGuildNameForm";
 import GuildNameAdminQueue from "@/components/guildname/GuildNameAdminQueue";
@@ -20,7 +22,7 @@ export default async function GildennamePage() {
   }
 
   const admin = isAdmin(getDiscordId(user));
-  const dict = getDictionary(await getLocale());
+  const dict = await loadDictionary(await getLocale());
 
   // RLS liefert alle freigegebenen Vorschläge plus die eigenen.
   const [{ data: suggestionRows }, { data: voteRows }] = await Promise.all([
@@ -68,9 +70,10 @@ export default async function GildennamePage() {
           {dict.nav.back}
         </Link>
       </div>
-      <p className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90">
-        {dict.guildName.hint}
-      </p>
+      <RichText
+        value={dict.guildName.hint}
+        className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90"
+      />
 
       {admin && (
         <GuildNameAdminQueue pending={pending} rejected={rejected} />

@@ -594,6 +594,38 @@ create trigger set_updated_at_guild_name_votes
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Bearbeitbare Seitentexte (Admin-Dashboard -> "Texte bearbeiten").
+-- Jede Zeile überschreibt einen eingebauten Text aus lib/i18n/*.ts,
+-- z. B. key = 'home.decisionTitle', locale = 'de'. Fehlt eine Zeile,
+-- gilt der eingebaute Text. locale = 'all' für sprachunabhängige
+-- Einstellungen wie das Ein-/Ausblenden von Abschnitten.
+-- Lesen darf jede:r (die Startseite ist auch ohne Login sichtbar),
+-- schreiben nur Admins über den service_role Key.
+-- ============================================================
+
+create table if not exists public.site_content (
+  key text not null check (char_length(key) <= 100),
+  locale text not null check (locale in ('de', 'en', 'all')),
+  value text not null check (char_length(value) <= 10000),
+  updated_at timestamptz not null default now(),
+  primary key (key, locale)
+);
+
+alter table public.site_content enable row level security;
+
+drop policy if exists "select site content" on public.site_content;
+create policy "select site content"
+  on public.site_content for select
+  using (true);
+-- Absichtlich keine insert/update/delete-Policy - nur service_role.
+
+drop trigger if exists set_updated_at_site_content on public.site_content;
+create trigger set_updated_at_site_content
+  before update on public.site_content
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

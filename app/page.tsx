@@ -2,7 +2,9 @@ import Link from "next/link";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { formatPending } from "@/lib/i18n/format";
 import { getDiscordId, isAdmin } from "@/lib/admin";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { isSectionVisible, loadDictionary } from "@/lib/content";
+import RichText from "@/components/RichText";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import Ornament from "@/components/ui/Ornament";
@@ -26,7 +28,16 @@ export default async function HomePage() {
       .eq("status", "offen");
     pendingGuildNames = count ?? 0;
   }
-  const dict = getDictionary(await getLocale());
+  const dict = await loadDictionary(await getLocale());
+
+  // Abschnitte, die im Admin-Dashboard ausgeblendet werden können.
+  const [decision, countdown, call, privacy] = await Promise.all([
+    isSectionVisible("home.show.decision"),
+    isSectionVisible("home.show.countdown"),
+    isSectionVisible("home.show.call"),
+    isSectionVisible("home.show.privacy"),
+  ]);
+  const show = { decision, countdown, call, privacy };
 
   return (
     <main className="flex flex-col gap-8">
@@ -39,48 +50,54 @@ export default async function HomePage() {
       </header>
 
       {/* Ankündigung: finale Entscheidung für Horde auf einem PvP-Reich. */}
-      <section className="panel relative overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center">
-        <span className="inline-block rounded-full border border-horde px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-red-300">
-          {dict.home.decisionTag}
-        </span>
-        <h2 className="heading-ornate mt-3 text-2xl sm:text-3xl">
-          {dict.home.decisionTitle}
-        </h2>
-        <Paragraphs
-          text={dict.home.decisionText}
-          className="mx-auto mt-3 flex max-w-xl flex-col gap-2 leading-relaxed text-parchment/90"
-        />
-        <div className="mt-5">
-          <CountdownBanner />
-        </div>
-      </section>
+      {show.decision && (
+        <section className="panel relative overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center">
+          <span className="inline-block rounded-full border border-horde px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-red-300">
+            {dict.home.decisionTag}
+          </span>
+          <h2 className="heading-ornate mt-3 text-2xl sm:text-3xl">
+            {dict.home.decisionTitle}
+          </h2>
+          <RichText
+            value={dict.home.decisionText}
+            className="mx-auto mt-3 max-w-xl leading-relaxed text-parchment/90"
+          />
+          {show.countdown && (
+            <div className="mt-5">
+              <CountdownBanner />
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Aufruf: Berufe und Verfügbarkeit für die ersten Wochen eintragen. */}
-      <section className="flex flex-col gap-4">
-        <div className="text-center">
-          <h2 className="heading-ornate text-xl">{dict.home.callTitle}</h2>
-          <Paragraphs
-            text={dict.home.callText}
-            className="mx-auto mt-2 flex max-w-2xl flex-col gap-2 text-sm leading-relaxed text-parchment/85"
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <CallCard
-            title={dict.home.professionsTitle}
-            text={dict.home.professionsText}
-            button={dict.home.professionsButton}
-            href="/umfrage"
-            loggedIn={!!user}
-          />
-          <CallCard
-            title={dict.home.availabilityTitle}
-            text={dict.home.availabilityText}
-            button={dict.home.availabilityButton}
-            href="/verfuegbarkeit"
-            loggedIn={!!user}
-          />
-        </div>
-      </section>
+      {show.call && (
+        <section className="flex flex-col gap-4">
+          <div className="text-center">
+            <h2 className="heading-ornate text-xl">{dict.home.callTitle}</h2>
+            <RichText
+              value={dict.home.callText}
+              className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-parchment/85"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CallCard
+              title={dict.home.professionsTitle}
+              text={dict.home.professionsText}
+              button={dict.home.professionsButton}
+              href="/umfrage"
+              loggedIn={!!user}
+            />
+            <CallCard
+              title={dict.home.availabilityTitle}
+              text={dict.home.availabilityText}
+              button={dict.home.availabilityButton}
+              href="/verfuegbarkeit"
+              loggedIn={!!user}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="panel p-6">
         {user ? (
@@ -148,12 +165,14 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section className="panel p-5 text-sm text-slate-400">
-        <h2 className="mb-2 font-heading text-base text-gold-light">
-          {dict.home.privacyTitle}
-        </h2>
-        <p>{dict.home.privacyText}</p>
-      </section>
+      {show.privacy && (
+        <section className="panel p-5 text-sm text-slate-400">
+          <h2 className="mb-2 font-heading text-base text-gold-light">
+            {dict.home.privacyTitle}
+          </h2>
+          <RichText value={dict.home.privacyText} />
+        </section>
+      )}
     </main>
   );
 }
@@ -177,7 +196,7 @@ function CallCard({
   return (
     <div className="panel flex flex-col gap-3 p-5">
       <h3 className="font-heading text-base text-gold-light">{title}</h3>
-      <p className="flex-1 text-sm leading-relaxed text-slate-300">{text}</p>
+      <RichText value={text} className="flex-1 text-sm leading-relaxed text-slate-300" />
       {loggedIn && (
         <Link
           href={href}
@@ -186,18 +205,6 @@ function CallCard({
           {button}
         </Link>
       )}
-    </div>
-  );
-}
-
-// Texte aus dem Wörterbuch dürfen Absätze mit einer Leerzeile ("\n\n")
-// trennen - hier wird daraus je ein <p>.
-function Paragraphs({ text, className }: { text: string; className: string }) {
-  return (
-    <div className={className}>
-      {text.split("\n\n").map((paragraph) => (
-        <p key={paragraph}>{paragraph}</p>
-      ))}
     </div>
   );
 }

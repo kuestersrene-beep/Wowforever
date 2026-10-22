@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
+import RichText from "@/components/RichText";
 import { formatCharacterCount } from "@/lib/i18n/format";
 import { ROLES, WOW_CLASSES } from "@/lib/constants";
 import CharacterManager from "@/components/CharacterManager";
@@ -18,7 +20,7 @@ export default async function CharakterePage() {
     redirect("/");
   }
 
-  const dict = getDictionary(await getLocale());
+  const dict = await loadDictionary(await getLocale());
 
   const { data: rows } = await supabase
     .from("characters")
@@ -54,9 +56,10 @@ export default async function CharakterePage() {
           {dict.nav.back}
         </Link>
       </div>
-      <p className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90">
-        {dict.characters.hint}
-      </p>
+      <RichText
+        value={dict.characters.hint}
+        className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90"
+      />
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-lg text-gold-light">
