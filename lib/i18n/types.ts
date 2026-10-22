@@ -38,8 +38,18 @@ export interface Dictionary {
     label: string;
   };
   home: {
-    subtitle: string;
-    quest: string;
+    decisionTag: string;
+    decisionTitle: string;
+    decisionText: string;
+    callTitle: string;
+    callText: string;
+    professionsTitle: string;
+    professionsText: string;
+    professionsButton: string;
+    availabilityTitle: string;
+    availabilityText: string;
+    availabilityButton: string;
+    farewell: string;
     privacyTitle: string;
     privacyText: string;
     countdownLabels: {
@@ -62,6 +72,7 @@ export interface Dictionary {
     q2Hint: string;
     q3Legend: string;
     q3Hint: string;
+    lockedHint: string;
     pleaseChoose: string;
     q4Legend: string;
     q4Hint: string;
@@ -84,8 +95,11 @@ export interface Dictionary {
   };
   overview: {
     title: string;
-    memeCaption: string;
-    memeAlt: string;
+    participantsTitle: string;
+    professionsTitle: string;
+    professionsHint: string;
+    professionMissing: string;
+    analysisTitle: string;
     noResponses: string;
     noteLabel: string;
     availabilityTitle: string;
@@ -132,7 +146,6 @@ export interface Dictionary {
     nameLabel: string;
     classLabel: string;
     roleLabel: string;
-    levelLabel: string;
     mainLabel: string;
     mainBadge: string;
     addTitle: string;
@@ -187,6 +200,11 @@ export interface Dictionary {
       repeatHint: string;
       create: string;
       creating: string;
+      edit: string;
+      editTitle: string;
+      editHint: string;
+      saveChanges: string;
+      saving: string;
       confirm: string;
       bench: string;
       reset: string;
@@ -203,6 +221,28 @@ export interface Dictionary {
   admin: {
     title: string;
     allParticipants: string;
+    logo: {
+      title: string;
+      hint: string;
+      urlLabel: string;
+      preview: string;
+      current: string;
+      defaultActive: string;
+      save: string;
+      saving: string;
+      saved: string;
+      reset: string;
+      resetConfirm: string;
+      invalid: string;
+      loadError: string;
+      sizeLabel: string;
+      sizeHint: string;
+      sizeSave: string;
+      sizeDefault: string;
+      saveError: string;
+      timerTitle: string;
+      timerHint: string;
+    };
     loadErrorTemplate: string; // Platzhalter: {msg}
     exportCsv: string;
     filterLabel: string;

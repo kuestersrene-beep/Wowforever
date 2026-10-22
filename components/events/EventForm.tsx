@@ -2,14 +2,35 @@
 
 import { useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createEvent } from "@/app/termine/actions";
+import { createEvent, updateEvent } from "@/app/termine/actions";
 import { INSTANCES, MAX_REPEAT_WEEKS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
+import type { GuildEvent } from "@/lib/types";
 
 const inputClass =
   "rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none";
 
-export default function EventCreateForm() {
+// ISO-Zeitpunkt -> Wert für <input type="datetime-local"> in der lokalen
+// Zeitzone des Browsers.
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
+// Ohne "event": neuen Termin anlegen (optional wöchentlich wiederholt).
+// Mit "event": diesen einen Termin bearbeiten. Das Bearbeiten-Formular
+// wird erst nach Klick auf "Bearbeiten" gerendert (nur im Browser), so
+// passt die vorausgefüllte Uhrzeit zur Zeitzone des Browsers.
+export default function EventForm({
+  event,
+  onDone,
+}: {
+  event?: GuildEvent;
+  onDone?: () => void;
+}) {
   const { dict } = useI18n();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -33,9 +54,14 @@ export default function EventCreateForm() {
       formData.append("starts_at", date.toISOString());
     }
     startTransition(async () => {
-      await createEvent(formData);
-      formRef.current?.reset();
+      if (event) {
+        await updateEvent(formData);
+      } else {
+        await createEvent(formData);
+        formRef.current?.reset();
+      }
       router.refresh();
+      onDone?.();
     });
   };
 
@@ -46,8 +72,9 @@ export default function EventCreateForm() {
       className="panel flex flex-col gap-3 border-horde/40 p-4"
     >
       <h2 className="font-heading text-sm text-horde">
-        {dict.events.admin.createTitle}
+        {event ? dict.events.admin.editTitle : dict.events.admin.createTitle}
       </h2>
+      {event && <input type="hidden" name="event_id" value={event.id} />}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-slate-400">
           {dict.events.admin.titleLabel}
@@ -57,6 +84,7 @@ export default function EventCreateForm() {
             required
             maxLength={120}
             placeholder={dict.events.admin.titlePlaceholder}
+            defaultValue={event?.title}
             className={inputClass}
           />
         </label>
@@ -67,6 +95,7 @@ export default function EventCreateForm() {
             name="instance"
             list="instance-suggestions"
             maxLength={120}
+            defaultValue={event?.instance ?? ""}
             className={inputClass}
           />
           <datalist id="instance-suggestions">
@@ -81,6 +110,7 @@ export default function EventCreateForm() {
             type="datetime-local"
             name="starts_at_local"
             required
+            defaultValue={event ? toLocalInputValue(event.starts_at) : undefined}
             className={inputClass}
           />
         </label>
@@ -92,38 +122,62 @@ export default function EventCreateForm() {
               name="max_size"
               min={1}
               max={40}
-              defaultValue={40}
+              defaultValue={event?.max_size ?? 40}
               className={inputClass}
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs text-slate-400">
-            {dict.events.admin.repeatLabel}
-            <input
-              type="number"
-              name="repeat_weeks"
-              min={1}
-              max={MAX_REPEAT_WEEKS}
-              defaultValue={1}
-              className={inputClass}
-            />
-          </label>
+          {/* Beim Bearbeiten nicht: das betrifft immer nur diesen Termin. */}
+          {!event && (
+            <label className="flex flex-col gap-1 text-xs text-slate-400">
+              {dict.events.admin.repeatLabel}
+              <input
+                type="number"
+                name="repeat_weeks"
+                min={1}
+                max={MAX_REPEAT_WEEKS}
+                defaultValue={1}
+                className={inputClass}
+              />
+            </label>
+          )}
         </div>
       </div>
-      <p className="text-xs text-slate-500">{dict.events.admin.repeatHint}</p>
+      <p className="text-xs text-slate-500">
+        {event ? dict.events.admin.editHint : dict.events.admin.repeatHint}
+      </p>
       <textarea
         name="description"
         rows={2}
         maxLength={1000}
         placeholder={dict.events.admin.descriptionLabel}
+        defaultValue={event?.description ?? ""}
         className={inputClass}
       />
-      <button
-        type="submit"
-        disabled={isPending}
-        className="self-start rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {isPending ? dict.events.admin.creating : dict.events.admin.create}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {event
+            ? isPending
+              ? dict.events.admin.saving
+              : dict.events.admin.saveChanges
+            : isPending
+              ? dict.events.admin.creating
+              : dict.events.admin.create}
+        </button>
+        {event && onDone && (
+          <button
+            type="button"
+            onClick={onDone}
+            disabled={isPending}
+            className="text-sm text-slate-400 underline-offset-2 hover:underline"
+          >
+            {dict.characters.cancel}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

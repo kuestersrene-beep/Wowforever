@@ -23,8 +23,8 @@ function getRemaining(target: number): Remaining {
   };
 }
 
-// Eigenständig gebauter Live-Countdown (Tage/Std/Min/Sek, Sternenhimmel,
-// eigenes Emblem) - kein Blizzard-Asset. Liest NEXT_PUBLIC_LAUNCH_DATE
+// Eigenständig gebauter Live-Countdown (Tage/Std/Min/Sek, in Horde-Farben
+// passend zum Ankündigungs-Panel der Startseite, mit eigenem Timer-Logo) - kein Blizzard-Asset. Liest NEXT_PUBLIC_LAUNCH_DATE
 // selbst aus (als NEXT_PUBLIC_-Variable ohnehin im Client-Bundle
 // vorhanden), rendert nichts, falls die Variable nicht gesetzt ist.
 export default function CountdownBanner() {
@@ -48,7 +48,7 @@ export default function CountdownBanner() {
 
   if (remaining.done) {
     return (
-      <p className="mx-auto mt-4 max-w-md rounded-xl border border-gold/40 bg-ink/60 p-4 text-center text-gold-light">
+      <p className="mx-auto max-w-md rounded-xl border border-horde/60 bg-ink/50 p-4 text-center font-heading text-red-200">
         {dict.home.countdownToday}
       </p>
     );
@@ -62,8 +62,8 @@ export default function CountdownBanner() {
   ];
 
   return (
-    <div className="starfield mx-auto mt-4 flex max-w-md items-center justify-center gap-4 rounded-xl border border-gold/40 p-4">
-      <Emblem className="h-12 w-12 shrink-0" />
+    <div className="mx-auto flex max-w-md items-center justify-center gap-4 rounded-xl border border-horde/60 bg-gradient-to-b from-ink/70 to-horde-dark/60 p-4 shadow-inner shadow-black/50">
+      <Emblem className="h-[4.5rem] w-[4.5rem] shrink-0" variant="timer" />
       <div className="flex items-center gap-2 sm:gap-3">
         {units.map((u, i) => (
           <div key={u.label} className="flex items-center gap-2 sm:gap-3">
@@ -71,11 +71,11 @@ export default function CountdownBanner() {
               <p className="font-heading text-xl text-parchment sm:text-2xl">
                 {String(u.value).padStart(2, "0")}
               </p>
-              <p className="text-[10px] uppercase tracking-wide text-gold-light">
+              <p className="text-[10px] uppercase tracking-wide text-red-300">
                 {u.label}
               </p>
             </div>
-            {i < units.length - 1 && <span className="text-gold/50">:</span>}
+            {i < units.length - 1 && <span className="text-horde">:</span>}
           </div>
         ))}
       </div>

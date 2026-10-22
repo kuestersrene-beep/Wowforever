@@ -28,7 +28,6 @@ export async function saveCharacter(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim().slice(0, 24);
   const charClass = String(formData.get("class") ?? "");
   const role = String(formData.get("role") ?? "");
-  const level = Math.min(100, Math.max(1, Number(formData.get("level")) || 1));
   const isMain = formData.get("is_main") === "on";
 
   if (name.length < 2 || !VALID_CLASSES.has(charClass) || !VALID_ROLES.has(role)) {
@@ -56,7 +55,6 @@ export async function saveCharacter(formData: FormData) {
     name,
     class: charClass,
     role: role as Role,
-    level,
     is_main: isMain,
   };
 

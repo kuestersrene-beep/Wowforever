@@ -1,9 +1,9 @@
 import DiscordIcon from "./DiscordIcon";
-import { discordUserUrl } from "@/lib/discord";
+import { discordUserUrl } from "@/lib/discordUrl";
 
 // Name mit Discord-Icon davor; ein Klick öffnet das Discord-Profil der
 // Person (von dort aus mit einem Klick auf "Nachricht" eine DM starten -
-// siehe Kommentar bei discordUserUrl() in lib/discord.ts).
+// siehe Kommentar bei discordUserUrl() in lib/discordUrl.ts).
 export default function DiscordNameLink({
   discordId,
   name,

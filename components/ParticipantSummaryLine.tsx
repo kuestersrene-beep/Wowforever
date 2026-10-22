@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { CLASS_COLORS, FACTION_COLORS, PROFESSION_ICONS } from "@/lib/constants";
+import { CLASS_COLORS, PROFESSION_ICONS } from "@/lib/constants";
 import type { Dictionary } from "@/lib/i18n/types";
 import type { ParticipantSummary } from "@/lib/types";
 
@@ -21,17 +21,8 @@ export default function ParticipantSummaryLine({
   p: ParticipantSummary;
   dict: Dictionary;
 }) {
-  const factionNode = p.faction ? (
-    <span
-      style={FACTION_COLORS[p.faction] ? { color: FACTION_COLORS[p.faction] } : undefined}
-      className="font-medium"
-    >
-      {dict.labels.faction[p.faction]}
-    </span>
-  ) : null;
-
-  const playstyleNode = p.playstyle ? <span>{dict.labels.playstyle[p.playstyle]}</span> : null;
-
+  // Fraktion und Spielstil sind final entschieden (Horde, PvP) und für
+  // alle gleich - deshalb hier nicht mehr pro Person angezeigt.
   const classesNode =
     p.classes && p.classes.length > 0 ? (
       <span className="inline-flex flex-wrap items-center gap-1">
@@ -48,7 +39,7 @@ export default function ParticipantSummaryLine({
 
   const roleNode = p.role ? <span>{dict.labels.role[p.role]}</span> : null;
 
-  const left = joinWithDot([factionNode, playstyleNode, classesNode, roleNode]);
+  const left = joinWithDot([classesNode, roleNode]);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-slate-400">

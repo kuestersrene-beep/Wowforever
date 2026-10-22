@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { useBranding } from "@/lib/branding";
+
 // Eigenständig entworfenes Emblem - keine Blizzard-Assets. Ein
 // Kompass-Rahmen um einen zweigeteilten Horde/Allianz-Kreis, in der
 // Mitte zwei verschlungene Ringe als Sinnbild für "für immer verbunden,
@@ -20,7 +25,52 @@ function starPoints(
   return points.join(" ");
 }
 
-export default function Emblem({ className = "h-20 w-20" }: { className?: string }) {
+// Zeigt das im Admin-Dashboard hinterlegte Logo, falls gesetzt - sonst
+// (oder wenn das Bild nicht lädt) das eingebaute Emblem. Die im Admin-
+// Dashboard eingestellte Größe wird per CSS "zoom" auf die jeweilige
+// Standardgröße (className) angewendet - anders als transform: scale()
+// verschiebt zoom auch das Layout, nichts überlappt.
+// "scale" überschreibt die gespeicherte Größe (für die Admin-Vorschau).
+// variant="timer" nutzt stattdessen das separate Countdown-Logo, immer in
+// Originalgröße (der Größenregler gilt nur für das Haupt-Logo).
+export default function Emblem({
+  className = "h-20 w-20",
+  scale,
+  variant = "main",
+}: {
+  className?: string;
+  scale?: number;
+  variant?: "main" | "timer";
+}) {
+  const branding = useBranding();
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const logoUrl = variant === "timer" ? branding.timerLogoUrl : branding.logoUrl;
+  const style =
+    variant === "timer" ? {} : { zoom: (scale ?? branding.logoScale) / 100 };
+
+  if (logoUrl && failedUrl !== logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt="Logo"
+        className={`${className} object-contain`}
+        style={style}
+        onError={() => setFailedUrl(logoUrl)}
+      />
+    );
+  }
+
+  return <DefaultEmblem className={className} style={style} />;
+}
+
+function DefaultEmblem({
+  className,
+  style,
+}: {
+  className: string;
+  style: React.CSSProperties;
+}) {
   const cx = 50;
   const cy = 50;
 
@@ -28,6 +78,7 @@ export default function Emblem({ className = "h-20 w-20" }: { className?: string
     <svg
       viewBox="0 0 100 100"
       className={className}
+      style={style}
       role="img"
       aria-label="WoW Forever Emblem"
     >

@@ -21,16 +21,54 @@ export default async function HomePage() {
     <main className="flex flex-col gap-8">
       <header className="text-center">
         <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
+        {/* Seitenüberschrift, etwas größer als "Der Rat hat entschieden". */}
         <h1 className="heading-ornate mt-3 text-3xl sm:text-4xl">
-          World of Warcraft Forever
+          {dict.home.farewell}
         </h1>
         <Ornament />
-        <blockquote className="mx-auto mt-4 flex max-w-md flex-col gap-3 border-l-2 border-gold/50 pl-4 text-left italic leading-relaxed text-parchment/90">
-          <p>{dict.home.quest}</p>
-          <p>{dict.home.subtitle}</p>
-        </blockquote>
-        <CountdownBanner />
       </header>
+
+      {/* Ankündigung: finale Entscheidung für Horde auf einem PvP-Reich. */}
+      <section className="panel relative overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center">
+        <span className="inline-block rounded-full border border-horde px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-red-300">
+          {dict.home.decisionTag}
+        </span>
+        <h2 className="heading-ornate mt-3 text-2xl sm:text-3xl">
+          {dict.home.decisionTitle}
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl leading-relaxed text-parchment/90">
+          {dict.home.decisionText}
+        </p>
+        <div className="mt-5">
+          <CountdownBanner />
+        </div>
+      </section>
+
+      {/* Aufruf: Berufe und Verfügbarkeit für die ersten Wochen eintragen. */}
+      <section className="flex flex-col gap-4">
+        <div className="text-center">
+          <h2 className="heading-ornate text-xl">{dict.home.callTitle}</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-parchment/85">
+            {dict.home.callText}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <CallCard
+            title={dict.home.professionsTitle}
+            text={dict.home.professionsText}
+            button={dict.home.professionsButton}
+            href="/umfrage"
+            loggedIn={!!user}
+          />
+          <CallCard
+            title={dict.home.availabilityTitle}
+            text={dict.home.availabilityText}
+            button={dict.home.availabilityButton}
+            href="/verfuegbarkeit"
+            loggedIn={!!user}
+          />
+        </div>
+      </section>
 
       <section className="panel p-6">
         {user ? (
@@ -42,12 +80,6 @@ export default async function HomePage() {
               </strong>
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/umfrage"
-                className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
-              >
-                {dict.nav.toSurvey}
-              </Link>
               <Link
                 href="/uebersicht"
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
@@ -65,12 +97,6 @@ export default async function HomePage() {
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
               >
                 {dict.nav.toCharacters}
-              </Link>
-              <Link
-                href="/verfuegbarkeit"
-                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
-              >
-                {dict.nav.toAvailability}
               </Link>
               <Link
                 href="/downloads"
@@ -106,5 +132,37 @@ export default async function HomePage() {
         <p>{dict.home.privacyText}</p>
       </section>
     </main>
+  );
+}
+
+// Karte für den Aufruf auf der Startseite. Ohne Login führt der Button
+// nicht weiter (die Zielseiten erfordern einen Login) - dann steht dort
+// stattdessen der Login-Hinweis darunter.
+function CallCard({
+  title,
+  text,
+  button,
+  href,
+  loggedIn,
+}: {
+  title: string;
+  text: string;
+  button: string;
+  href: string;
+  loggedIn: boolean;
+}) {
+  return (
+    <div className="panel flex flex-col gap-3 p-5">
+      <h3 className="font-heading text-base text-gold-light">{title}</h3>
+      <p className="flex-1 text-sm leading-relaxed text-slate-300">{text}</p>
+      {loggedIn && (
+        <Link
+          href={href}
+          className="self-start rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
+        >
+          {button}
+        </Link>
+      )}
+    </div>
   );
 }
