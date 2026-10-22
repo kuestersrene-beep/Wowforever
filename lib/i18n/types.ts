@@ -28,6 +28,8 @@ export interface Dictionary {
     toDownloads: string;
     toCharacters: string;
     toEvents: string;
+    toGuildName: string;
+    pendingTemplate: string; // Platzhalter: {n}
     loggedInAs: string;
     loginPrompt: string;
   };
@@ -216,6 +218,41 @@ export interface Dictionary {
       deleteEventConfirm: string;
       deleteSeries: string;
       deleteSeriesConfirm: string;
+    };
+  };
+  guildName: {
+    title: string;
+    hint: string;
+    pollTitle: string;
+    pollEmpty: string;
+    votesTemplate: string; // Platzhalter: {n}
+    voteOne: string;
+    vote: string;
+    yourVote: string;
+    removeVote: string;
+    suggestedBy: string;
+    suggestTitle: string;
+    suggestHint: string;
+    suggestPlaceholder: string;
+    suggest: string;
+    suggesting: string;
+    suggested: string;
+    errorDuplicate: string;
+    errorLimitTemplate: string; // Platzhalter: {n}
+    errorInvalid: string;
+    mineTitle: string;
+    withdraw: string;
+    withdrawConfirm: string;
+    status: { offen: string; freigegeben: string; abgelehnt: string };
+    admin: {
+      queueTitle: string;
+      queueHint: string;
+      queueEmpty: string;
+      approve: string;
+      reject: string;
+      delete: string;
+      deleteConfirm: string;
+      rejectedTitle: string;
     };
   };
   admin: {

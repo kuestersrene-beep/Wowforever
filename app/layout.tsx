@@ -4,7 +4,7 @@ import "./globals.css";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
-import { getLogoUrl, getSiteSettings } from "@/lib/siteSettings";
+import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const cinzel = Cinzel({
@@ -18,13 +18,14 @@ const inter = Inter({
   variable: "--font-body",
 });
 
-// Eigenes Logo (falls im Admin-Dashboard gesetzt) auch als Browser-Tab-Icon.
+// Eigenes Logo (bevorzugt das quadratische Countdown-Logo, siehe
+// getIconUrl) auch als Browser-Tab-Icon.
 export async function generateMetadata(): Promise<Metadata> {
-  const logoUrl = await getLogoUrl();
+  const iconUrl = await getIconUrl();
   return {
     title: "WoW Forever Umfrage",
     description: "Umfrage unter Freunden zu World of Warcraft Forever",
-    ...(logoUrl ? { icons: { icon: logoUrl, apple: logoUrl } } : {}),
+    ...(iconUrl ? { icons: { icon: iconUrl, apple: iconUrl } } : {}),
   };
 }
 

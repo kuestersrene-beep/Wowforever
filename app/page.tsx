@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { formatPending } from "@/lib/i18n/format";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import LoginButton from "@/components/LoginButton";
@@ -15,6 +16,16 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const admin = user ? isAdmin(getDiscordId(user)) : false;
+
+  // Für Admins: wie viele Gildennamen-Vorschläge auf Freigabe warten.
+  let pendingGuildNames = 0;
+  if (admin) {
+    const { count } = await createAdminClient()
+      .from("guild_name_suggestions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "offen");
+    pendingGuildNames = count ?? 0;
+  }
   const dict = getDictionary(await getLocale());
 
   return (
@@ -85,6 +96,17 @@ export default async function HomePage() {
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
               >
                 {dict.nav.toOverview}
+              </Link>
+              <Link
+                href="/gildenname"
+                className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
+              >
+                {dict.nav.toGuildName}
+                {pendingGuildNames > 0 && (
+                  <span className="ml-2 rounded-full bg-horde px-2 py-0.5 text-xs text-white">
+                    {formatPending(dict, pendingGuildNames)}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/termine"

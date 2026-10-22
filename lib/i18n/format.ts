@@ -101,3 +101,16 @@ export function formatEventDate(locale: Locale, iso: string): string {
     timeZone: APP_TIME_ZONE,
   }).format(new Date(iso));
 }
+
+export function formatVotes(dict: Dictionary, n: number): string {
+  if (n === 1) return dict.guildName.voteOne;
+  return dict.guildName.votesTemplate.replace("{n}", String(n));
+}
+
+export function formatSuggestionLimit(dict: Dictionary, n: number): string {
+  return dict.guildName.errorLimitTemplate.replace("{n}", String(n));
+}
+
+export function formatPending(dict: Dictionary, n: number): string {
+  return dict.nav.pendingTemplate.replace("{n}", String(n));
+}
