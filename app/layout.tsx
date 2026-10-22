@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Cinzel, Inter } from "next/font/google";
 import "./globals.css";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
 import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
@@ -35,7 +36,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const locale = await getLocale();
-  const dict = getDictionary(locale);
+  const dict = await loadDictionary(locale);
   const { logoUrl, timerLogoUrl, logoScale } = await getSiteSettings();
 
   return (

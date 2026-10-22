@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
 import { formatLoadError } from "@/lib/i18n/format";
 import type { AdminResponseRow, SurveyResponse } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
@@ -30,7 +31,7 @@ export default async function AdminPage() {
   }
 
   const locale = await getLocale();
-  const dict = getDictionary(locale);
+  const dict = await loadDictionary(locale);
 
   // Admin-Client mit service_role Key: sieht ALLE Zeilen, unabhängig von
   // RLS. Der Zugriff auf diese Seite ist bereits über isAdmin() oben
@@ -77,6 +78,21 @@ export default async function AdminPage() {
           {dict.nav.back}
         </Link>
       </div>
+
+      <Link
+        href="/admin/texte"
+        className="panel flex items-center justify-between gap-3 border-gold/50 p-4 transition hover:bg-gold/10"
+      >
+        <span>
+          <span className="block font-heading text-base text-gold-light">
+            ✎ Texte bearbeiten
+          </span>
+          <span className="text-sm text-slate-400">
+            Startseite und Hinweise auf allen Seiten ändern, Abschnitte ein- und ausblenden
+          </span>
+        </span>
+        <span className="text-gold-light">→</span>
+      </Link>
 
       <StatTiles responses={responses} dict={dict} />
       <InsightBanner responses={responses} dict={dict} />

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
+import RichText from "@/components/RichText";
 import Emblem from "@/components/ui/Emblem";
 import type { DownloadItem } from "@/lib/types";
 
@@ -15,7 +17,7 @@ export default async function DownloadsPage() {
     redirect("/");
   }
 
-  const dict = getDictionary(await getLocale());
+  const dict = await loadDictionary(await getLocale());
 
   const { data: downloads } = await supabase
     .from("downloads")
@@ -33,7 +35,7 @@ export default async function DownloadsPage() {
           {dict.nav.back}
         </Link>
       </div>
-      <p className="text-sm text-slate-400">{dict.downloads.hint}</p>
+      <RichText value={dict.downloads.hint} className="text-sm text-slate-400" />
 
       <div className="grid gap-4 sm:grid-cols-2">
         {(downloads ?? []).map((d) => (

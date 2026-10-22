@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
+import RichText from "@/components/RichText";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import { formatEventDate, formatRoleCounts, formatSignedUp } from "@/lib/i18n/format";
 import { summarizeSignups, UPCOMING_GRACE_MS } from "@/lib/events";
@@ -22,7 +24,7 @@ export default async function TerminePage() {
 
   const admin = isAdmin(getDiscordId(user));
   const locale = await getLocale();
-  const dict = getDictionary(locale);
+  const dict = await loadDictionary(locale);
 
   const { data: events } = await supabase
     .from("events")
@@ -60,9 +62,10 @@ export default async function TerminePage() {
           {dict.nav.back}
         </Link>
       </div>
-      <p className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90">
-        {dict.events.hint}
-      </p>
+      <RichText
+        value={dict.events.hint}
+        className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90"
+      />
 
       {admin && <EventForm />}
 

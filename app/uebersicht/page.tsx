@@ -2,7 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
 import type { AvailabilitySummary, ParticipantSummary } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
 import AvailabilityOverview from "@/components/AvailabilityOverview";
@@ -24,7 +25,7 @@ export default async function UebersichtPage() {
     redirect("/");
   }
 
-  const dict = getDictionary(await getLocale());
+  const dict = await loadDictionary(await getLocale());
 
   const { data: rows } = await supabase
     .from("participants_overview")

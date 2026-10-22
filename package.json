@@ -11,15 +11,21 @@
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
+    "@tiptap/extension-link": "^2.27.3",
+    "@tiptap/pm": "^2.27.3",
+    "@tiptap/react": "^2.27.3",
+    "@tiptap/starter-kit": "^2.27.3",
     "next": "^15.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "recharts": "^2.13.0"
+    "recharts": "^2.13.0",
+    "sanitize-html": "^2.18.1"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/sanitize-html": "^2.16.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.0.3",

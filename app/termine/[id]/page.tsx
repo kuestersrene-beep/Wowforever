@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
-import { getDictionary, getLocale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n";
+import { loadDictionary } from "@/lib/content";
 import type { Dictionary } from "@/lib/i18n";
 import { formatEventDate, formatRoleCounts, formatSignedUp } from "@/lib/i18n/format";
 import { ROLES } from "@/lib/constants";
@@ -31,7 +32,7 @@ export default async function TerminDetailPage({
 
   const admin = isAdmin(getDiscordId(user));
   const locale = await getLocale();
-  const dict = getDictionary(locale);
+  const dict = await loadDictionary(locale);
 
   const { data: event } = await supabase
     .from("events")
