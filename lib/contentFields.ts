@@ -104,6 +104,12 @@ export const CONTENT_GROUPS: ContentGroup[] = [
   {
     id: "guildName",
     title: "Gildenname-Umfrage",
+    toggles: [
+      {
+        key: "guildName.show",
+        label: "Für Mitglieder sichtbar (Admins sehen die Umfrage immer)",
+      },
+    ],
     fields: [
       { key: "guildName.title", kind: "text", label: "Überschrift" },
       { key: "guildName.hint", kind: "rich", label: "Hinweis (Kasten)" },

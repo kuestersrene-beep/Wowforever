@@ -698,6 +698,100 @@ create trigger set_updated_at_site_content
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Kurzabstimmungen auf der Startseite (z. B. "RP-PvP-Server?"). Admins
+-- legen sie im Admin-Dashboard an und schalten sie aktiv; aktive
+-- Abstimmungen erscheinen oben auf der Startseite. Eine Stimme pro
+-- Person und Abstimmung, jederzeit änderbar - aber nur, solange die
+-- Abstimmung aktiv ist.
+-- ============================================================
+
+create table if not exists public.quick_polls (
+  id uuid primary key default gen_random_uuid(),
+  question text not null check (char_length(question) between 3 and 300),
+  active boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.quick_poll_options (
+  id uuid primary key default gen_random_uuid(),
+  poll_id uuid not null references public.quick_polls (id) on delete cascade,
+  label text not null check (char_length(label) between 1 and 100),
+  sort_order int not null default 0
+);
+
+create table if not exists public.quick_poll_votes (
+  poll_id uuid not null references public.quick_polls (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  option_id uuid not null references public.quick_poll_options (id) on delete cascade,
+  updated_at timestamptz not null default now(),
+  primary key (poll_id, user_id)
+);
+
+alter table public.quick_polls enable row level security;
+alter table public.quick_poll_options enable row level security;
+alter table public.quick_poll_votes enable row level security;
+
+-- Frage und Antworten sieht jede:r (Startseite auch ohne Login),
+-- Ergebnisse nur eingeloggte Nutzer:innen.
+drop policy if exists "select quick polls" on public.quick_polls;
+create policy "select quick polls"
+  on public.quick_polls for select
+  using (true);
+
+drop policy if exists "select quick poll options" on public.quick_poll_options;
+create policy "select quick poll options"
+  on public.quick_poll_options for select
+  using (true);
+
+drop policy if exists "select quick poll votes" on public.quick_poll_votes;
+create policy "select quick poll votes"
+  on public.quick_poll_votes for select
+  to authenticated
+  using (true);
+
+-- Abstimmen nur für sich selbst, nur in aktiven Abstimmungen und nur
+-- mit einer Antwort, die zu dieser Abstimmung gehört.
+drop policy if exists "insert own quick poll vote" on public.quick_poll_votes;
+create policy "insert own quick poll vote"
+  on public.quick_poll_votes for insert
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.quick_poll_options o
+      join public.quick_polls p on p.id = o.poll_id
+      where o.id = option_id and o.poll_id = quick_poll_votes.poll_id and p.active
+    )
+  );
+
+drop policy if exists "update own quick poll vote" on public.quick_poll_votes;
+create policy "update own quick poll vote"
+  on public.quick_poll_votes for update
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.quick_poll_options o
+      join public.quick_polls p on p.id = o.poll_id
+      where o.id = option_id and o.poll_id = quick_poll_votes.poll_id and p.active
+    )
+  );
+
+drop policy if exists "delete own quick poll vote" on public.quick_poll_votes;
+create policy "delete own quick poll vote"
+  on public.quick_poll_votes for delete
+  using (
+    auth.uid() = user_id
+    and exists (select 1 from public.quick_polls p where p.id = poll_id and p.active)
+  );
+-- Anlegen/Ändern/Löschen von Abstimmungen nur über service_role.
+
+drop trigger if exists set_updated_at_quick_poll_votes on public.quick_poll_votes;
+create trigger set_updated_at_quick_poll_votes
+  before update on public.quick_poll_votes
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { User } from "@supabase/supabase-js";
+import { isSectionVisible } from "@/lib/content";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, getDisplayName, isAdmin } from "@/lib/admin";
 import { GUILD_NAME_MAX_LENGTH, MAX_GUILD_NAME_SUGGESTIONS } from "@/lib/constants";
@@ -33,8 +35,18 @@ async function requireAdmin() {
 
 // ---------- Mitglieder: vorschlagen, zurückziehen, abstimmen ----------
 
+// Solange die Umfrage ausgeblendet ist, dürfen nur Admins vorschlagen und
+// abstimmen (siehe "guildName.show" in lib/contentFields.ts).
+async function requireVisibleOrAdmin(user: User) {
+  if (isAdmin(getDiscordId(user))) return;
+  if (!(await isSectionVisible("guildName.show"))) {
+    throw new Error("Die Gildennamen-Umfrage ist gerade nicht freigegeben.");
+  }
+}
+
 export async function suggestGuildName(formData: FormData): Promise<SuggestResult> {
   const { supabase, user } = await requireUser();
+  await requireVisibleOrAdmin(user);
 
   // Mehrfache Leerzeichen zusammenfassen, damit "Die  Horde" und
   // "Die Horde" als derselbe Name gelten.
@@ -93,6 +105,7 @@ export async function withdrawGuildName(id: string) {
 
 export async function voteGuildName(suggestionId: string) {
   const { supabase, user } = await requireUser();
+  await requireVisibleOrAdmin(user);
 
   // Eine Stimme pro Person - eine neue Wahl ersetzt die alte. Dass nur
   // freigegebene Namen gewählt werden können, prüft die RLS-Policy.

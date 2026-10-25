@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getLocale } from "@/lib/i18n";
-import { loadDictionary } from "@/lib/content";
+import { isSectionVisible, loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
 import GuildNamePoll from "@/components/guildname/GuildNamePoll";
 import SuggestGuildNameForm from "@/components/guildname/SuggestGuildNameForm";
@@ -22,6 +22,13 @@ export default async function GildennamePage() {
   }
 
   const admin = isAdmin(getDiscordId(user));
+
+  // Ausgeblendet (Admin-Dashboard -> Texte bearbeiten): nur Admins sehen
+  // die Seite, z. B. um Vorschläge vorzubereiten.
+  const visible = await isSectionVisible("guildName.show");
+  if (!visible && !admin) {
+    redirect("/");
+  }
   const dict = await loadDictionary(await getLocale());
 
   // RLS liefert alle freigegebenen Vorschläge plus die eigenen.
@@ -74,6 +81,12 @@ export default async function GildennamePage() {
         value={dict.guildName.hint}
         className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90"
       />
+
+      {admin && !visible && (
+        <p className="rounded-lg border border-horde/60 bg-horde-dark/40 px-4 py-2 text-sm text-red-200">
+          {dict.guildName.admin.hiddenHint}
+        </p>
+      )}
 
       {admin && (
         <GuildNameAdminQueue pending={pending} rejected={rejected} />

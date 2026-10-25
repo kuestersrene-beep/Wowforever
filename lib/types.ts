@@ -169,3 +169,22 @@ export interface GuildNameSuggestion {
 export type SuggestResult =
   | { ok: true }
   | { ok: false; reason: "duplicate" | "limit" | "invalid" };
+
+// Kurzabstimmung auf der Startseite (siehe quick_polls in
+// supabase/schema.sql), aufbereitet mit Stimmen je Antwort.
+export interface QuickPollOptionResult {
+  id: string;
+  label: string;
+  votes: number;
+}
+
+export interface QuickPollResult {
+  id: string;
+  question: string;
+  active: boolean;
+  created_at: string;
+  options: QuickPollOptionResult[];
+  totalVotes: number;
+  // Antwort der eingeloggten Person, null = noch nicht abgestimmt.
+  myVote: string | null;
+}

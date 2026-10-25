@@ -5,6 +5,8 @@ import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
+import QuickPollCard from "@/components/quickpoll/QuickPollCard";
+import { loadQuickPolls } from "@/lib/quickPolls";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import Ornament from "@/components/ui/Ornament";
@@ -31,13 +33,16 @@ export default async function HomePage() {
   const dict = await loadDictionary(await getLocale());
 
   // Abschnitte, die im Admin-Dashboard ausgeblendet werden können.
-  const [decision, countdown, call, privacy] = await Promise.all([
+  const [decision, countdown, call, privacy, guildName] = await Promise.all([
     isSectionVisible("home.show.decision"),
     isSectionVisible("home.show.countdown"),
     isSectionVisible("home.show.call"),
     isSectionVisible("home.show.privacy"),
+    isSectionVisible("guildName.show"),
   ]);
-  const show = { decision, countdown, call, privacy };
+  const show = { decision, countdown, call, privacy, guildName };
+
+  const quickPolls = await loadQuickPolls(supabase, user?.id ?? null, true);
 
   return (
     <main className="flex flex-col gap-8">
@@ -48,6 +53,11 @@ export default async function HomePage() {
         <h1 className="sr-only">World of Warcraft Forever</h1>
         <Ornament />
       </header>
+
+      {/* Kurzabstimmungen (Admin-Dashboard) - ganz oben, weil kurzfristig. */}
+      {quickPolls.map((poll) => (
+        <QuickPollCard key={poll.id} poll={poll} loggedIn={!!user} />
+      ))}
 
       {/* Ankündigung: finale Entscheidung für Horde auf einem PvP-Reich. */}
       {show.decision && (
@@ -115,17 +125,24 @@ export default async function HomePage() {
               >
                 {dict.nav.toOverview}
               </Link>
-              <Link
-                href="/gildenname"
-                className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
-              >
-                {dict.nav.toGuildName}
-                {pendingGuildNames > 0 && (
-                  <span className="ml-2 rounded-full bg-horde px-2 py-0.5 text-xs text-white">
-                    {formatPending(dict, pendingGuildNames)}
-                  </span>
-                )}
-              </Link>
+              {(show.guildName || admin) && (
+                <Link
+                  href="/gildenname"
+                  className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
+                >
+                  {dict.nav.toGuildName}
+                  {!show.guildName && (
+                    <span className="ml-2 rounded-full bg-ink/70 px-2 py-0.5 text-xs text-slate-200">
+                      {dict.guildName.admin.hiddenBadge}
+                    </span>
+                  )}
+                  {pendingGuildNames > 0 && (
+                    <span className="ml-2 rounded-full bg-horde px-2 py-0.5 text-xs text-white">
+                      {formatPending(dict, pendingGuildNames)}
+                    </span>
+                  )}
+                </Link>
+              )}
               <Link
                 href="/termine"
                 className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
