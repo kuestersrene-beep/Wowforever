@@ -17,6 +17,8 @@ import ParticipantsTable from "@/components/admin/ParticipantsTable";
 import CsvExportButton from "@/components/admin/CsvExportButton";
 import DownloadsManager from "@/components/admin/DownloadsManager";
 import LogoSettings from "@/components/admin/LogoSettings";
+import QuickPollManager from "@/components/admin/QuickPollManager";
+import { loadQuickPolls } from "@/lib/quickPolls";
 import { getSiteSettings } from "@/lib/siteSettings";
 import type { DownloadItem } from "@/lib/types";
 
@@ -118,6 +120,15 @@ export default async function AdminPage() {
         {dict.downloads.title}
       </h2>
       <DownloadsManager downloads={downloadsData ?? []} dict={dict} />
+
+      <h2 className="font-heading text-lg text-gold-light">
+        {dict.quickPoll.admin.title}
+      </h2>
+      <p className="-mt-6 text-sm text-slate-400">{dict.quickPoll.admin.hint}</p>
+      <QuickPollManager
+        polls={await loadQuickPolls(adminSupabase, user.id, false)}
+        dict={dict}
+      />
 
       <h2 className="font-heading text-lg text-gold-light">
         {dict.admin.logo.title}

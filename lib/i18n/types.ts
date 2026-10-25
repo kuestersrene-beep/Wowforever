@@ -219,6 +219,32 @@ export interface Dictionary {
       deleteSeriesConfirm: string;
     };
   };
+  quickPoll: {
+    tag: string;
+    voteHint: string;
+    changeHint: string;
+    loginHint: string;
+    removeVote: string;
+    admin: {
+      title: string;
+      hint: string;
+      empty: string;
+      active: string;
+      inactive: string;
+      activate: string;
+      deactivate: string;
+      delete: string;
+      deleteConfirm: string;
+      createTitle: string;
+      questionPlaceholder: string;
+      optionsPlaceholder: string;
+      optionsHint: string;
+      activateNow: string;
+      create: string;
+      creating: string;
+      error: string;
+    };
+  };
   guildName: {
     title: string;
     hint: string;
@@ -252,6 +278,8 @@ export interface Dictionary {
       delete: string;
       deleteConfirm: string;
       rejectedTitle: string;
+      hiddenHint: string;
+      hiddenBadge: string;
     };
   };
   admin: {

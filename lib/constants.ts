@@ -146,3 +146,7 @@ export const LOGO_SCALE_DEFAULT = 100;
 // kann (offen + freigegeben zusammen; abgelehnte zählen nicht).
 export const MAX_GUILD_NAME_SUGGESTIONS = 3;
 export const GUILD_NAME_MAX_LENGTH = 40;
+
+// Kurzabstimmungen: erlaubte Anzahl an Antworten.
+export const QUICK_POLL_MIN_OPTIONS = 2;
+export const QUICK_POLL_MAX_OPTIONS = 6;
