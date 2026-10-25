@@ -15,7 +15,7 @@ async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !isAdmin(getDiscordId(user))) {
+  if (!user || !(await isAdmin(getDiscordId(user)))) {
     throw new Error("Nicht berechtigt.");
   }
 }

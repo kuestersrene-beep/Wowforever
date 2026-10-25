@@ -22,7 +22,7 @@ export default async function TerminePage() {
     redirect("/");
   }
 
-  const admin = isAdmin(getDiscordId(user));
+  const admin = (await isAdmin(getDiscordId(user)));
   const locale = await getLocale();
   const dict = await loadDictionary(locale);
 

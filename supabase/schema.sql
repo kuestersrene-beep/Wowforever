@@ -792,6 +792,29 @@ create trigger set_updated_at_quick_poll_votes
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Discord-Ränge der Mitglieder (discord-setup/rollensync.py). Der Bot
+-- schreibt regelmäßig, welche Rang-Rollen (Gildenmeister, Offizier, ...)
+-- jedes Mitglied im Discord hat. Die Website leitet daraus ab, wer Admin
+-- ist (lib/admin.ts). Keine Policies: lesen und schreiben nur über den
+-- service_role Key - niemand kann sich selbst einen Rang eintragen.
+-- ============================================================
+
+create table if not exists public.discord_members (
+  discord_id text primary key,
+  display_name text not null,
+  ranks text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+alter table public.discord_members enable row level security;
+
+drop trigger if exists set_updated_at_discord_members on public.discord_members;
+create trigger set_updated_at_discord_members
+  before update on public.discord_members
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

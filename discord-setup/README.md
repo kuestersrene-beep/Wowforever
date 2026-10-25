@@ -12,6 +12,7 @@ Zwei Teile:
     landet ein Protokoll in `📂│bewerbungen-intern`.
   - Raid-Anmeldung (`raid.py`) gemeinsam mit der Gilden-Website, siehe unten.
   - Protokoll (`modlog.py`) in `🧾│mod-log`, siehe unten.
+  - Rollen-Sync mit der Website (`rollensync.py`), siehe unten.
 
 ## Voraussetzungen im Discord Developer Portal
 
@@ -95,3 +96,18 @@ Der Bot schreibt in `🧾│mod-log`:
 | ✏️ Spitzname / ⏳ Timeout | vorher/nachher bzw. Dauer, durch wen |
 | 🗑️ Nachricht gelöscht / 📝 bearbeitet | Kanal, Inhalt (vorher/nachher), Anhänge – nur Nachrichten, die der Bot seit seinem Start gesehen hat; Bot-Nachrichten werden ignoriert |
 | 📁 Kanal / 🏷️ Rolle angelegt, gelöscht, umbenannt | Name, geänderte Rechte, durch wen |
+
+## Rollen-Sync mit der Website (`rollensync.py`)
+
+Läuft alle 2 Minuten (braucht wie die Raid-Anmeldung `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`).
+
+**Website → Discord:** Wer auf der Website Charaktere eingetragen hat, bekommt im Discord automatisch
+die passenden **Klassenrollen** und **🛡️ Tank / 💚 Heiler / ⚔️ Schaden** – von Main und Twinks. Wer
+(noch) keinen Charakter hat, bekommt die 1. Klassenwahl und die Rolle aus der Umfrage. Dadurch öffnen
+sich die Kanäle in 🧙 KLASSEN & ROLLEN von selbst. Für diese Mitglieder ist die Website maßgeblich:
+Klassen- oder Spielrollen, die dort nicht stehen, nimmt der Bot wieder weg. Mitglieder ohne jede
+Angabe auf der Website werden nicht angefasst.
+
+**Discord → Website:** Die Rang-Rollen (Gildenmeister, Offizier, Raidleiter, Class-Leader, Raider,
+Mitglied, Trial, Gast) landen in der Tabelle `discord_members`. Wer **Offizier** oder
+**Gildenmeister** ist, ist damit automatisch Admin auf der Website.

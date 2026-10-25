@@ -28,7 +28,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !isAdmin(getDiscordId(user))) {
+  if (!user || !(await isAdmin(getDiscordId(user)))) {
     redirect("/");
   }
 

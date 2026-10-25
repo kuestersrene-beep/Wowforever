@@ -331,8 +331,13 @@ Umfrage-Benachrichtigungen (`DISCORD_WEBHOOK_URL`). Termine werden in
 **Rechte (per Row Level Security):** Alle Eingeloggten sehen Roster,
 Termine und Anmeldungen. Jede Person ändert nur ihre eigenen Charaktere und
 Anmeldungen, und nur mit eigenen Charakteren. Termine und die Aufstellung
-schreiben ausschließlich Admins (`ADMIN_DISCORD_IDS`) serverseitig über
-den `service_role`-Key.
+schreiben ausschließlich Admins serverseitig über den `service_role`-Key.
+
+**Wer ist Admin?** Alle, die im Discord die Rolle **Offizier** oder
+**Gildenmeister** haben. Der Gilden-Bot meldet die Ränge alle 2 Minuten in
+die Tabelle `discord_members` (siehe `discord-setup/rollensync.py`).
+Zusätzlich gelten die IDs aus `ADMIN_DISCORD_IDS` immer als Admin – als
+Notfall-Zugang, falls der Bot einmal nicht läuft.
 
 ---
 
@@ -355,7 +360,7 @@ components/
   admin/                      Charts, Tabelle, CSV-Export, Kacheln
 lib/
   supabase/                   Browser-, Server- und Admin-Client
-  admin.ts                    Admin-Check anhand ADMIN_DISCORD_IDS
+  admin.ts                    Admin-Check: Discord-Rang (Offizier/Gildenmeister) oder ADMIN_DISCORD_IDS
   constants.ts, types.ts
 supabase/schema.sql           Tabelle, RLS-Policies, Übersichts-View
 Dockerfile, docker-compose.yml     Deployment auf eigenem Server

@@ -26,7 +26,7 @@ async function requireUser() {
 
 async function requireAdmin() {
   const { user } = await requireUser();
-  if (!isAdmin(getDiscordId(user))) {
+  if (!(await isAdmin(getDiscordId(user)))) {
     throw new Error("Nicht berechtigt.");
   }
 }

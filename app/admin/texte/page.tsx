@@ -15,7 +15,7 @@ export default async function TextePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !isAdmin(getDiscordId(user))) {
+  if (!user || !(await isAdmin(getDiscordId(user)))) {
     redirect("/");
   }
 
