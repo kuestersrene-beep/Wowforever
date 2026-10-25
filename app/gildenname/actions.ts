@@ -28,7 +28,7 @@ async function requireUser() {
 
 async function requireAdmin() {
   const { user } = await requireUser();
-  if (!isAdmin(getDiscordId(user))) {
+  if (!(await isAdmin(getDiscordId(user)))) {
     throw new Error("Nicht berechtigt.");
   }
 }
@@ -38,7 +38,7 @@ async function requireAdmin() {
 // Solange die Umfrage ausgeblendet ist, dürfen nur Admins vorschlagen und
 // abstimmen (siehe "guildName.show" in lib/contentFields.ts).
 async function requireVisibleOrAdmin(user: User) {
-  if (isAdmin(getDiscordId(user))) return;
+  if ((await isAdmin(getDiscordId(user)))) return;
   if (!(await isSectionVisible("guildName.show"))) {
     throw new Error("Die Gildennamen-Umfrage ist gerade nicht freigegeben.");
   }

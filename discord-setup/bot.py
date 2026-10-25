@@ -5,6 +5,7 @@
   beim Schließen landet ein Protokoll in bewerbungen-intern.
 - Raid-Anmeldung gemeinsam mit der Gilden-Website (siehe raid.py).
 - Protokoll aller Änderungen im Kanal mod-log (siehe modlog.py).
+- Klassen-/Spielrollen von der Website setzen, Ränge an die Website melden (siehe rollensync.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
 Im Developer Portal muss der "Message Content Intent" an sein (für das Protokoll).
@@ -25,6 +26,7 @@ from discord.ext import tasks
 
 import modlog
 import raid
+import rollensync
 
 # Kanal- und Rollennamen wie in server_einrichten.py
 PATCHNOTES_KANAL = "📰│patchnotes"
@@ -90,6 +92,7 @@ class GildenBot(discord.Client):
         if not blueposts_pruefen.is_running():
             blueposts_pruefen.start()
         await raid.starten(self)
+        await rollensync.starten(self)
 
 
 bot = GildenBot(intents=intents)

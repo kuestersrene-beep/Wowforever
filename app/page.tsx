@@ -19,7 +19,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const admin = user ? isAdmin(getDiscordId(user)) : false;
+  const admin = user ? (await isAdmin(getDiscordId(user))) : false;
 
   // Für Admins: wie viele Gildennamen-Vorschläge auf Freigabe warten.
   let pendingGuildNames = 0;

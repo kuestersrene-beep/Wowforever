@@ -21,7 +21,7 @@ export default async function GildennamePage() {
     redirect("/");
   }
 
-  const admin = isAdmin(getDiscordId(user));
+  const admin = (await isAdmin(getDiscordId(user)));
 
   // Ausgeblendet (Admin-Dashboard -> Texte bearbeiten): nur Admins sehen
   // die Seite, z. B. um Vorschläge vorzubereiten.
