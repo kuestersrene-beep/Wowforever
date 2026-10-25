@@ -185,7 +185,20 @@ export async function saveSignup(formData: FormData) {
     throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
   }
 
+  // Falls die Person sich vorher nur über Discord angemeldet hatte, diese
+  // Anmeldung entfernen - sonst stünde sie doppelt in der Liste.
+  await removeDiscordOnlySignup(eventId, getDiscordId(user));
+
   revalidateEvents();
+}
+
+async function removeDiscordOnlySignup(eventId: string, discordId: string | null) {
+  if (!discordId) return;
+  await createAdminClient()
+    .from("discord_event_signups")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("discord_id", discordId);
 }
 
 export async function removeSignup(eventId: string) {
@@ -218,23 +231,32 @@ export async function removeSignup(eventId: string) {
 
 export async function setRosterSlot(
   eventId: string,
-  userId: string,
+  person: { userId: string | null; discordId: string },
   slot: RosterSlot | null
 ) {
   await requireAdmin();
 
-  // service_role Key nötig, weil event_roster bewusst keine Policies hat.
+  const validSlot = slot && ROSTER_SLOTS.includes(slot) ? slot : null;
+
+  // service_role Key nötig, weil event_roster und discord_event_signups
+  // bewusst keine Schreib-Policies haben. Anmeldungen nur über Discord
+  // (ohne Website-Konto) tragen ihre Einteilung direkt in der Zeile.
   const adminSupabase = createAdminClient();
-  const { error } =
-    slot && ROSTER_SLOTS.includes(slot)
+  const { error } = !person.userId
+    ? await adminSupabase
+        .from("discord_event_signups")
+        .update({ roster_slot: validSlot })
+        .eq("event_id", eventId)
+        .eq("discord_id", person.discordId)
+    : validSlot
       ? await adminSupabase
           .from("event_roster")
-          .upsert({ event_id: eventId, user_id: userId, slot })
+          .upsert({ event_id: eventId, user_id: person.userId, slot: validSlot })
       : await adminSupabase
           .from("event_roster")
           .delete()
           .eq("event_id", eventId)
-          .eq("user_id", userId);
+          .eq("user_id", person.userId);
 
   if (error) {
     throw new Error(`Speichern fehlgeschlagen: ${error.message}`);

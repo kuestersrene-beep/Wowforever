@@ -178,12 +178,25 @@ function SignupGroup({
       ) : (
         <ul className="flex flex-col gap-2 text-sm">
           {rows.map((s) => (
-            <li key={s.user_id} className="flex flex-col gap-1">
+            <li key={s.user_id ?? `discord-${s.discord_id}`} className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-parchment">{s.character_name}</span>
                 <span className="text-xs text-slate-400">
-                  {dict.labels.class[s.class] ?? s.class} · {dict.labels.role[s.role]}
+                  {[
+                    s.class ? (dict.labels.class[s.class] ?? s.class) : null,
+                    s.role ? dict.labels.role[s.role] : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
+                {s.source === "discord" && (
+                  <span
+                    title={dict.events.viaDiscord}
+                    className="rounded border border-[#5865F2]/60 px-1 text-[10px] text-[#9da5f7]"
+                  >
+                    Discord
+                  </span>
+                )}
                 {s.status === "vorlaeufig" && (
                   <span className="rounded border border-amber-500/50 px-1 text-[10px] text-amber-400">
                     {dict.labels.signupStatus.vorlaeufig}
@@ -195,7 +208,12 @@ function SignupGroup({
                 {s.comment && ` – „${s.comment}“`}
               </span>
               {admin && (
-                <RosterButtons eventId={s.event_id} userId={s.user_id} slot={s.roster_slot} />
+                <RosterButtons
+                  eventId={s.event_id}
+                  userId={s.user_id}
+                  discordId={s.discord_id}
+                  slot={s.roster_slot}
+                />
               )}
             </li>
           ))}

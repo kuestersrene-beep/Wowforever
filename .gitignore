@@ -18,3 +18,7 @@ next-env.d.ts
 .DS_Store
 *.log
 npm-debug.log*
+
+# Discord-Bot: gemerkte Blueposts
+discord-setup/data/
+__pycache__/

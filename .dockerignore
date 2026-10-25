@@ -1,0 +1,3 @@
+# Der Discord-Bot hat ein eigenes Image (discord-setup/Dockerfile) und
+# sein Token gehört nicht in das Image der Web-App.
+discord-setup

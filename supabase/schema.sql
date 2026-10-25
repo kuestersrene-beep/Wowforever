@@ -425,9 +425,62 @@ create table if not exists public.event_roster (
 
 alter table public.event_roster enable row level security;
 
+-- ============================================================
+-- Raid-Anmeldung im Discord (discord-setup/raid.py): Der Gilden-Bot
+-- postet jeden Termin in Discord und nimmt dort Anmeldungen per Button
+-- entgegen. Er schreibt ausschließlich über den service_role Key.
+-- ============================================================
+
+-- Wo die Discord-Nachricht zu einem Termin steht, ob die Erinnerung
+-- schon raus ist und ob die Anmeldung vorzeitig geschlossen wurde.
+alter table public.events add column if not exists discord_channel_id text;
+alter table public.events add column if not exists discord_message_id text;
+alter table public.events add column if not exists reminder_sent boolean not null default false;
+alter table public.events add column if not exists signups_closed boolean not null default false;
+
+-- Anmeldungen von Leuten ohne Konto auf der Website (nur Discord). Wer
+-- auf der Website einen Charakter hat, landet stattdessen in
+-- event_signups - der Bot ordnet das über characters.discord_id zu.
+-- Klasse und Rolle können bei "abgemeldet" fehlen. roster_slot wird nur
+-- von Admins gesetzt (Website) - Mitglieder schreiben hier nie direkt.
+create table if not exists public.discord_event_signups (
+  event_id uuid not null references public.events (id) on delete cascade,
+  discord_id text not null,
+  display_name text not null,
+  avatar_url text,
+  class text,
+  role text check (role in ('tank', 'heiler', 'dd')),
+  status text not null check (status in ('dabei', 'vorlaeufig', 'abgemeldet')),
+  comment text,
+  roster_slot text check (roster_slot in ('bestaetigt', 'bank')),
+  updated_at timestamptz not null default now(),
+  primary key (event_id, discord_id)
+);
+
+alter table public.discord_event_signups enable row level security;
+-- Keine Policies: lesen über die View unten, schreiben nur service_role.
+
+drop trigger if exists set_updated_at_discord_signups on public.discord_event_signups;
+create trigger set_updated_at_discord_signups
+  before update on public.discord_event_signups
+  for each row
+  execute function public.set_updated_at();
+
+-- Die zuletzt im Discord gewählte Klasse je Person, damit der Bot nicht
+-- bei jeder Anmeldung neu fragt.
+create table if not exists public.discord_profiles (
+  discord_id text primary key,
+  class text not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.discord_profiles enable row level security;
+-- Keine Policies: nur service_role.
+
 -- Anmeldungen inkl. Charakter und Aufstellungs-Status für alle
 -- eingeloggten Nutzer:innen (läuft mit den Rechten des Erstellers, siehe
--- Kommentar bei participants_overview).
+-- Kommentar bei participants_overview). Enthält Website- und
+-- Discord-Anmeldungen; "source" sagt, woher eine Zeile stammt.
 drop view if exists public.event_signups_overview;
 create view public.event_signups_overview as
   select
@@ -444,11 +497,30 @@ create view public.event_signups_overview as
     c.discord_id,
     c.display_name,
     c.avatar_url,
-    r.slot as roster_slot
+    r.slot as roster_slot,
+    'web'::text as source
   from public.event_signups s
   join public.characters c on c.id = s.character_id
   left join public.event_roster r
-    on r.event_id = s.event_id and r.user_id = s.user_id;
+    on r.event_id = s.event_id and r.user_id = s.user_id
+  union all
+  select
+    d.event_id,
+    null::uuid as user_id,
+    d.status,
+    d.comment,
+    d.updated_at,
+    null::uuid as character_id,
+    d.display_name as character_name,
+    d.class,
+    d.role,
+    1 as level,
+    d.discord_id,
+    d.display_name,
+    d.avatar_url,
+    d.roster_slot,
+    'discord'::text as source
+  from public.discord_event_signups d;
 
 revoke all on public.event_signups_overview from anon;
 grant select on public.event_signups_overview to authenticated;

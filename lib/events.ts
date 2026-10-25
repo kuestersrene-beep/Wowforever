@@ -11,7 +11,7 @@ export function summarizeSignups(signups: EventSignupRow[]): SignupSummary {
   const byRole: Record<Role, number> = { tank: 0, heiler: 0, dd: 0 };
   let tentative = 0;
   for (const s of signups) {
-    if (s.status === "dabei") byRole[s.role] += 1;
+    if (s.status === "dabei" && s.role) byRole[s.role] += 1;
     if (s.status === "vorlaeufig") tentative += 1;
   }
   return {

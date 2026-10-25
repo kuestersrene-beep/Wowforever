@@ -120,25 +120,35 @@ export interface GuildEvent {
   starts_at: string;
   max_size: number;
   created_at: string;
+  // Vom Discord-Bot gepflegt (discord-setup/raid.py).
+  discord_channel_id?: string | null;
+  discord_message_id?: string | null;
+  reminder_sent?: boolean;
+  signups_closed?: boolean;
 }
 
 // Eine Anmeldung inkl. Charakter und Aufstellungs-Status (über die
-// event_signups_overview-View).
+// event_signups_overview-View). source "web": Anmeldung über die Website
+// bzw. per Discord mit einem Website-Charakter; source "discord":
+// Anmeldung nur über Discord, ohne Konto auf der Website - dann gibt es
+// keine user_id und keinen Charakter, und bei "abgemeldet" fehlen
+// eventuell Klasse und Rolle.
 export interface EventSignupRow {
   event_id: string;
-  user_id: string;
+  user_id: string | null;
   status: SignupStatus;
   comment: string | null;
   updated_at: string;
-  character_id: string;
+  character_id: string | null;
   character_name: string;
-  class: string;
-  role: Role;
+  class: string | null;
+  role: Role | null;
   level: number;
   discord_id: string;
   display_name: string;
   avatar_url: string | null;
   roster_slot: RosterSlot | null;
+  source: "web" | "discord";
 }
 
 export type GuildNameStatus = "offen" | "freigegeben" | "abgelehnt";

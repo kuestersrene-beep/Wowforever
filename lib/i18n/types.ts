@@ -189,6 +189,7 @@ export interface Dictionary {
     benchTitle: string;
     openTitle: string;
     declinedTitle: string;
+    viaDiscord: string;
     admin: {
       createTitle: string;
       titleLabel: string;

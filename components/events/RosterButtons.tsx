@@ -11,10 +11,13 @@ import type { RosterSlot } from "@/lib/types";
 export default function RosterButtons({
   eventId,
   userId,
+  discordId,
   slot,
 }: {
   eventId: string;
-  userId: string;
+  // null bei Anmeldungen nur über Discord - dann zählt die Discord-ID.
+  userId: string | null;
+  discordId: string;
   slot: RosterSlot | null;
 }) {
   const { dict } = useI18n();
@@ -23,7 +26,7 @@ export default function RosterButtons({
 
   const set = (next: RosterSlot | null) => {
     startTransition(async () => {
-      await setRosterSlot(eventId, userId, next);
+      await setRosterSlot(eventId, { userId, discordId }, next);
       router.refresh();
     });
   };

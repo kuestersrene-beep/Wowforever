@@ -176,7 +176,8 @@ export async function postRoster(
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) return false;
 
-  const line = (s: EventSignupRow) => `${s.character_name} (${s.class})`;
+  const line = (s: EventSignupRow) =>
+    s.class ? `${s.character_name} (${s.class})` : s.character_name;
   const confirmed = signups.filter((s) => s.roster_slot === "bestaetigt");
   const bench = signups.filter((s) => s.roster_slot === "bank");
 
