@@ -57,6 +57,7 @@ ROLLEN = [
     {"name": "Raidleiter", "farbe": 0xE67E22, "anzeigen": True,
      "rechte": perms("MOVE", "MUTE", "PRIORITY_SPEAKER", "MENTION_EVERYONE", "CREATE_EVENTS",
                      "MANAGE_EVENTS", "INVITE")},
+    {"name": "Class-Leader", "farbe": 0x1ABC9C, "anzeigen": True, "rechte": perms("INVITE")},
     {"name": "Raider", "farbe": 0x3498DB, "anzeigen": True, "rechte": perms("INVITE")},
     {"name": "Mitglied", "farbe": 0x2ECC71, "anzeigen": True, "rechte": perms("INVITE")},
     {"name": "Trial", "farbe": 0x95A5A6, "anzeigen": True, "rechte": 0},
@@ -84,7 +85,21 @@ GRUPPEN = {
     "mitglied": ["Trial", "Mitglied", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
     "raid": ["Raidleiter", "Offizier", "Gildenmeister"],
     "offizier": ["Offizier", "Gildenmeister"],
+    # Class-Leader sehen ihren Kanal im Offiziersbereich, sonst nichts davon
+    "classleader": ["Class-Leader", "Offizier", "Gildenmeister"],
+    # Spielrollen-Kanäle: nur mit der jeweiligen Rolle sichtbar
+    "tank": ["🛡️ Tank"],
+    "heiler": ["💚 Heiler"],
 }
+
+# Ein Kanal pro Klasse, nur mit der gleichnamigen Klassenrolle sichtbar (Rollen siehe ROLLEN)
+KLASSEN_KANAELE = [
+    ("Krieger", "🪓│krieger"), ("Paladin", "🔨│paladin"), ("Jäger", "🏹│jäger"),
+    ("Schurke", "🗡️│schurke"), ("Priester", "✨│priester"), ("Schamane", "⚡│schamane"),
+    ("Magier", "🔮│magier"), ("Hexenmeister", "😈│hexenmeister"), ("Druide", "🐻│druide"),
+]
+for _klasse, _ in KLASSEN_KANAELE:
+    GRUPPEN[_klasse] = [_klasse]
 
 # sicht = wer die Kategorie sieht; schreiben = nur diese Gruppe darf schreiben (sonst alle Sichtbaren)
 STRUKTUR = [
@@ -111,10 +126,8 @@ STRUKTUR = [
     {"name": "⚔️ GILDE", "sicht": "mitglied", "kanaele": [
         {"name": "📌│gilden-infos", "thema": "Feste Infos: Raidzeiten, Bank, Ansprechpartner.", "schreiben": "offizier"},
         {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen.", "schreiben": "offizier"},
-        {"name": "📅│raid-ankündigungen", "thema": "Raidtermine und Anmeldungen.", "schreiben": "raid"},
-        {"name": "🗓️│raid-planung", "thema": "Absprachen rund um Raids, Ab- und Zusagen."},
-        {"name": "💰│loot-regeln", "thema": "Wie bei uns gelootet wird.", "schreiben": "offizier"},
-        {"name": "🔨│berufe-und-handwerk", "thema": "Wer kann was herstellen? Mats-Anfragen."},
+        {"name": "📅│raid-ankündigungen", "thema": "Wichtige Infos der Raidleitung.", "schreiben": "raid"},
+        {"name": "🗓️│raid-planung", "thema": "Raidtermine mit Anmeldung per Button und Absprachen rund um Raids."},
         {"name": "🤝│gruppensuche", "thema": "Mitspieler für Dungeons, Quests und mehr finden."},
     ]},
     {"name": "🩸 PVP", "sicht": "mitglied", "kanaele": [
@@ -129,6 +142,17 @@ STRUKTUR = [
         {"name": "🐉 Raid 2", "typ": "voice"},
         {"name": "🎤 Raidleitung", "typ": "voice", "sicht": "raid"},
     ]},
+    # Jeder Kanal ist nur mit der passenden Rolle sichtbar; die Kategorie selbst sehen Mitglieder,
+    # Discord blendet sie aber aus, solange man keinen der Kanäle darin sehen kann.
+    {"name": "🧙 KLASSEN & ROLLEN", "sicht": "mitglied", "kanaele": [
+        {"name": "🛡️│tanks", "thema": "Austausch unter Tanks: Ausrüstung, Taktiken, Absprachen.", "sicht": "tank"},
+        {"name": "💚│heiler", "thema": "Austausch unter Heilern: Ausrüstung, Heilzuteilung, Absprachen.",
+         "sicht": "heiler"},
+    ] + [
+        {"name": kanal, "thema": f"Alles rund um die Klasse {klasse}: Skillung, Rotation, Ausrüstung.",
+         "sicht": klasse}
+        for klasse, kanal in KLASSEN_KANAELE
+    ]},
     {"name": "🔊 SPRACHKANÄLE", "sicht": "gast", "kanaele": [
         {"name": "🍺 Taverne", "typ": "voice"},
         {"name": "🎮 Zocken", "typ": "voice"},
@@ -141,7 +165,9 @@ STRUKTUR = [
         {"name": "🛡️│offiziers-chat", "thema": "Interne Absprachen der Gildenleitung."},
         {"name": "📂│bewerbungen-intern", "thema": "Besprechung eingegangener Bewerbungen."},
         {"name": "📈│raid-auswertung", "thema": "Logs, Teilnahme, Verbesserungen."},
-        {"name": "🧾│mod-log", "thema": "Verwarnungen und Moderationsnotizen."},
+        {"name": "🎓│class-leader", "thema": "Absprachen der Class-Leader mit der Gildenleitung.",
+         "sicht": "classleader"},
+        {"name": "🧾│mod-log", "thema": "Automatisches Protokoll des Bots: Beitritte, Rollen, Änderungen."},
         {"name": "🛡️ Offiziersrat", "typ": "voice"},
     ]},
     # Hier legt bot.py die privaten Bewerbungskanäle an; deren Kanäle räumt dieses Skript nie auf
@@ -181,7 +207,8 @@ def infotexte(gilde, k, r):
                 "**3. Passende Kanäle** – Bitte nutze die Kanäle für ihr jeweiliges Thema.\n\n"
                 "**4. Kein NSFW** – Anstößige oder verstörende Inhalte sind verboten.\n\n"
                 "**5. Verbindlichkeit** – Raid-Anmeldungen sind verbindlich. Wenn du absagen musst, sag rechtzeitig Bescheid.\n\n"
-                f"**6. Loot** – Es gelten die {kanal('💰│loot-regeln')}. Loot-Diskussionen gehören nicht in den Raid.\n\n"
+                f"**6. Loot** – Es gelten die Loot-Regeln der Gildenleitung (siehe {kanal('📌│gilden-infos')}). "
+                "Loot-Diskussionen gehören nicht in den Raid.\n\n"
                 f"**7. Leitung** – Anweisungen von {rolle('Offizier')} und {rolle('Raidleiter')} sind zu folgen. "
                 "Kritik gerne sachlich per Direktnachricht.\n\n"
                 "**8. Interna bleiben intern** – Gildeninterne Informationen werden nicht nach außen getragen.\n\n"
@@ -195,13 +222,16 @@ def infotexte(gilde, k, r):
                 f"{rolle('Gildenmeister')} – Leitung der Gilde\n"
                 f"{rolle('Offizier')} – Organisation, Bewerbungen und Moderation\n"
                 f"{rolle('Raidleiter')} – Planung und Leitung der Raids\n"
+                f"{rolle('Class-Leader')} – Ansprechpartner für eine Klasse\n"
                 f"{rolle('Raider')} – Fester Bestandteil des Raidkaders\n"
                 f"{rolle('Mitglied')} – Vollwertiges Gildenmitglied\n"
                 f"{rolle('Trial')} – Probemitglied in der Kennenlernphase\n"
                 f"{rolle('Gast')} – Freunde und Besucher der Gilde\n\n"
                 "**Spielrolle & Klasse**\n"
                 "Teile einem Offizier deine Klasse und Rolle (Tank, Heiler, Schaden) mit – "
-                "du bekommst dann die passenden Rollen. So sehen alle auf einen Blick, wer was spielt."
+                "du bekommst dann die passenden Rollen. So sehen alle auf einen Blick, wer was spielt.\n"
+                "Mit deiner Klassenrolle (und als Tank oder Heiler) öffnet sich der passende Kanal "
+                f"in **🧙 KLASSEN & ROLLEN**, z. B. {kanal('🪓│krieger')} oder {kanal('🛡️│tanks')}."
             ),
         },
         "bewerbung": {
@@ -243,7 +273,8 @@ def env_lesen():
     return werte
 
 
-def api(methode, pfad, daten=None):
+def api(methode, pfad, daten=None, optional=False):
+    """optional=True: bei einem Discord-Fehler nur warnen und None zurückgeben statt abzubrechen."""
     global _fake_id
     if PROBELAUF and methode != "GET":
         _fake_id += 1
@@ -267,6 +298,9 @@ def api(methode, pfad, daten=None):
                 continue
             if e.code == 401:
                 sys.exit("Token ungültig. Bitte in .env prüfen (ggf. im Developer Portal neu erzeugen).")
+            if optional:
+                print(f"  ! Discord-Fehler {e.code} bei {methode} {pfad} – übersprungen")
+                return None
             sys.exit(f"Discord-Fehler {e.code} bei {methode} {pfad}:\n{inhalt}")
     sys.exit(f"Zu viele Rate-Limits bei {methode} {pfad}")
 
@@ -304,6 +338,32 @@ def rechte_abgleichen(kanal, soll, einzug):
     print(f"{einzug}~ {kanal['name']} (Sichtbarkeit/Rechte angepasst)")
 
 
+def rollen_sortieren(gid, rollen_ids):
+    """Bringt die Rollen in die Reihenfolge von ROLLEN (oberste zuerst).
+
+    Discord legt jede neue Rolle ganz unten an (direkt über @everyone). Deshalb stellt das Skript die
+    Reihenfolge danach ausdrücklich her. Rollen, die nicht in ROLLEN stehen (z. B. die Bot-Rolle),
+    bleiben, wo sie sind; unsere Rollen bekommen die Positionen direkt über @everyone.
+    """
+    if PROBELAUF and any(str(i).startswith("neu") for i in rollen_ids.values()):
+        print("  ~ Reihenfolge wird nach dem Anlegen geprüft")
+        return
+    aktuell = {r["id"]: r["position"] for r in api("GET", f"/guilds/{gid}/roles")}
+    eigene = [rollen_ids[r["name"]] for r in ROLLEN]                # oben -> unten
+    ist = sorted(eigene, key=lambda rid: -aktuell.get(rid, 0))
+    if ist == eigene:
+        print("  = Reihenfolge (stimmt)")
+        return
+    soll = [{"id": rid, "position": len(eigene) - i} for i, rid in enumerate(eigene)]
+    if PROBELAUF:
+        print("  ~ Reihenfolge würde korrigiert: " + " > ".join(r["name"] for r in ROLLEN[:8]) + " > …")
+        return
+    if api("PATCH", f"/guilds/{gid}/roles", soll, optional=True) is not None:
+        print("  ↕ Reihenfolge korrigiert: " + " > ".join(r["name"] for r in ROLLEN[:8]) + " > …")
+    else:
+        print("  ! Reihenfolge konnte nicht gesetzt werden – die Bot-Rolle muss ganz oben stehen")
+
+
 def main():
     global TOKEN
     env = env_lesen()
@@ -339,6 +399,7 @@ def main():
         })
         rollen_ids[rolle["name"]] = neu["id"]
         print(f"  + {rolle['name']}")
+    rollen_sortieren(gid, rollen_ids)
     print("  ~ @everyone: Grundrechte angepasst (keine Einladungen, kein @everyone-Ping)")
     api("PATCH", f"/guilds/{gid}/roles/{gid}", {"permissions": str(BASIS)})
 

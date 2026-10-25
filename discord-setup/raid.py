@@ -28,7 +28,7 @@ from discord import app_commands
 from discord.ext import tasks
 
 # Kanal- und Rollennamen wie in server_einrichten.py
-RAID_KANAL = "📅│raid-ankündigungen"
+RAID_KANAL = "🗓️│raid-planung"
 RAIDLEITUNG_ROLLEN = ("Raidleiter", "Offizier", "Gildenmeister")
 RAIDER_ROLLE = "Raider"
 
@@ -207,17 +207,28 @@ async def nachricht_aktualisieren(termin, erzwingen=False):
         return
     embed, ansicht = raid_embed(termin, anmeldungen), raid_ansicht(termin)
 
+    kanal = raid_kanal()
     if termin.get("discord_message_id") and termin.get("discord_channel_id"):
-        kanal = bot.get_channel(int(termin["discord_channel_id"]))
-        if kanal:
+        alter_kanal = bot.get_channel(int(termin["discord_channel_id"]))
+        alte_nachricht = alter_kanal.get_partial_message(int(termin["discord_message_id"])) if alter_kanal else None
+        # Steht die Nachricht noch im früheren Raid-Kanal, wird sie für kommende Termine in den
+        # aktuellen Kanal umgezogen (alte löschen, neu posten). Sonst nur bearbeiten.
+        umziehen = (kanal and alter_kanal and alter_kanal.id != kanal.id
+                    and jetzt() < zeit(termin["starts_at"]))
+        if alte_nachricht and umziehen:
             try:
-                await kanal.get_partial_message(int(termin["discord_message_id"])).edit(embed=embed, view=ansicht)
+                await alte_nachricht.delete()
+            except discord.HTTPException:
+                pass
+            log.info("Raid %s nach %s umgezogen", termin["title"], RAID_KANAL)
+        elif alte_nachricht:
+            try:
+                await alte_nachricht.edit(embed=embed, view=ansicht)
                 signaturen[termin["id"]] = sig
                 return
             except discord.NotFound:
                 log.info("Nachricht zu %s fehlt – poste neu", termin["title"])
 
-    kanal = raid_kanal()
     if not kanal:
         log.warning("Kanal %s nicht gefunden", RAID_KANAL)
         return
