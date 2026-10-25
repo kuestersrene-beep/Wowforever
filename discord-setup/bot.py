@@ -4,6 +4,7 @@
 - Bewerbungen als Tickets: Button -> Formular -> privater Kanal für Bewerber und Offiziere,
   beim Schließen landet ein Protokoll in bewerbungen-intern.
 - Raid-Anmeldung gemeinsam mit der Gilden-Website (siehe raid.py).
+- Protokoll aller Änderungen im Kanal mod-log (siehe modlog.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
 Im Developer Portal muss der "Message Content Intent" an sein (für das Protokoll).
@@ -22,6 +23,7 @@ import aiohttp
 import discord
 from discord.ext import tasks
 
+import modlog
 import raid
 
 # Kanal- und Rollennamen wie in server_einrichten.py
@@ -75,6 +77,7 @@ class GildenBot(discord.Client):
         self.add_view(StartAnsicht())
         self.add_view(TicketAnsicht())
         raid.einrichten(self)
+        modlog.einrichten(self)
 
     async def on_ready(self):
         gid = os.environ.get("GUILD_ID")
