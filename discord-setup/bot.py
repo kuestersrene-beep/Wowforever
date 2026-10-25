@@ -321,4 +321,4 @@ if __name__ == "__main__":
     token = os.environ.get("DISCORD_TOKEN")
     if not token:
         raise SystemExit("DISCORD_TOKEN fehlt (.env).")
-    bot.run(token)
+    bot.run(token, root_logger=True)  # auch die eigenen Meldungen (gildenbot) ausgeben
