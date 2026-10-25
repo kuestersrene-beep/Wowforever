@@ -98,7 +98,7 @@ STRUKTUR = [
     ]},
     {"name": "📝 BEWERBUNG", "sicht": "alle", "kanaele": [
         {"name": "📋│bewerbung-info", "thema": "So bewirbst du dich bei uns.", "schreiben": "offizier", "text": "bewerbung"},
-        {"name": "✍️│bewerbungen", "thema": "Poste hier deine Bewerbung nach der Vorlage.", "slowmode": 300},
+        {"name": "📨│bewerbung-starten", "thema": "Klick auf den Button, um deine Bewerbung zu starten.", "schreiben": "offizier"},
         {"name": "🎙️ Bewerbungsgespräch", "typ": "voice"},
     ]},
     {"name": "💬 COMMUNITY", "sicht": "gast", "kanaele": [
@@ -113,11 +113,9 @@ STRUKTUR = [
         {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen.", "schreiben": "offizier"},
         {"name": "📅│raid-ankündigungen", "thema": "Raidtermine und Anmeldungen.", "schreiben": "raid"},
         {"name": "🗓️│raid-planung", "thema": "Absprachen rund um Raids, Ab- und Zusagen."},
-        {"name": "📚│taktiken", "thema": "Bosstaktiken und Vorbereitung."},
         {"name": "💰│loot-regeln", "thema": "Wie bei uns gelootet wird.", "schreiben": "offizier"},
         {"name": "🔨│berufe-und-handwerk", "thema": "Wer kann was herstellen? Mats-Anfragen."},
         {"name": "🤝│gruppensuche", "thema": "Mitspieler für Dungeons, Quests und mehr finden."},
-        {"name": "📊│umfragen", "thema": "Abstimmungen der Gilde."},
     ]},
     {"name": "🩸 PVP", "sicht": "mitglied", "kanaele": [
         {"name": "⚔️│pvp-treffpunkt", "thema": "Schlachtfelder, World-PvP und Angriffe auf feindliche Städte."},
@@ -146,6 +144,8 @@ STRUKTUR = [
         {"name": "🧾│mod-log", "thema": "Verwarnungen und Moderationsnotizen."},
         {"name": "🛡️ Offiziersrat", "typ": "voice"},
     ]},
+    # Hier legt bot.py die privaten Bewerbungskanäle an; deren Kanäle räumt dieses Skript nie auf
+    {"name": "📨 TICKETS", "sicht": "offizier", "dynamisch": True, "kanaele": []},
 ]
 
 # ============================== INFOTEXTE ==============================
@@ -207,18 +207,15 @@ def infotexte(gilde, k, r):
         "bewerbung": {
             "title": "📋 Bewerbung",
             "description": (
-                f"Du möchtest Teil von **{gilde}** werden? Poste deine Bewerbung in {kanal('✍️│bewerbungen')} "
-                "nach dieser Vorlage:\n\n"
-                "```\n"
-                "Charaktername:\n"
-                "Klasse / Skillung:\n"
-                "Rolle (Tank / Heiler / Schaden):\n"
-                "Spielerfahrung:\n"
-                "An welchen Tagen / Uhrzeiten hast du Zeit?\n"
-                "Wie bist du auf uns aufmerksam geworden?\n"
-                "Ein paar Worte über dich:\n"
-                "```\n"
-                f"Ein Offizier meldet sich bei dir. Gerne auch zu einem kurzen Gespräch in **🎙️ Bewerbungsgespräch**. "
+                f"Du möchtest Teil von **{gilde}** werden? Klick in {kanal('📨│bewerbung-starten')} auf "
+                "**Bewerbung starten** und füll das kurze Formular aus. Wir fragen nach:\n\n"
+                "• Charaktername, Klasse und Skillung\n"
+                "• Rolle (Tank / Heiler / Schaden)\n"
+                "• Spielerfahrung\n"
+                "• Wann du Zeit hast\n"
+                "• Ein paar Worte über dich\n\n"
+                "Danach bekommst du einen **privaten Kanal**, den nur du und unsere Offiziere sehen. "
+                "Gerne auch zu einem kurzen Gespräch in **🎙️ Bewerbungsgespräch**. "
                 f"Nach der Aufnahme startest du als {rolle('Trial')}."
             ),
         },
@@ -360,6 +357,8 @@ def main():
                          {"name": kat["name"], "type": 4, "permission_overwrites": kat_ow})["id"]
             print(f"  + {kat['name']}")
         behalten.add(kat_id)
+        if kat.get("dynamisch"):
+            behalten.update(c["id"] for c in vorhanden if c.get("parent_id") == kat_id)
 
         for k in kat["kanaele"]:
             voice = k.get("typ") == "voice"
