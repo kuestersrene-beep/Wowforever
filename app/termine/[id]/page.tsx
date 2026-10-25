@@ -203,10 +203,14 @@ function SignupGroup({
                   </span>
                 )}
               </div>
-              <span className="text-xs text-slate-500">
-                {s.display_name}
-                {s.comment && ` – „${s.comment}“`}
-              </span>
+              {/* Bei Discord-Anmeldungen ist der Name oben schon der
+                  Discord-Name - dann hier nur noch den Kommentar zeigen. */}
+              {(s.source !== "discord" || s.comment) && (
+                <span className="text-xs text-slate-500">
+                  {s.source === "discord" ? `„${s.comment}“` : s.display_name}
+                  {s.source !== "discord" && s.comment && ` – „${s.comment}“`}
+                </span>
+              )}
               {admin && (
                 <RosterButtons
                   eventId={s.event_id}
