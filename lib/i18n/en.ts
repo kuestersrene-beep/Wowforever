@@ -184,6 +184,7 @@ export const en: Dictionary = {
     benchTitle: "Bench",
     openTitle: "Not assigned yet",
     declinedTitle: "Declined",
+    viaDiscord: "Signed up via Discord (no account on the website)",
     admin: {
       createTitle: "Create new event",
       titleLabel: "Title",

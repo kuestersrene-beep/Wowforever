@@ -3,6 +3,7 @@
 - Postet offizielle Blizzard-Blueposts zu WoW Forever (DE + US) in den Patchnotes-Kanal.
 - Bewerbungen als Tickets: Button -> Formular -> privater Kanal für Bewerber und Offiziere,
   beim Schließen landet ein Protokoll in bewerbungen-intern.
+- Raid-Anmeldung gemeinsam mit der Gilden-Website (siehe raid.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
 Im Developer Portal muss der "Message Content Intent" an sein (für das Protokoll).
@@ -20,6 +21,8 @@ from pathlib import Path
 import aiohttp
 import discord
 from discord.ext import tasks
+
+import raid
 
 # Kanal- und Rollennamen wie in server_einrichten.py
 PATCHNOTES_KANAL = "📰│patchnotes"
@@ -61,6 +64,7 @@ def env_laden():
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True  # für /raid fehlende (Server Members Intent im Developer Portal)
 
 
 class GildenBot(discord.Client):
@@ -70,6 +74,7 @@ class GildenBot(discord.Client):
         # Buttons bleiben auch nach einem Neustart klickbar
         self.add_view(StartAnsicht())
         self.add_view(TicketAnsicht())
+        raid.einrichten(self)
 
     async def on_ready(self):
         gid = os.environ.get("GUILD_ID")
@@ -81,6 +86,7 @@ class GildenBot(discord.Client):
         await panel_sicherstellen()
         if not blueposts_pruefen.is_running():
             blueposts_pruefen.start()
+        await raid.starten(self)
 
 
 bot = GildenBot(intents=intents)

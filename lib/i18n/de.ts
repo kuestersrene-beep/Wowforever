@@ -185,6 +185,7 @@ export const de: Dictionary = {
     benchTitle: "Bank",
     openTitle: "Noch nicht eingeteilt",
     declinedTitle: "Abgemeldet",
+    viaDiscord: "Über Discord angemeldet (ohne Konto auf der Website)",
     admin: {
       createTitle: "Neuen Termin anlegen",
       titleLabel: "Titel",
