@@ -128,8 +128,6 @@ STRUKTUR = [
         {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen.", "schreiben": "offizier"},
         {"name": "📅│raid-ankündigungen", "thema": "Wichtige Infos der Raidleitung.", "schreiben": "raid"},
         {"name": "🗓️│raid-planung", "thema": "Raidtermine mit Anmeldung per Button und Absprachen rund um Raids."},
-        {"name": "💰│loot-regeln", "thema": "Wie bei uns gelootet wird.", "schreiben": "offizier"},
-        {"name": "🔨│berufe-und-handwerk", "thema": "Wer kann was herstellen? Mats-Anfragen."},
         {"name": "🤝│gruppensuche", "thema": "Mitspieler für Dungeons, Quests und mehr finden."},
     ]},
     {"name": "🩸 PVP", "sicht": "mitglied", "kanaele": [
@@ -209,7 +207,8 @@ def infotexte(gilde, k, r):
                 "**3. Passende Kanäle** – Bitte nutze die Kanäle für ihr jeweiliges Thema.\n\n"
                 "**4. Kein NSFW** – Anstößige oder verstörende Inhalte sind verboten.\n\n"
                 "**5. Verbindlichkeit** – Raid-Anmeldungen sind verbindlich. Wenn du absagen musst, sag rechtzeitig Bescheid.\n\n"
-                f"**6. Loot** – Es gelten die {kanal('💰│loot-regeln')}. Loot-Diskussionen gehören nicht in den Raid.\n\n"
+                f"**6. Loot** – Es gelten die Loot-Regeln der Gildenleitung (siehe {kanal('📌│gilden-infos')}). "
+                "Loot-Diskussionen gehören nicht in den Raid.\n\n"
                 f"**7. Leitung** – Anweisungen von {rolle('Offizier')} und {rolle('Raidleiter')} sind zu folgen. "
                 "Kritik gerne sachlich per Direktnachricht.\n\n"
                 "**8. Interna bleiben intern** – Gildeninterne Informationen werden nicht nach außen getragen.\n\n"
@@ -339,6 +338,32 @@ def rechte_abgleichen(kanal, soll, einzug):
     print(f"{einzug}~ {kanal['name']} (Sichtbarkeit/Rechte angepasst)")
 
 
+def rollen_sortieren(gid, rollen_ids):
+    """Bringt die Rollen in die Reihenfolge von ROLLEN (oberste zuerst).
+
+    Discord legt jede neue Rolle ganz unten an (direkt über @everyone). Deshalb stellt das Skript die
+    Reihenfolge danach ausdrücklich her. Rollen, die nicht in ROLLEN stehen (z. B. die Bot-Rolle),
+    bleiben, wo sie sind; unsere Rollen bekommen die Positionen direkt über @everyone.
+    """
+    if PROBELAUF and any(str(i).startswith("neu") for i in rollen_ids.values()):
+        print("  ~ Reihenfolge wird nach dem Anlegen geprüft")
+        return
+    aktuell = {r["id"]: r["position"] for r in api("GET", f"/guilds/{gid}/roles")}
+    eigene = [rollen_ids[r["name"]] for r in ROLLEN]                # oben -> unten
+    ist = sorted(eigene, key=lambda rid: -aktuell.get(rid, 0))
+    if ist == eigene:
+        print("  = Reihenfolge (stimmt)")
+        return
+    soll = [{"id": rid, "position": len(eigene) - i} for i, rid in enumerate(eigene)]
+    if PROBELAUF:
+        print("  ~ Reihenfolge würde korrigiert: " + " > ".join(r["name"] for r in ROLLEN[:8]) + " > …")
+        return
+    if api("PATCH", f"/guilds/{gid}/roles", soll, optional=True) is not None:
+        print("  ↕ Reihenfolge korrigiert: " + " > ".join(r["name"] for r in ROLLEN[:8]) + " > …")
+    else:
+        print("  ! Reihenfolge konnte nicht gesetzt werden – die Bot-Rolle muss ganz oben stehen")
+
+
 def main():
     global TOKEN
     env = env_lesen()
@@ -374,23 +399,7 @@ def main():
         })
         rollen_ids[rolle["name"]] = neu["id"]
         print(f"  + {rolle['name']}")
-    neue_rollen = [r["name"] for r in ROLLEN if r["name"] not in vorhandene_rollen]
-    # Neu angelegte Rollen landen bei Discord ganz unten. Rang-Rollen (anzeigen=True) direkt unter die
-    # Rolle schieben, die in ROLLEN darüber steht, damit die Reihenfolge der Liste entspricht.
-    if neue_rollen and not PROBELAUF:
-        positionen = {r["id"]: r["position"] for r in api("GET", f"/guilds/{gid}/roles")}
-        for i, rolle in enumerate(ROLLEN):
-            if rolle["name"] not in neue_rollen or not rolle["anzeigen"] or i == 0:
-                continue
-            darueber = ROLLEN[i - 1]["name"]
-            ziel = positionen.get(rollen_ids.get(darueber))
-            if ziel is None:
-                continue
-            if api("PATCH", f"/guilds/{gid}/roles", [{"id": rollen_ids[rolle["name"]], "position": ziel}],
-                   optional=True) is not None:
-                print(f"  ↕ {rolle['name']} unter {darueber} einsortiert")
-            else:
-                print(f"  ! {rolle['name']} bitte in Discord von Hand unter {darueber} ziehen")
+    rollen_sortieren(gid, rollen_ids)
     print("  ~ @everyone: Grundrechte angepasst (keine Einladungen, kein @everyone-Ping)")
     api("PATCH", f"/guilds/{gid}/roles/{gid}", {"permissions": str(BASIS)})
 
