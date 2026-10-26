@@ -119,8 +119,13 @@ Mitglied, Trial, Gast) landen in der Tabelle `discord_members`. Wer **Offizier**
 
 Bis zum Release (`RELEASE_DATUM`, Standard **2026-11-05**) schickt der Bot jedem neuen Mitglied eine
 **Direktnachricht**: Begrüßung, Countdown bis zum Start, Link zur Website mit der Bitte, **Berufe und
-Verfügbarkeit** einzutragen, die gerade **laufenden Kurzabstimmungen** der Website und Hinweise, wo man
-sich abspricht (`💬│allgemein`, `🤝│gruppensuche`, `🗓️│raid-planung`). Ab dem Release-Tag ist Schluss.
+Verfügbarkeit** einzutragen, und die gerade **laufenden Kurzabstimmungen** der Website. Ab dem
+Release-Tag ist Schluss.
+
+Neue Mitglieder haben noch keine Rolle. Die Nachricht verlinkt deshalb **nur Kanäle, die ohne Rolle
+sichtbar sind** – `👋│willkommen` (aktuelle Infos), `📜│regeln`, `📋│bewerbung-info` und
+`📨│bewerbung-starten`. Der Bot prüft das vor jedem Link; Kanäle, die eine Rolle brauchen, nennt er nur
+als Text. Aktuelle Infos für Neue gehören also in `👋│willkommen`.
 
 - `/willkommen` schickt dir die Nachricht zur Vorschau selbst – jederzeit.
 - Als Status zeigt der Bot einen Countdown („⚔️ Noch 10 Tage bis WoW Forever“), am Release-Tag
