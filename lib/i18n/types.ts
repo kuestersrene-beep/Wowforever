@@ -5,6 +5,8 @@ import type {
   Participation,
   Playstyle,
   Role,
+  RosterSlot,
+  SignupStatus,
   Weekday,
 } from "@/lib/types";
 
@@ -24,6 +26,10 @@ export interface Dictionary {
     toAdmin: string;
     toAvailability: string;
     toDownloads: string;
+    toCharacters: string;
+    toEvents: string;
+    toGuildName: string;
+    pendingTemplate: string; // Platzhalter: {n}
     loggedInAs: string;
     loginPrompt: string;
   };
@@ -34,8 +40,17 @@ export interface Dictionary {
     label: string;
   };
   home: {
-    subtitle: string;
-    quest: string;
+    decisionTag: string;
+    decisionTitle: string;
+    decisionText: string;
+    callTitle: string;
+    callText: string;
+    professionsTitle: string;
+    professionsText: string;
+    professionsButton: string;
+    availabilityTitle: string;
+    availabilityText: string;
+    availabilityButton: string;
     privacyTitle: string;
     privacyText: string;
     countdownLabels: {
@@ -58,6 +73,7 @@ export interface Dictionary {
     q2Hint: string;
     q3Legend: string;
     q3Hint: string;
+    lockedHint: string;
     pleaseChoose: string;
     q4Legend: string;
     q4Hint: string;
@@ -80,8 +96,11 @@ export interface Dictionary {
   };
   overview: {
     title: string;
-    memeCaption: string;
-    memeAlt: string;
+    participantsTitle: string;
+    professionsTitle: string;
+    professionsHint: string;
+    professionMissing: string;
+    analysisTitle: string;
     noResponses: string;
     noteLabel: string;
     availabilityTitle: string;
@@ -117,9 +136,178 @@ export interface Dictionary {
       deleteConfirm: string;
     };
   };
+  characters: {
+    title: string;
+    hint: string;
+    mine: string;
+    noneYet: string;
+    roster: string;
+    rosterHint: string;
+    rosterEmpty: string;
+    nameLabel: string;
+    classLabel: string;
+    roleLabel: string;
+    mainLabel: string;
+    mainBadge: string;
+    addTitle: string;
+    editTitle: string;
+    prefillHint: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    edit: string;
+    deleteButton: string;
+    deleteConfirm: string;
+    countTemplate: string; // Platzhalter: {n}
+    countOne: string;
+  };
+  events: {
+    title: string;
+    hint: string;
+    upcoming: string;
+    past: string;
+    empty: string;
+    detailsLink: string;
+    mySignupLabel: string;
+    notSignedUp: string;
+    signedUpTemplate: string; // Platzhalter: {n} {max}
+    roleCountsTemplate: string; // Platzhalter: {tank} {healer} {dd}
+    signupTitle: string;
+    needCharacter: string;
+    characterLabel: string;
+    statusLabel: string;
+    commentLabel: string;
+    commentPlaceholder: string;
+    signupSave: string;
+    signupSaving: string;
+    signupRemove: string;
+    signupRemoveConfirm: string;
+    signupsTitle: string;
+    signupsEmpty: string;
+    rosterTitle: string;
+    rosterEmpty: string;
+    benchTitle: string;
+    openTitle: string;
+    declinedTitle: string;
+    viaDiscord: string;
+    admin: {
+      createTitle: string;
+      titleLabel: string;
+      titlePlaceholder: string;
+      instanceLabel: string;
+      descriptionLabel: string;
+      startsAtLabel: string;
+      maxSizeLabel: string;
+      repeatLabel: string;
+      repeatHint: string;
+      create: string;
+      creating: string;
+      edit: string;
+      editTitle: string;
+      editHint: string;
+      saveChanges: string;
+      saving: string;
+      confirm: string;
+      bench: string;
+      reset: string;
+      postRoster: string;
+      postingRoster: string;
+      rosterPosted: string;
+      rosterPostFailed: string;
+      deleteEvent: string;
+      deleteEventConfirm: string;
+      deleteSeries: string;
+      deleteSeriesConfirm: string;
+    };
+  };
+  quickPoll: {
+    tag: string;
+    voteHint: string;
+    changeHint: string;
+    loginHint: string;
+    removeVote: string;
+    admin: {
+      title: string;
+      hint: string;
+      empty: string;
+      active: string;
+      inactive: string;
+      activate: string;
+      deactivate: string;
+      delete: string;
+      deleteConfirm: string;
+      createTitle: string;
+      questionPlaceholder: string;
+      optionsPlaceholder: string;
+      optionsHint: string;
+      activateNow: string;
+      create: string;
+      creating: string;
+      error: string;
+    };
+  };
+  guildName: {
+    title: string;
+    hint: string;
+    pollTitle: string;
+    pollEmpty: string;
+    votesTemplate: string; // Platzhalter: {n}
+    voteOne: string;
+    vote: string;
+    yourVote: string;
+    removeVote: string;
+    suggestedBy: string;
+    suggestTitle: string;
+    suggestHint: string;
+    suggestPlaceholder: string;
+    suggest: string;
+    suggesting: string;
+    suggested: string;
+    errorDuplicate: string;
+    errorLimitTemplate: string; // Platzhalter: {n}
+    errorInvalid: string;
+    mineTitle: string;
+    withdraw: string;
+    withdrawConfirm: string;
+    status: { offen: string; freigegeben: string; abgelehnt: string };
+    admin: {
+      queueTitle: string;
+      queueHint: string;
+      queueEmpty: string;
+      approve: string;
+      reject: string;
+      delete: string;
+      deleteConfirm: string;
+      rejectedTitle: string;
+      hiddenHint: string;
+      hiddenBadge: string;
+    };
+  };
   admin: {
     title: string;
     allParticipants: string;
+    logo: {
+      title: string;
+      hint: string;
+      urlLabel: string;
+      preview: string;
+      current: string;
+      defaultActive: string;
+      save: string;
+      saving: string;
+      saved: string;
+      reset: string;
+      resetConfirm: string;
+      invalid: string;
+      loadError: string;
+      sizeLabel: string;
+      sizeHint: string;
+      sizeSave: string;
+      sizeDefault: string;
+      saveError: string;
+      timerTitle: string;
+      timerHint: string;
+    };
     loadErrorTemplate: string; // Platzhalter: {msg}
     exportCsv: string;
     filterLabel: string;
@@ -175,5 +363,7 @@ export interface Dictionary {
     profession: Record<string, string>;
     weekday: Record<Weekday, string>;
     daypart: Record<Daypart, string>;
+    signupStatus: Record<SignupStatus, string>;
+    rosterSlot: Record<RosterSlot, string>;
   };
 }

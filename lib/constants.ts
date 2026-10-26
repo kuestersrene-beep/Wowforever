@@ -5,6 +5,8 @@ import type {
   Participation,
   Playstyle,
   Role,
+  RosterSlot,
+  SignupStatus,
   Weekday,
 } from "./types";
 
@@ -21,6 +23,11 @@ export const WOW_CLASSES = [
 ] as const;
 
 export const CLASS_PRIORITY_COUNT = 3;
+
+// Final entschieden: alle spielen Horde auf einem PvP-Reich. Die Umfrage
+// fragt das nicht mehr ab, sondern setzt diese Werte fest.
+export const FIXED_FACTION: Faction = "horde";
+export const FIXED_PLAYSTYLE: Playstyle = "pvp";
 
 export const WOW_PROFESSIONS = [
   "Alchemie",
@@ -104,3 +111,42 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   mehrmals_woche: "Mehrmals pro Woche",
   fast_taeglich: "Fast täglich",
 };
+
+export const ROLES = ["tank", "heiler", "dd"] as const satisfies readonly Role[];
+
+export const SIGNUP_STATUSES = ["dabei", "vorlaeufig", "abgemeldet"] as const satisfies readonly SignupStatus[];
+
+export const ROSTER_SLOTS = ["bestaetigt", "bank"] as const satisfies readonly RosterSlot[];
+
+// Instanzen als Vorschläge im Termin-Formular (Freitext bleibt möglich).
+export const INSTANCES = [
+  "Geschmolzener Kern",
+  "Onyxias Hort",
+  "Pechschwingenhort",
+  "Zul'Gurub",
+  "Ruinen von Ahn'Qiraj",
+  "Tempel von Ahn'Qiraj",
+  "Naxxramas",
+] as const;
+
+// Termine werden in dieser Zeitzone angezeigt, unabhängig davon, in
+// welcher Zeitzone der Server (z. B. der Docker-Container, meist UTC) läuft.
+export const APP_TIME_ZONE = process.env.NEXT_PUBLIC_TIME_ZONE || "Europe/Berlin";
+
+// Wie viele Wochen ein wiederkehrender Termin maximal im Voraus angelegt wird.
+export const MAX_REPEAT_WEEKS = 12;
+
+// Logo-Größe in Prozent der jeweiligen Standardgröße (siehe site_settings
+// in supabase/schema.sql - die Grenzen dort müssen hierzu passen).
+export const LOGO_SCALE_MIN = 100;
+export const LOGO_SCALE_MAX = 400;
+export const LOGO_SCALE_DEFAULT = 100;
+
+// Gildennamen-Umfrage: wie viele Namen eine Person höchstens vorschlagen
+// kann (offen + freigegeben zusammen; abgelehnte zählen nicht).
+export const MAX_GUILD_NAME_SUGGESTIONS = 3;
+export const GUILD_NAME_MAX_LENGTH = 40;
+
+// Kurzabstimmungen: erlaubte Anzahl an Antworten.
+export const QUICK_POLL_MIN_OPTIONS = 2;
+export const QUICK_POLL_MAX_OPTIONS = 6;

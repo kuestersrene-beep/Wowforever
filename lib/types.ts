@@ -88,3 +88,103 @@ export interface DownloadItem {
   sort_order: number;
   created_at: string;
 }
+
+// Ein Charakter im Gilden-Roster. Für WoW Forever gibt es keine
+// Armory, daher von Hand gepflegt (siehe supabase/schema.sql).
+export interface Character {
+  id: string;
+  user_id: string;
+  discord_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  name: string;
+  class: string;
+  role: Role;
+  level: number;
+  is_main: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SignupStatus = "dabei" | "vorlaeufig" | "abgemeldet";
+export type RosterSlot = "bestaetigt" | "bank";
+
+// Ein Termin (Raid, Dungeon-Abend, ...). Wiederkehrende Termine teilen
+// sich eine series_id.
+export interface GuildEvent {
+  id: string;
+  series_id: string | null;
+  title: string;
+  instance: string | null;
+  description: string | null;
+  starts_at: string;
+  max_size: number;
+  created_at: string;
+  // Vom Discord-Bot gepflegt (discord-setup/raid.py).
+  discord_channel_id?: string | null;
+  discord_message_id?: string | null;
+  reminder_sent?: boolean;
+  signups_closed?: boolean;
+}
+
+// Eine Anmeldung inkl. Charakter und Aufstellungs-Status (über die
+// event_signups_overview-View). source "web": Anmeldung über die Website
+// bzw. per Discord mit einem Website-Charakter; source "discord":
+// Anmeldung nur über Discord, ohne Konto auf der Website - dann gibt es
+// keine user_id und keinen Charakter, und bei "abgemeldet" fehlen
+// eventuell Klasse und Rolle.
+export interface EventSignupRow {
+  event_id: string;
+  user_id: string | null;
+  status: SignupStatus;
+  comment: string | null;
+  updated_at: string;
+  character_id: string | null;
+  character_name: string;
+  class: string | null;
+  role: Role | null;
+  level: number;
+  discord_id: string;
+  display_name: string;
+  avatar_url: string | null;
+  roster_slot: RosterSlot | null;
+  source: "web" | "discord";
+}
+
+export type GuildNameStatus = "offen" | "freigegeben" | "abgelehnt";
+
+// Ein Vorschlag für den Gildennamen (siehe guild_name_suggestions in
+// supabase/schema.sql).
+export interface GuildNameSuggestion {
+  id: string;
+  name: string;
+  user_id: string;
+  display_name: string;
+  status: GuildNameStatus;
+  created_at: string;
+}
+
+// Ergebnis eines Namensvorschlags. Rückgabe statt Exception, damit das
+// Formular eine verständliche Meldung anzeigen kann.
+export type SuggestResult =
+  | { ok: true }
+  | { ok: false; reason: "duplicate" | "limit" | "invalid" };
+
+// Kurzabstimmung auf der Startseite (siehe quick_polls in
+// supabase/schema.sql), aufbereitet mit Stimmen je Antwort.
+export interface QuickPollOptionResult {
+  id: string;
+  label: string;
+  votes: number;
+}
+
+export interface QuickPollResult {
+  id: string;
+  question: string;
+  active: boolean;
+  created_at: string;
+  options: QuickPollOptionResult[];
+  totalVotes: number;
+  // Antwort der eingeloggten Person, null = noch nicht abgestimmt.
+  myVote: string | null;
+}

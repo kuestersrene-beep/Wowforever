@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getAvatarUrl, getDiscordId, getDisplayName } from "@/lib/admin";
-import { CLASS_PRIORITY_COUNT } from "@/lib/constants";
+import { CLASS_PRIORITY_COUNT, FIXED_FACTION, FIXED_PLAYSTYLE } from "@/lib/constants";
 import { notifyDiscord } from "@/lib/discord";
 import type { Faction, Participation, Playstyle, Role } from "@/lib/types";
 
@@ -46,8 +46,9 @@ export async function saveResponse(formData: FormData) {
   // Nur wenn die Person mitspielen möchte (ja/vielleicht), interessieren
   // uns die restlichen Antworten.
   if (participation !== "nein") {
-    payload.faction = formData.get("faction") || null;
-    payload.playstyle = formData.get("playstyle") || null;
+    // Final entschieden - unabhängig davon, was das Formular schickt.
+    payload.faction = FIXED_FACTION;
+    payload.playstyle = FIXED_PLAYSTYLE;
 
     // Pflichtfeld: genau 2 unterschiedliche Berufe. Die Selects sind im
     // Formular als "required" markiert, daher sind sie bei normaler

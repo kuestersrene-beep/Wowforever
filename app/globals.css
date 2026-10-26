@@ -30,6 +30,28 @@ body {
     @apply bg-gradient-to-r from-transparent via-gold/60 to-transparent;
   }
 
+  /* Bearbeitbare Texte (components/RichText.tsx und der Editor im
+     Admin-Dashboard): Absätze, Listen und Links im Seiten-Stil. */
+  .rich-text > * + * {
+    @apply mt-2;
+  }
+  .rich-text a {
+    @apply text-gold-light underline underline-offset-2 hover:text-gold;
+  }
+  .rich-text strong,
+  .rich-text b {
+    @apply font-semibold text-parchment;
+  }
+  .rich-text ul {
+    @apply list-disc pl-5 text-left;
+  }
+  .rich-text ol {
+    @apply list-decimal pl-5 text-left;
+  }
+  .rich-text li > p {
+    @apply m-0;
+  }
+
   /* Sternenhimmel-Hintergrund für den Countdown-Banner: eigenes,
      rein CSS-basiertes Muster (kein Bild-Asset). */
   .starfield {

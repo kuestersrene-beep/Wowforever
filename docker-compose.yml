@@ -15,3 +15,12 @@ services:
     # diesen Port weiter (siehe deploy/nginx-wowforever.conf.example).
     ports:
       - "127.0.0.1:3001:3000"
+
+  # Discord-Bot: Blizzard-Patchnotes und Bewerbungs-Tickets (siehe discord-setup/README.md)
+  discord-bot:
+    build: ./discord-setup
+    restart: unless-stopped
+    env_file:
+      - ./discord-setup/.env
+    volumes:
+      - ./discord-setup/data:/bot/data

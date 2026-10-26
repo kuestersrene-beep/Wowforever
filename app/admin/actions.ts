@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
+import { clampLogoScale, isValidLogoUrl } from "@/lib/siteSettings";
 
 export async function setAdminNote(userId: string, note: string) {
   const supabase = await createClient();
@@ -10,7 +11,7 @@ export async function setAdminNote(userId: string, note: string) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !isAdmin(getDiscordId(user))) {
+  if (!user || !(await isAdmin(getDiscordId(user)))) {
     throw new Error("Nicht berechtigt.");
   }
 
@@ -37,7 +38,7 @@ async function requireAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !isAdmin(getDiscordId(user))) {
+  if (!user || !(await isAdmin(getDiscordId(user)))) {
     throw new Error("Nicht berechtigt.");
   }
 }
@@ -85,4 +86,64 @@ export async function deleteDownload(id: string) {
 
   revalidatePath("/admin");
   revalidatePath("/downloads");
+}
+
+export async function setLogoUrl(url: string | null) {
+  await requireAdmin();
+
+  const trimmed = url?.trim() || null;
+  if (trimmed && !isValidLogoUrl(trimmed)) {
+    throw new Error("Bitte eine gültige https-Adresse angeben.");
+  }
+
+  // service_role Key nötig, weil site_settings für normale Nutzer:innen
+  // nur eine select-Policy hat (siehe supabase/schema.sql).
+  const adminSupabase = createAdminClient();
+  const { error } = await adminSupabase
+    .from("site_settings")
+    .upsert({ id: 1, logo_url: trimmed });
+
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+
+  // Das Logo erscheint auf jeder Seite (über das Root-Layout).
+  revalidatePath("/", "layout");
+}
+
+export async function setLogoScale(scale: number) {
+  await requireAdmin();
+
+  const adminSupabase = createAdminClient();
+  const { error } = await adminSupabase
+    .from("site_settings")
+    .upsert({ id: 1, logo_scale: clampLogoScale(scale) });
+
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+
+  revalidatePath("/", "layout");
+}
+
+// Eigenes Logo nur für den Countdown (siehe timer_logo_url in
+// supabase/schema.sql).
+export async function setTimerLogoUrl(url: string | null) {
+  await requireAdmin();
+
+  const trimmed = url?.trim() || null;
+  if (trimmed && !isValidLogoUrl(trimmed)) {
+    throw new Error("Bitte eine gültige https-Adresse angeben.");
+  }
+
+  const adminSupabase = createAdminClient();
+  const { error } = await adminSupabase
+    .from("site_settings")
+    .upsert({ id: 1, timer_logo_url: trimmed });
+
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+
+  revalidatePath("/", "layout");
 }
