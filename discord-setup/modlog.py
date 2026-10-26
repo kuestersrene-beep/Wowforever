@@ -14,6 +14,8 @@ from datetime import timedelta
 
 import discord
 
+import ereignisse
+
 MODLOG_KANAL = "🧾│mod-log"
 
 FARBE_PLUS = 0x2ECC71
@@ -226,10 +228,5 @@ def einrichten(client: discord.Client):
     """In setup_hook aufrufen: meldet die Ereignisse beim Bot an."""
     global bot
     bot = client
-    # discord.Client ruft für jedes Ereignis das Attribut on_<ereignis> auf - hier gesetzt pro Instanz.
-    # (bot.py selbst definiert keines dieser Ereignisse, es wird also nichts überschrieben.)
     for funktion in EREIGNISSE:
-        if hasattr(type(client), funktion.__name__):
-            log.warning("%s ist bereits im Bot definiert – Mod-Log übernimmt es nicht", funktion.__name__)
-            continue
-        setattr(client, funktion.__name__, funktion)
+        ereignisse.anmelden(client, funktion.__name__, funktion)

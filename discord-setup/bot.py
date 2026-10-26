@@ -6,6 +6,7 @@
 - Raid-Anmeldung gemeinsam mit der Gilden-Website (siehe raid.py).
 - Protokoll aller Änderungen im Kanal mod-log (siehe modlog.py).
 - Klassen-/Spielrollen von der Website setzen, Ränge an die Website melden (siehe rollensync.py).
+- Willkommens-Nachricht per DM an neue Mitglieder bis zum Release (siehe willkommen.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
 Im Developer Portal muss der "Message Content Intent" an sein (für das Protokoll).
@@ -27,6 +28,7 @@ from discord.ext import tasks
 import modlog
 import raid
 import rollensync
+import willkommen
 
 # Kanal- und Rollennamen wie in server_einrichten.py
 PATCHNOTES_KANAL = "📰│patchnotes"
@@ -80,6 +82,7 @@ class GildenBot(discord.Client):
         self.add_view(TicketAnsicht())
         raid.einrichten(self)
         modlog.einrichten(self)
+        willkommen.einrichten(self)
 
     async def on_ready(self):
         gid = os.environ.get("GUILD_ID")
@@ -93,6 +96,7 @@ class GildenBot(discord.Client):
             blueposts_pruefen.start()
         await raid.starten(self)
         await rollensync.starten(self)
+        await willkommen.starten(self)
 
 
 bot = GildenBot(intents=intents)

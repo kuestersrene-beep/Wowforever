@@ -101,13 +101,18 @@ async def abgleichen():
     guild = bot.guild if bot else None
     if raid.db is None or guild is None:
         return
+    # Beide Richtungen getrennt absichern: Fehlt z. B. die Tabelle discord_members (Schema noch
+    # nicht eingespielt), sollen die Klassen- und Spielrollen trotzdem gesetzt werden.
     try:
-        await raenge_speichern(guild)
         geaendert = await rollen_abgleichen(guild, await sollwerte())
         if geaendert:
             log.info("Rollen-Sync: %d Mitglied(er) angepasst", geaendert)
     except Exception:
-        log.exception("Rollen-Sync fehlgeschlagen")
+        log.exception("Rollen-Sync (Website -> Discord) fehlgeschlagen")
+    try:
+        await raenge_speichern(guild)
+    except Exception:
+        log.exception("Ränge an die Website melden fehlgeschlagen – ist supabase/schema.sql eingespielt?")
 
 
 async def starten(client: discord.Client):
