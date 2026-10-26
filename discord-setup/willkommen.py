@@ -1,8 +1,12 @@
 """Willkommens-Nachricht per Direktnachricht an neue Mitglieder – bis zum Release.
 
 Wer dem Server beitritt, bekommt eine private Nachricht: Begrüßung, Countdown bis zum Start und die
-Bitte, sich auf der Website einzutragen, bei laufenden Abstimmungen mitzumachen und sich mit den
-anderen abzusprechen. Ab RELEASE_DATUM (00:00 Uhr Ortszeit) verschickt der Bot nichts mehr.
+Bitte, sich auf der Website einzutragen und bei laufenden Abstimmungen mitzumachen. Ab RELEASE_DATUM
+(00:00 Uhr Ortszeit) verschickt der Bot nichts mehr.
+
+Neue Mitglieder haben noch keine Rolle und sehen nur die öffentlichen Kanäle (willkommen, regeln,
+Bewerbung). Die Nachricht verlinkt deshalb nur Kanäle, die ohne Rolle sichtbar sind – das prüft
+kanal() vor jedem Link; alles andere wird nur als Text genannt.
 
 /willkommen schickt die Nachricht zur Vorschau an einen selbst (jederzeit, auch nach dem Release).
 
@@ -66,9 +70,17 @@ async def status_aktualisieren():
     await bot.change_presence(activity=aktivitaet)
 
 
+def oeffentlich(guild, ch):
+    """Kann jemand ohne Rolle (nur @everyone) den Kanal sehen?"""
+    return ch.permissions_for(guild.default_role).view_channel
+
+
 def kanal(guild, name):
+    """Klickbarer Link nur für öffentlich sichtbare Kanäle, sonst nur der Name als Text."""
     gefunden = discord.utils.get(guild.text_channels, name=name)
-    return gefunden.mention if gefunden else f"#{name}"
+    if gefunden and oeffentlich(guild, gefunden):
+        return gefunden.mention
+    return f"**{name.split('│')[-1]}**"
 
 
 async def laufende_abstimmungen():
@@ -111,14 +123,16 @@ async def nachricht(member: discord.Member):
             f"{liste}\nDeine Stimme gibst du direkt auf der Startseite der Website ab."
         ), inline=False)
 
-    embed.add_field(name=("3️⃣" if fragen else "2️⃣") + " Absprechen", value=(
-        f"Lies kurz die {kanal(guild, '📜│regeln')} und sag in {kanal(guild, '💬│allgemein')} Hallo. "
-        f"Mitspieler für die ersten Quests und Dungeons findest du in {kanal(guild, '🤝│gruppensuche')}, "
-        f"Raids und Anmeldungen in {kanal(guild, '🗓️│raid-planung')}."
+    embed.add_field(name=("3️⃣" if fragen else "2️⃣") + " Infos & Regeln", value=(
+        f"Aktuelle Infos zur Gilde und zum Start findest du in {kanal(guild, '👋│willkommen')}. "
+        f"Lies bitte auch kurz die {kanal(guild, '📜│regeln')}."
     ), inline=False)
     embed.add_field(name="🔓 Freischaltung", value=(
-        "Ein Offizier gibt dir in Kürze deine Rolle – dann öffnet sich der Rest des Servers. "
-        "Sobald du auf der Website einen Charakter einträgst, bekommst du automatisch deine Klassenrolle."
+        f"Neu bei uns? Alles zur Aufnahme steht in {kanal(guild, '📋│bewerbung-info')} – "
+        f"mit einem Klick in {kanal(guild, '📨│bewerbung-starten')} geht's los. "
+        "Kennen wir uns schon, gibt dir ein Offizier in Kürze deine Rolle.\n"
+        "Danach öffnen sich Chat, Gruppensuche und Raid-Planung, und sobald du auf der Website einen "
+        "Charakter einträgst, bekommst du automatisch deine Klassenrolle."
     ), inline=False)
     embed.set_footer(text=f"Diese Nachricht bekommen alle neuen Mitglieder bis zum Release. · {guild.name}")
     if guild.icon:
