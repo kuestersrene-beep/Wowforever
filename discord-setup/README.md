@@ -13,6 +13,7 @@ Zwei Teile:
   - Raid-Anmeldung (`raid.py`) gemeinsam mit der Gilden-Website, siehe unten.
   - Protokoll (`modlog.py`) in `🧾│mod-log`, siehe unten.
   - Rollen-Sync mit der Website (`rollensync.py`), siehe unten.
+  - Willkommens-Nachricht per DM bis zum Release (`willkommen.py`), siehe unten.
 
 ## Voraussetzungen im Discord Developer Portal
 
@@ -33,8 +34,10 @@ DISCORD_TOKEN=dein-bot-token
 # Für die Raid-Anmeldung (dieselben Werte wie in der .env der Website):
 SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=dein-service-role-key
-# Optional: Link zur Website in der Raid-Nachricht
+# Optional: Link zur Website in der Raid-Nachricht und der Willkommens-Nachricht
 SITE_URL=https://deine-id.duckdns.org
+# Optional: Bis zu diesem Tag bekommen neue Mitglieder die Willkommens-DM (Standard 2026-11-05)
+RELEASE_DATUM=2026-11-05
 EOF
 docker compose up -d --build discord-bot
 docker compose logs -f discord-bot
@@ -111,3 +114,14 @@ Angabe auf der Website werden nicht angefasst.
 **Discord → Website:** Die Rang-Rollen (Gildenmeister, Offizier, Raidleiter, Class-Leader, Raider,
 Mitglied, Trial, Gast) landen in der Tabelle `discord_members`. Wer **Offizier** oder
 **Gildenmeister** ist, ist damit automatisch Admin auf der Website.
+
+## Willkommens-Nachricht (`willkommen.py`)
+
+Bis zum Release (`RELEASE_DATUM`, Standard **2026-11-05**) schickt der Bot jedem neuen Mitglied eine
+**Direktnachricht**: Begrüßung, Countdown bis zum Start, Link zur Website mit der Bitte, **Berufe und
+Verfügbarkeit** einzutragen, die gerade **laufenden Kurzabstimmungen** der Website und Hinweise, wo man
+sich abspricht (`💬│allgemein`, `🤝│gruppensuche`, `🗓️│raid-planung`). Ab dem Release-Tag ist Schluss.
+
+- `/willkommen` schickt dir die Nachricht zur Vorschau selbst – jederzeit.
+- Hat jemand Direktnachrichten von Server-Mitgliedern abgeschaltet, steht ein Hinweis im `🧾│mod-log`.
+
