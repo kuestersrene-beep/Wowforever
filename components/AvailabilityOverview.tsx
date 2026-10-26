@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { DAYPARTS, WEEKDAYS } from "@/lib/constants";
 import type { Dictionary } from "@/lib/i18n/types";
 import type { AvailabilitySummary } from "@/lib/types";
@@ -12,6 +13,11 @@ interface SlotPerson {
   name: string;
 }
 
+interface TooltipPos {
+  top: number;
+  left: number;
+}
+
 export default function AvailabilityOverview({
   rows,
   dict,
@@ -20,6 +26,7 @@ export default function AvailabilityOverview({
   dict: Dictionary;
 }) {
   const [openSlot, setOpenSlot] = useState<string | null>(null);
+  const [pos, setPos] = useState<TooltipPos | null>(null);
   const withSlots = rows.filter((r) => r.slots.length > 0);
 
   const peopleBySlot = new Map<string, SlotPerson[]>();
@@ -39,6 +46,25 @@ export default function AvailabilityOverview({
     }
   }
   const maxCount = Math.max(1, ...Array.from(peopleBySlot.values(), (v) => v.length));
+
+  // Position wird aus der Zellen-Bounding-Box berechnet und das Tooltip
+  // per Portal direkt in document.body gerendert (statt absolute
+  // innerhalb der Zelle) - sonst schneidet der horizontal scrollbare
+  // Tabellen-Container ("overflow-x-auto") es am Rand ab.
+  const openCell = (slot: string, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const rawLeft = rect.left + rect.width / 2;
+    setPos({
+      top: rect.bottom + 6,
+      left: Math.min(Math.max(rawLeft, 80), window.innerWidth - 80),
+    });
+    setOpenSlot(slot);
+  };
+  const closeCell = (slot: string) => {
+    setOpenSlot((s) => (s === slot ? null : s));
+  };
+
+  const openPeople = openSlot ? peopleBySlot.get(openSlot) ?? [] : [];
 
   return (
     <section className="panel flex flex-col gap-4 p-6">
@@ -75,20 +101,22 @@ export default function AvailabilityOverview({
                     const people = peopleBySlot.get(slot) ?? [];
                     const count = people.length;
                     const opacity = count === 0 ? 0 : 0.25 + 0.75 * (count / maxCount);
-                    const isOpen = openSlot === slot;
                     return (
-                      <td key={slot} className="relative px-1 py-1">
+                      <td key={slot} className="px-1 py-1">
                         <button
                           type="button"
                           disabled={count === 0}
-                          onMouseEnter={() => count > 0 && setOpenSlot(slot)}
-                          onMouseLeave={() => setOpenSlot((s) => (s === slot ? null : s))}
-                          onFocus={() => count > 0 && setOpenSlot(slot)}
-                          onBlur={() => setOpenSlot((s) => (s === slot ? null : s))}
+                          onMouseEnter={(e) => count > 0 && openCell(slot, e.currentTarget)}
+                          onMouseLeave={() => closeCell(slot)}
+                          onFocus={(e) => count > 0 && openCell(slot, e.currentTarget)}
+                          onBlur={() => closeCell(slot)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (count > 0) {
-                              setOpenSlot((s) => (s === slot ? null : slot));
+                            if (count === 0) return;
+                            if (openSlot === slot) {
+                              setOpenSlot(null);
+                            } else {
+                              openCell(slot, e.currentTarget);
                             }
                           }}
                           className="flex h-8 w-full items-center justify-center rounded-lg border border-gold/20 text-xs font-medium transition disabled:cursor-default"
@@ -99,17 +127,6 @@ export default function AvailabilityOverview({
                         >
                           {count > 0 ? count : ""}
                         </button>
-                        {isOpen && (
-                          <div className="absolute left-1/2 top-full z-20 mt-1 flex -translate-x-1/2 flex-col gap-1 whitespace-nowrap rounded-lg border border-gold/40 bg-ink px-3 py-1.5 text-xs text-parchment shadow-lg">
-                            {people.map((person) => (
-                              <DiscordNameLink
-                                key={person.userId}
-                                discordId={person.discordId}
-                                name={person.name}
-                              />
-                            ))}
-                          </div>
-                        )}
                       </td>
                     );
                   })}
@@ -119,6 +136,25 @@ export default function AvailabilityOverview({
           </table>
         </div>
       )}
+
+      {openSlot &&
+        pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed z-50 flex -translate-x-1/2 flex-col gap-1 whitespace-nowrap rounded-lg border border-gold/40 bg-ink px-3 py-1.5 text-xs text-parchment shadow-lg"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            {openPeople.map((person) => (
+              <DiscordNameLink
+                key={person.userId}
+                discordId={person.discordId}
+                name={person.name}
+              />
+            ))}
+          </div>,
+          document.body
+        )}
     </section>
   );
 }
