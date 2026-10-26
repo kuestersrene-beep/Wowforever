@@ -6,6 +6,9 @@ anderen abzusprechen. Ab RELEASE_DATUM (00:00 Uhr Ortszeit) verschickt der Bot n
 
 /willkommen schickt die Nachricht zur Vorschau an einen selbst (jederzeit, auch nach dem Release).
 
+Außerdem zeigt der Bot als Status einen Countdown („⚔️ Noch 10 Tage bis WoW Forever“), am Release-Tag
+„🎉 WoW Forever ist live!“ und danach „Spielt WoW Forever“.
+
 .env (optional): RELEASE_DATUM=JJJJ-MM-TT (Standard siehe unten), SITE_URL, ZEITZONE.
 Kann ein Mitglied keine Direktnachrichten empfangen, steht das im Mod-Log.
 """
@@ -16,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 from discord import app_commands
+from discord.ext import tasks
 
 import ereignisse
 import modlog
@@ -40,6 +44,26 @@ def release():
 
 def vor_dem_release():
     return discord.utils.utcnow() < release()
+
+
+def status_text(heute=None):
+    """Text für den Bot-Status, abhängig von den Tagen bis zum Release."""
+    heute = heute or discord.utils.utcnow().astimezone(release().tzinfo).date()
+    tage = (release().date() - heute).days
+    if tage > 1:
+        return f"⚔️ Noch {tage} Tage bis WoW Forever"
+    if tage == 1:
+        return "⚔️ Morgen startet WoW Forever!"
+    if tage == 0:
+        return "🎉 WoW Forever ist live!"
+    return None
+
+
+@tasks.loop(hours=1)
+async def status_aktualisieren():
+    text = status_text()
+    aktivitaet = discord.CustomActivity(name=text) if text else discord.Game(name="WoW Forever")
+    await bot.change_presence(activity=aktivitaet)
 
 
 def kanal(guild, name):
@@ -144,3 +168,5 @@ async def starten(client: discord.Client):
         await client.tree.sync(guild=client.guild)
     log.info("Willkommens-Nachricht %s (Release %s)", "aktiv" if vor_dem_release() else "beendet",
              release().date())
+    if not status_aktualisieren.is_running():
+        status_aktualisieren.start()

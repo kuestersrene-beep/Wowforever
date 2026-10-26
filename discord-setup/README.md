@@ -123,5 +123,7 @@ Verfügbarkeit** einzutragen, die gerade **laufenden Kurzabstimmungen** der Webs
 sich abspricht (`💬│allgemein`, `🤝│gruppensuche`, `🗓️│raid-planung`). Ab dem Release-Tag ist Schluss.
 
 - `/willkommen` schickt dir die Nachricht zur Vorschau selbst – jederzeit.
+- Als Status zeigt der Bot einen Countdown („⚔️ Noch 10 Tage bis WoW Forever“), am Release-Tag
+  „🎉 WoW Forever ist live!“ und danach „Spielt WoW Forever“.
 - Hat jemand Direktnachrichten von Server-Mitgliedern abgeschaltet, steht ein Hinweis im `🧾│mod-log`.
 
