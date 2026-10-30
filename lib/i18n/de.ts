@@ -289,6 +289,7 @@ export const de: Dictionary = {
     activating: "Aktiviert...",
     coreFiguresLabel: "Kernfiguren",
     tabardLabel: "Wappenrock",
+    heraldryTitle: "Heraldik",
     sitzLabel: "Sitz",
     anfuehrerLabel: "Anführer:in",
     feindeLabel: "Feinde",

@@ -128,7 +128,9 @@ export default function FactionCard({
         <div className="flex flex-col gap-6 border-t border-gold/15 p-6 pt-5">
           {draft.lore_html && (
             <div>
-              <h4 className="mb-2 font-heading text-lg text-gold-light">{t.loreTitle}</h4>
+              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                {t.loreTitle}
+              </h4>
               <div
                 className="rich-text text-base leading-relaxed text-parchment/90"
                 dangerouslySetInnerHTML={{ __html: draft.lore_html }}
@@ -138,7 +140,9 @@ export default function FactionCard({
 
           {draft.stylesheet_url && (
             <div>
-              <h4 className="mb-2 font-heading text-lg text-gold-light">{t.tabardLabel}</h4>
+              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                {t.heraldryTitle}
+              </h4>
               <button
                 type="button"
                 onClick={() => setLightbox({ url: draft.stylesheet_url!, alt: draft.name })}
@@ -156,7 +160,9 @@ export default function FactionCard({
 
           {draft.rank_structure_html && (
             <div>
-              <h4 className="mb-2 font-heading text-lg text-gold-light">{t.rankStructureTitle}</h4>
+              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                {t.rankStructureTitle}
+              </h4>
               <div
                 className="rich-text text-base leading-relaxed text-parchment/90"
                 dangerouslySetInnerHTML={{ __html: draft.rank_structure_html }}

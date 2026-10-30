@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import WowTooltipBox from "./WowTooltipBox";
 
@@ -27,11 +27,30 @@ export default function TabardIcon({
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
+  // Das Tooltip ist "position: fixed" (bleibt an der Bildschirmposition,
+  // damit es nicht am Kartenrand abgeschnitten wird - siehe oben). Beim
+  // Weiterscrollen würde es sich sonst optisch vom Icon lösen und über
+  // andere Inhalte legen, daher beim Scrollen schließen (vor allem auf
+  // Mobile relevant, wo ein Tap statt Hover öffnet).
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [open]);
+
   const show = (el: HTMLElement) => {
     const rect = el.getBoundingClientRect();
+    // Tooltip ist max. min(88vw, 360px) breit (siehe WowTooltipBox) -
+    // halbe Breite als Mindestabstand zum Bildschirmrand, damit es bei
+    // -translate-x-1/2 nicht seitlich abgeschnitten wird.
+    const halfWidth = Math.min(window.innerWidth * 0.44, 180);
     setPos({
       top: rect.bottom + 6,
-      left: Math.min(Math.max(rect.left + rect.width / 2, 140), window.innerWidth - 140),
+      left: Math.min(
+        Math.max(rect.left + rect.width / 2, halfWidth + 8),
+        window.innerWidth - halfWidth - 8
+      ),
     });
     setOpen(true);
   };

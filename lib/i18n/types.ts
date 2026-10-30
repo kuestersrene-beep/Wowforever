@@ -293,6 +293,7 @@ export interface Dictionary {
     activating: string;
     coreFiguresLabel: string;
     tabardLabel: string;
+    heraldryTitle: string;
     sitzLabel: string;
     anfuehrerLabel: string;
     feindeLabel: string;

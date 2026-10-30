@@ -23,25 +23,29 @@ export default function WowTooltipBox({
 
   return (
     <div
-      className={`inline-block max-w-xs rounded border-2 border-[#c8aa6e] bg-black p-3 shadow-xl ${className}`}
+      className={`inline-block w-[min(88vw,360px)] rounded border-2 border-[#c8aa6e] bg-black p-4 shadow-xl ${className}`}
     >
       {title && (
-        <p className="font-semibold" style={{ color: "#a335ee" }}>
+        <p className="font-semibold leading-snug" style={{ color: "#a335ee" }}>
           {title}
         </p>
       )}
       {metaLines.map((line, i) => (
-        <p key={i} className="text-sm text-white">
+        <p key={i} className="text-sm leading-snug text-white">
           {line}
         </p>
       ))}
       {effectLines.map((line, i) => (
-        <p key={i} className="text-sm" style={{ color: "#1eff00" }}>
+        <p
+          key={i}
+          className={`text-sm leading-snug ${i === 0 ? "mt-2" : ""}`}
+          style={{ color: "#1eff00" }}
+        >
           {line}
         </p>
       ))}
       {quote && (
-        <p className="mt-1 text-sm italic" style={{ color: "#e6cc80" }}>
+        <p className="mt-2 text-sm italic leading-snug" style={{ color: "#e6cc80" }}>
           „{quote}&rdquo;
         </p>
       )}
