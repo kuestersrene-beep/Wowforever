@@ -106,6 +106,12 @@ jeder Änderung **bearbeitet**, nicht neu gepostet:
 - Sobald ein Admin eine Fraktion aktiviert: 🏆-Embed mit Name, Tagline, Kurzbeschreibung und
   Wappen als Vorschaubild, verlinkt auf die Website.
 
+Die öffentliche Nachricht zeigt bewusst **keine Stimmen**. Den **Stimmenstand** (Balken, Anzahl,
+Prozent, 👑 bei eindeutiger Führung) postet der Bot als zweite, sich selbst aktualisierende
+Nachricht nur für Offiziere in `🛡️│offiziers-chat` – oder in den Kanal aus
+`FRAKTION_STIMMEN_KANAL_ID`. Nach der Entscheidung wird daraus das Endergebnis. Wo diese Nachricht
+steht, merkt sich der Bot in `discord-setup/data/fraktion_stimmen.json`.
+
 Welcher Kanal/welche Nachricht das ist, steht in `site_settings` (`faction_discord_channel_id`/
 `faction_discord_message_id`), genau wie bei den Raidterminen.
 
