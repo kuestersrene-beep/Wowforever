@@ -40,8 +40,8 @@ function parseCoreFigures(raw: FormDataEntryValue | null): CoreFigure[] {
   }
 }
 
-function urlOrNull(value: FormDataEntryValue | null): string | null {
-  const trimmed = String(value ?? "").trim();
+function textOrNull(value: FormDataEntryValue | null, maxLength = 500): string | null {
+  const trimmed = String(value ?? "").trim().slice(0, maxLength);
   return trimmed || null;
 }
 
@@ -54,22 +54,24 @@ function buildPayload(formData: FormData) {
       .replace(/^-+|-+$/g, "")
       .slice(0, 60),
     name: String(formData.get("name") ?? "").trim().slice(0, 100),
-    tagline: urlOrNull(formData.get("tagline")),
-    summary: urlOrNull(formData.get("summary")),
+    tagline: textOrNull(formData.get("tagline"), 100),
+    summary: textOrNull(formData.get("summary"), 500),
     lore_html: sanitizeRichHtml(String(formData.get("lore_html") ?? "")) || null,
     rank_structure_html:
       sanitizeRichHtml(String(formData.get("rank_structure_html") ?? "")) || null,
-    tooltip_title: urlOrNull(formData.get("tooltip_title")),
-    tooltip_html: sanitizeRichHtml(String(formData.get("tooltip_html") ?? "")) || null,
-    image_url: urlOrNull(formData.get("image_url")),
-    crest_url: urlOrNull(formData.get("crest_url")),
-    tabard_url: urlOrNull(formData.get("tabard_url")),
-    banner_url: urlOrNull(formData.get("banner_url")),
+    tooltip_title: textOrNull(formData.get("tooltip_title"), 100),
+    tooltip_meta: textOrNull(formData.get("tooltip_meta"), 300),
+    tooltip_effects: textOrNull(formData.get("tooltip_effects"), 1000),
+    tooltip_quote: textOrNull(formData.get("tooltip_quote"), 300),
+    image_url: textOrNull(formData.get("image_url"), 1000),
+    crest_url: textOrNull(formData.get("crest_url"), 1000),
+    tabard_url: textOrNull(formData.get("tabard_url"), 1000),
+    banner_url: textOrNull(formData.get("banner_url"), 1000),
     core_figures: parseCoreFigures(formData.get("core_figures")),
-    sitz: urlOrNull(formData.get("sitz")),
-    anfuehrer: urlOrNull(formData.get("anfuehrer")),
-    feinde: urlOrNull(formData.get("feinde")),
-    primaerwert: urlOrNull(formData.get("primaerwert")),
+    sitz: textOrNull(formData.get("sitz"), 200),
+    anfuehrer: textOrNull(formData.get("anfuehrer"), 100),
+    feinde: textOrNull(formData.get("feinde"), 200),
+    primaerwert: textOrNull(formData.get("primaerwert"), 50),
   };
 }
 

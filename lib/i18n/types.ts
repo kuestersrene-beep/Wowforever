@@ -326,8 +326,12 @@ export interface Dictionary {
       addCoreFigure: string;
       loreLabel: string;
       rankStructureLabel: string;
+      tooltipSectionLabel: string;
+      tooltipSectionHint: string;
       tooltipTitleLabel: string;
-      tooltipTextLabel: string;
+      tooltipMetaLabel: string;
+      tooltipEffectsLabel: string;
+      tooltipQuoteLabel: string;
       save: string;
       saving: string;
       cancel: string;

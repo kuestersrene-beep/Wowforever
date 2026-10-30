@@ -47,7 +47,12 @@ export default function FactionCard({
   ].filter((g): g is { url: string; label: string } => !!g);
 
   const hasLore = !!draft.lore_html;
-  const hasWappen = gallery.length > 0 || draft.tooltip_title || draft.tooltip_html;
+  const hasWappen =
+    gallery.length > 0 ||
+    !!draft.tooltip_title ||
+    !!draft.tooltip_meta ||
+    !!draft.tooltip_effects ||
+    !!draft.tooltip_quote;
   const hasRang = !!draft.rank_structure_html;
   const hasExpandContent = hasLore || hasWappen || hasRang;
 
@@ -182,11 +187,12 @@ export default function FactionCard({
                       ))}
                     </div>
                   )}
-                  {(draft.tooltip_title || draft.tooltip_html) && (
+                  {(draft.tooltip_title || draft.tooltip_meta || draft.tooltip_effects || draft.tooltip_quote) && (
                     <WowTooltipBox
                       title={draft.tooltip_title}
-                      html={draft.tooltip_html}
-                      hint={t.tooltipHint}
+                      meta={draft.tooltip_meta}
+                      effects={draft.tooltip_effects}
+                      quote={draft.tooltip_quote}
                     />
                   )}
                 </div>

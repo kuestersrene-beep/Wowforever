@@ -833,8 +833,14 @@ create table if not exists public.guild_drafts (
   summary text check (char_length(summary) <= 500),
   lore_html text check (char_length(lore_html) <= 10000),
   rank_structure_html text check (char_length(rank_structure_html) <= 10000),
+  -- Nachgebauter WoW-Item-Tooltip für den Wappenrock (lila Titel, weiße
+  -- Meta-Zeilen, grüne Effekt-Zeilen, orange Flavor-Zeile am Ende - wie
+  -- im echten Spiel). Bewusst einfache Textfelder statt Rich-HTML, weil
+  -- die Farbgebung pro Zeilentyp fest ist, nicht frei wählbar.
   tooltip_title text check (char_length(tooltip_title) <= 100),
-  tooltip_html text check (char_length(tooltip_html) <= 4000),
+  tooltip_meta text check (char_length(tooltip_meta) <= 300),
+  tooltip_effects text check (char_length(tooltip_effects) <= 1000),
+  tooltip_quote text check (char_length(tooltip_quote) <= 300),
   image_url text,
   crest_url text,
   tabard_url text,
@@ -850,6 +856,13 @@ create table if not exists public.guild_drafts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migration für bereits bestehende Installationen: tooltip_html
+-- (Rich-HTML) wird durch die drei festen Textfelder ersetzt.
+alter table public.guild_drafts add column if not exists tooltip_meta text;
+alter table public.guild_drafts add column if not exists tooltip_effects text;
+alter table public.guild_drafts add column if not exists tooltip_quote text;
+alter table public.guild_drafts drop column if exists tooltip_html;
 
 alter table public.guild_drafts enable row level security;
 

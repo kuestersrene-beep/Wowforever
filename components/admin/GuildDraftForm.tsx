@@ -205,7 +205,9 @@ export default function GuildDraftForm({
         />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="flex flex-col gap-2 rounded-lg border border-gold/20 p-3">
+        <p className="text-sm font-medium text-parchment">{t.tooltipSectionLabel}</p>
+        <p className="text-xs text-slate-500">{t.tooltipSectionHint}</p>
         <input
           type="text"
           name="tooltip_title"
@@ -214,10 +216,30 @@ export default function GuildDraftForm({
           placeholder={t.tooltipTitleLabel}
           className={inputClass}
         />
-      </div>
-      <div>
-        <p className="mb-1 text-sm font-medium text-parchment">{t.tooltipTextLabel}</p>
-        <RichEditorField name="tooltip_html" initialHtml={draft?.tooltip_html ?? ""} />
+        <textarea
+          name="tooltip_meta"
+          maxLength={300}
+          rows={2}
+          defaultValue={draft?.tooltip_meta ?? ""}
+          placeholder={t.tooltipMetaLabel}
+          className={`${inputClass} w-full`}
+        />
+        <textarea
+          name="tooltip_effects"
+          maxLength={1000}
+          rows={3}
+          defaultValue={draft?.tooltip_effects ?? ""}
+          placeholder={t.tooltipEffectsLabel}
+          className={`${inputClass} w-full`}
+        />
+        <input
+          type="text"
+          name="tooltip_quote"
+          maxLength={300}
+          defaultValue={draft?.tooltip_quote ?? ""}
+          placeholder={t.tooltipQuoteLabel}
+          className={inputClass}
+        />
       </div>
 
       <div className="flex items-center gap-3">

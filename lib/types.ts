@@ -206,7 +206,9 @@ export interface GuildDraft {
   lore_html: string | null;
   rank_structure_html: string | null;
   tooltip_title: string | null;
-  tooltip_html: string | null;
+  tooltip_meta: string | null;
+  tooltip_effects: string | null;
+  tooltip_quote: string | null;
   image_url: string | null;
   crest_url: string | null;
   tabard_url: string | null;
