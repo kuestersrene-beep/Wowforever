@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cinzel, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
@@ -8,15 +8,26 @@ import { BrandingProvider } from "@/lib/branding";
 import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+// Lokal statt next/font/google: next/font/google lädt die Dateien zur
+// Build-Zeit von Google herunter - schlägt der Docker-Build-Container
+// mal ohne (oder mit gestörtem) Internetzugriff fehl, bricht der ganze
+// Build mit einem kryptischen Fehler in next/font ab. Mit lokal
+// mitgelieferten Dateien (gleiche Schriften/Gewichte wie vorher, aus
+// Google Fonts heruntergeladen) ist der Build davon unabhängig.
+const cinzel = localFont({
+  src: [
+    { path: "./fonts/cinzel-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/cinzel-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/cinzel-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-heading",
+  display: "swap",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: [{ path: "./fonts/inter-variable.woff2", weight: "400 700", style: "normal" }],
   variable: "--font-body",
+  display: "swap",
 });
 
 // Eigenes Logo (bevorzugt das quadratische Countdown-Logo, siehe
