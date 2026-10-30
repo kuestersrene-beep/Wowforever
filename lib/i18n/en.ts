@@ -291,7 +291,7 @@ export const en: Dictionary = {
     voted: "Looted ✓",
     coreFiguresLabel: "Key figures",
     tabardLabel: "Tabard",
-    heraldryTitle: "Heraldry",
+    heraldryTitle: "Styleboard",
     sitzLabel: "Seat",
     anfuehrerLabel: "Leader",
     feindeLabel: "Enemies",

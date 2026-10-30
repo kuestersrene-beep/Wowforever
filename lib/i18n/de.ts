@@ -293,7 +293,7 @@ export const de: Dictionary = {
     voted: "Aufgehoben ✓",
     coreFiguresLabel: "Kernfiguren",
     tabardLabel: "Wappenrock",
-    heraldryTitle: "Heraldik",
+    heraldryTitle: "Styleboard",
     sitzLabel: "Sitz",
     anfuehrerLabel: "Anführer:in",
     feindeLabel: "Feinde",

@@ -87,8 +87,8 @@ export default function FactionCard({
 
       {/* Zeile 2: Titel + Untertitel */}
       <div className="px-6 pt-6 text-center">
-        <h3 className="font-heading text-2xl text-parchment">{draft.name}</h3>
-        {draft.tagline && <p className="mt-1 text-base text-gold-light">{draft.tagline}</p>}
+        <h3 className="font-heading text-4xl text-parchment">{draft.name}</h3>
+        {draft.tagline && <p className="mt-1 text-lg text-gold-light">{draft.tagline}</p>}
       </div>
 
       {/* Zeile 3: Beschreibung, Infos, Kernfiguren + Wappenrock-Icon -
@@ -98,11 +98,11 @@ export default function FactionCard({
           unterschiedlich hoch ist. */}
       <div className="mt-4 flex flex-col items-center gap-4 px-6">
         {draft.summary && (
-          <p className="text-center text-base text-slate-300">{draft.summary}</p>
+          <p className="text-center text-lg text-slate-300">{draft.summary}</p>
         )}
 
         {infoLines.length > 0 && (
-          <dl className="mx-auto flex w-fit flex-col gap-1 text-sm text-slate-400">
+          <dl className="mx-auto flex w-fit flex-col gap-1 text-base text-slate-400">
             {infoLines.map((l) => (
               <div key={l.label} className="flex gap-1">
                 <dt className="text-slate-500">{l.label}:</dt>
@@ -116,7 +116,7 @@ export default function FactionCard({
           <div className="flex flex-col items-center gap-4">
             {draft.core_figures.length > 0 && (
               <div className="text-center">
-                <p className="mb-1 text-xs text-slate-500">{t.coreFiguresLabel}</p>
+                <p className="mb-1 text-sm text-slate-500">{t.coreFiguresLabel}</p>
                 <div className="flex justify-center gap-2">
                   {draft.core_figures.map((f, i) => (
                     <span
@@ -132,7 +132,7 @@ export default function FactionCard({
             )}
             {tabardIconUrl && (
               <div className="text-center">
-                <p className="mb-1 text-xs text-slate-500">{t.tabardLabel}</p>
+                <p className="mb-1 text-sm text-slate-500">{t.tabardLabel}</p>
                 <div className="flex justify-center">
                   <TabardIcon
                     tabardUrl={tabardIconUrl}
@@ -182,11 +182,11 @@ export default function FactionCard({
           <div className="flex flex-col gap-5">
             {draft.lore_html && (
               <div>
-                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                <h4 className="mb-2 text-center font-heading text-xl text-gold-light">
                   {t.loreTitle}
                 </h4>
                 <div
-                  className="rich-text text-base leading-relaxed text-parchment/90"
+                  className="rich-text text-lg leading-relaxed text-parchment/90"
                   dangerouslySetInnerHTML={{ __html: draft.lore_html }}
                 />
               </div>
@@ -194,7 +194,7 @@ export default function FactionCard({
 
             {draft.stylesheet_url && (
               <div>
-                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                <h4 className="mb-2 text-center font-heading text-xl text-gold-light">
                   {t.heraldryTitle}
                 </h4>
                 <button
@@ -214,11 +214,11 @@ export default function FactionCard({
 
             {draft.rank_structure_html && (
               <div>
-                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                <h4 className="mb-2 text-center font-heading text-xl text-gold-light">
                   {t.rankStructureTitle}
                 </h4>
                 <div
-                  className="rich-text rich-text-centered-list text-base leading-relaxed text-parchment/90"
+                  className="rich-text rich-text-centered-list text-lg leading-relaxed text-parchment/90"
                   dangerouslySetInnerHTML={{ __html: draft.rank_structure_html }}
                 />
               </div>
