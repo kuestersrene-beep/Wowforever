@@ -287,7 +287,7 @@ export const de: Dictionary = {
     active: "Aktiv",
     activate: "Activate",
     activating: "Aktiviert...",
-    expand: "Fraktion ausbauen ↗",
+    expand: "Mehr erfahren",
     coreFiguresLabel: "Kernfiguren",
     sitzLabel: "Sitz",
     anfuehrerLabel: "Anführer:in",
