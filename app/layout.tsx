@@ -7,6 +7,7 @@ import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
 import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import BackgroundCarousel from "@/components/ui/BackgroundCarousel";
 
 // Lokal statt next/font/google: next/font/google lädt die Dateien zur
 // Build-Zeit von Google herunter - schlägt der Docker-Build-Container
@@ -53,6 +54,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} className={`${cinzel.variable} ${inter.variable}`}>
       <body className="min-h-screen font-sans">
+        <BackgroundCarousel />
         <LocaleProvider locale={locale} dict={dict}>
           <BrandingProvider
             logoUrl={logoUrl}

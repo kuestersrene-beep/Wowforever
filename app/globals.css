@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 body {
-  @apply bg-wow-radial text-slate-100;
+  /* Fallback solange der zufällige Szenenbild-Hintergrund (siehe
+     BackgroundCarousel) noch nicht geladen ist bzw. ohne JS - gleiche
+     Basisfarbe wie bisher der Radial-Verlauf. */
+  @apply bg-ink text-slate-100;
   min-height: 100vh;
-  background-attachment: fixed;
 }
 
 /* Eigene Cursor nur auf Desktop (Maus-Geräte) - auf Touch-Geräten ohne

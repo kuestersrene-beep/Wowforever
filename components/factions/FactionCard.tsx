@@ -96,7 +96,7 @@ export default function FactionCard({
           mehrere unabhängig gestreckte Subgrid-Zeilen unnötige Lücken
           addieren, wenn der Inhalt zwischen beiden Karten leicht
           unterschiedlich hoch ist. */}
-      <div className="mt-4 flex flex-col items-center gap-4 px-6">
+      <div className="mt-4 flex h-full flex-col items-center gap-4 px-6">
         {draft.summary && (
           <p className="text-center text-lg text-slate-300">{draft.summary}</p>
         )}
@@ -113,7 +113,7 @@ export default function FactionCard({
         )}
 
         {(draft.core_figures.length > 0 || tabardIconUrl) && (
-          <div className="flex flex-col items-center gap-4">
+          <div className="mt-auto flex flex-col items-center gap-4">
             {draft.core_figures.length > 0 && (
               <div className="text-center">
                 <p className="mb-1 text-sm text-slate-500">{t.coreFiguresLabel}</p>
@@ -152,8 +152,11 @@ export default function FactionCard({
       {/* Zeile 4: Status (Aktiv), Abstimmen, Admin-Entscheidung - an den
           unteren Rand der Zeile angepinnt (justify-end), damit die
           Buttons bei beiden Karten auf gleicher Höhe stehen, egal ob
-          "Aktiv" bei der einen Karte zusätzliche Höhe braucht. */}
-      <div className="mt-4 flex h-full flex-col justify-end px-6 pb-6">
+          "Aktiv" bei der einen Karte zusätzliche Höhe braucht. Zeile 3
+          pinnt das Wappenrock-Icon oben (mt-auto) an den unteren Rand
+          ihrer eigenen Zelle, dadurch rücken Icon und Button so nah
+          zusammen, wie es die Höhen beider Karten zulassen. */}
+      <div className="mt-2 flex h-full flex-col justify-end px-6 pb-6">
         {draft.active && (
           <div className="flex flex-col items-center gap-2">
             <span className="text-sm font-medium text-emerald-400">{t.active}</span>
