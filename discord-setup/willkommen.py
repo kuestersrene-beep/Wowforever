@@ -1,7 +1,8 @@
 """Willkommens-Nachricht per Direktnachricht an neue Mitglieder – bis zum Release.
 
 Wer dem Server beitritt, bekommt eine private Nachricht: Begrüßung, Countdown bis zum Start und die
-Bitte, sich auf der Website einzutragen und bei laufenden Abstimmungen mitzumachen. Ab RELEASE_DATUM
+Bitte, sich auf der Website einzutragen und bei laufenden Abstimmungen (Gildenentwürfe, Kurzabstimmungen)
+mitzumachen. Ab RELEASE_DATUM
 (00:00 Uhr Ortszeit) verschickt der Bot nichts mehr.
 
 Neue Mitglieder haben noch keine Rolle und sehen nur die öffentlichen Kanäle (willkommen, regeln,
@@ -95,6 +96,19 @@ async def laufende_abstimmungen():
         return []
 
 
+async def offene_gildenwahl():
+    """Gildenentwürfe (Website → Fraktionen), solange noch keiner aktiviert ist – sonst leer."""
+    if raid.db is None:
+        return []
+    try:
+        entwuerfe = await raid.db.lesen("guild_drafts", select="name,tagline,active",
+                                        order="sort_order.asc,created_at.asc")
+    except Exception:
+        log.exception("Gildenentwürfe nicht lesbar")
+        return []
+    return [] if any(e.get("active") for e in entwuerfe) else entwuerfe
+
+
 async def nachricht(member: discord.Member):
     guild = member.guild
     start = int(release().timestamp())
@@ -116,14 +130,26 @@ async def nachricht(member: discord.Member):
         "**Berufe** ein – und unter Verfügbarkeit, **wann du in den ersten Wochen** spielen kannst."
     ), inline=False)
 
+    nummern = iter(["2️⃣", "3️⃣", "4️⃣"])
+    entwuerfe = await offene_gildenwahl()
+    if entwuerfe:
+        liste = "\n".join(f"• **{e['name']}**" + (f" – *{e['tagline']}*" if e.get("tagline") else "")
+                          for e in entwuerfe)
+        fraktionen = f"[Fraktionen]({seite}/fraktionen)" if seite else "**Fraktionen**"
+        embed.add_field(name=f"{next(nummern)} Wähl unseren Gildennamen & Wappenrock", value=(
+            f"Zur Wahl stehen:\n{liste}\n"
+            f"Schau dir die Entwürfe unter {fraktionen} in Ruhe an und klick beim Wappenrock deiner Wahl auf "
+            "**„Aufheben“**. ⚠️ Er ist **seelengebunden** – deine Stimme lässt sich nicht mehr ändern!"
+        )[:1024], inline=False)
+
     fragen = await laufende_abstimmungen()
     if fragen:
         liste = "\n".join(f"• {f}" for f in fragen[:5])
-        embed.add_field(name="2️⃣ Gerade läuft eine Abstimmung", value=(
+        embed.add_field(name=f"{next(nummern)} Gerade läuft eine Abstimmung", value=(
             f"{liste}\nDeine Stimme gibst du direkt auf der Startseite der Website ab."
         ), inline=False)
 
-    embed.add_field(name=("3️⃣" if fragen else "2️⃣") + " Infos & Regeln", value=(
+    embed.add_field(name=f"{next(nummern)} Infos & Regeln", value=(
         f"Aktuelle Infos zur Gilde und zum Start findest du in {kanal(guild, '👋│willkommen')}. "
         f"Lies bitte auch kurz die {kanal(guild, '📜│regeln')}."
     ), inline=False)
