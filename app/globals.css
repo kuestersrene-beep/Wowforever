@@ -26,15 +26,15 @@ body {
     cursor: url("/cursors/gear.cur"), pointer;
   }
 
-  /* Spezifischere Cursor gewinnen automatisch durch die höhere
-     CSS-Spezifität der Klassen-Selektoren gegenüber den Element-
-     Selektoren oben - unabhängig von der Reihenfolge im Stylesheet. */
+  /* !important nötig - "button:not(:disabled)" oben hat durch die
+     :not()-Pseudoklasse höhere Spezifität als eine einzelne Klasse und
+     würde diese sonst überstimmen. */
   .cursor-vote {
-    cursor: url("/cursors/bag.cur"), pointer;
+    cursor: url("/cursors/bag.cur"), pointer !important;
   }
 
   .cursor-zoom-in {
-    cursor: url("/cursors/inspect.cur"), zoom-in;
+    cursor: url("/cursors/inspect.cur"), zoom-in !important;
   }
 }
 

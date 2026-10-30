@@ -151,8 +151,11 @@ export default function FactionCard({
         )}
       </div>
 
-      {/* Zeile 6: Status (Aktiv), Abstimmen, Admin-Entscheidung */}
-      <div className="mt-4 px-6 pb-6">
+      {/* Zeile 6: Status (Aktiv), Abstimmen, Admin-Entscheidung - an den
+          unteren Rand der Zeile angepinnt (justify-end), damit die
+          Buttons bei beiden Karten auf gleicher Höhe stehen, egal ob
+          "Aktiv" bei der einen Karte zusätzliche Höhe braucht. */}
+      <div className="mt-4 flex h-full flex-col justify-end px-6 pb-6">
         {draft.active && (
           <div className="flex flex-col items-center gap-2">
             <span className="text-sm font-medium text-emerald-400">{t.active}</span>
