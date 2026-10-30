@@ -315,10 +315,9 @@ export interface Dictionary {
       feindeLabel: string;
       primaerwertLabel: string;
       imageUrlLabel: string;
-      crestUrlLabel: string;
       tabardUrlLabel: string;
       tabardIconUrlLabel: string;
-      bannerUrlLabel: string;
+      stylesheetUrlLabel: string;
       coreFiguresLabel: string;
       coreFiguresHint: string;
       coreFigureIconPlaceholder: string;

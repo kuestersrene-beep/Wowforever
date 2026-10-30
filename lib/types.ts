@@ -214,6 +214,7 @@ export interface GuildDraft {
   tabard_url: string | null;
   tabard_icon_url: string | null;
   banner_url: string | null;
+  stylesheet_url: string | null;
   core_figures: CoreFigure[];
   sitz: string | null;
   anfuehrer: string | null;

@@ -130,13 +130,6 @@ export default function GuildDraftForm({
         />
         <input
           type="url"
-          name="crest_url"
-          defaultValue={draft?.crest_url ?? ""}
-          placeholder={t.crestUrlLabel}
-          className={inputClass}
-        />
-        <input
-          type="url"
           name="tabard_url"
           defaultValue={draft?.tabard_url ?? ""}
           placeholder={t.tabardUrlLabel}
@@ -151,10 +144,10 @@ export default function GuildDraftForm({
         />
         <input
           type="url"
-          name="banner_url"
-          defaultValue={draft?.banner_url ?? ""}
-          placeholder={t.bannerUrlLabel}
-          className={inputClass}
+          name="stylesheet_url"
+          defaultValue={draft?.stylesheet_url ?? ""}
+          placeholder={t.stylesheetUrlLabel}
+          className={`${inputClass} sm:col-span-2`}
         />
       </div>
 

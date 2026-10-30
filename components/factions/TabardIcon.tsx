@@ -52,7 +52,7 @@ export default function TabardIcon({
             show(e.currentTarget);
           }
         }}
-        className="h-11 w-11 shrink-0 overflow-hidden rounded border-2 border-[#8a6f3f] shadow-md transition hover:border-gold-light"
+        className="h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-[#8a6f3f] shadow-md transition hover:scale-105 hover:border-gold-light hover:shadow-lg"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={tabardUrl} alt={alt} className="h-full w-full object-cover" />
