@@ -55,12 +55,18 @@ export default function FactionCard({
   const tabardIconUrl = draft.tabard_icon_url ?? draft.tabard_url;
 
   const canVote = myVote === draft.id || myVote === null;
-  const canShowStatusRow = canVote || (admin && !decided) || draft.active;
+  const votedHere = myVote === draft.id;
+  // "Aktiv" (offizielle Entscheidung) ist bewusst nur für Admins sichtbar,
+  // nicht auf der öffentlichen Seite - sonst wäre die Abstimmung durch die
+  // bereits sichtbare Admin-Wahl voreingenommen. Die goldene Umrandung
+  // markiert stattdessen die eigene Stimme der besuchenden Person.
+  const showActiveLabel = draft.active && admin;
+  const canShowStatusRow = canVote || (admin && !decided);
 
   return (
     <div
       className={`panel grid overflow-hidden sm:row-span-5 sm:[grid-template-rows:subgrid] ${
-        draft.active ? "border-gold ring-1 ring-gold" : "border-gold/20"
+        votedHere ? "border-gold ring-1 ring-gold" : "border-gold/20"
       }`}
     >
       {/* Zeile 1: Bild - object-contain statt object-cover, damit es
@@ -157,7 +163,7 @@ export default function FactionCard({
           ihrer eigenen Zelle, dadurch rücken Icon und Button so nah
           zusammen, wie es die Höhen beider Karten zulassen. */}
       <div className="mt-2 flex h-full flex-col justify-end px-6 pb-6">
-        {draft.active && (
+        {showActiveLabel && (
           <div className="flex flex-col items-center gap-2">
             <span className="text-sm font-medium text-emerald-400">{t.active}</span>
           </div>
@@ -166,7 +172,7 @@ export default function FactionCard({
         {canShowStatusRow && (
           <div
             className={`flex flex-col items-center gap-2 ${
-              draft.active ? "mt-4 border-t border-gold/15 pt-4" : ""
+              showActiveLabel ? "mt-4 border-t border-gold/15 pt-4" : ""
             }`}
           >
             {canVote && <VoteButton draftId={draft.id} voted={myVote === draft.id} />}
