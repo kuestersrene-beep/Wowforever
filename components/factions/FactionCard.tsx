@@ -127,9 +127,11 @@ export default function FactionCard({
           </div>
         )}
 
-        {!decided && (
+        {!decided && (myVote === draft.id || myVote === null || admin) && (
           <div className="flex flex-col items-center gap-2 border-t border-gold/15 pt-4">
-            <VoteButton draftId={draft.id} voted={myVote === draft.id} />
+            {(myVote === draft.id || myVote === null) && (
+              <VoteButton draftId={draft.id} voted={myVote === draft.id} />
+            )}
             {admin && (
               <div className="pt-2">
                 <ActivateFactionButton id={draft.id} />

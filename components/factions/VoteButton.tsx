@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { removeGuildDraftVote, voteGuildDraft } from "@/app/fraktionen/actions";
+import { voteGuildDraft } from "@/app/fraktionen/actions";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
 
 // Die eigentliche Stimmabgabe: jede angemeldete Person kann auf
@@ -11,8 +11,10 @@ import { useI18n } from "@/lib/i18n/LocaleProvider";
 // Fraktion - siehe RLS in supabase/schema.sql, sichtbar ist das nur im
 // Admin-Dashboard. Gleiche Optik wie das echte WoW-"Aufheben bindet
 // diesen Gegenstand"-Popup, verhindert vor allem einen versehentlichen
-// Tap auf Mobile. Getrennt von DecideFactionButton (admin-only), der
-// die tatsächliche, öffentliche Endauswahl trifft.
+// Tap auf Mobile. Die Stimme ist bewusst "beim Aufheben gebunden" - die
+// Person kann sie selbst nicht mehr ändern (nur ein Admin per Reset-
+// Button im Dashboard). Getrennt von ActivateFactionButton (admin-only),
+// das die tatsächliche, öffentliche Endauswahl trifft.
 export default function VoteButton({ draftId, voted }: { draftId: string; voted: boolean }) {
   const { dict } = useI18n();
   const t = dict.guildDrafts;
@@ -29,14 +31,9 @@ export default function VoteButton({ draftId, voted }: { draftId: string; voted:
 
   if (voted) {
     return (
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={() => run(() => removeGuildDraftVote())}
-        className="cursor-vote rounded-lg border border-emerald-600 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-900 disabled:opacity-50"
-      >
+      <span className="rounded-lg border border-emerald-600 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-400">
         {t.voted}
-      </button>
+      </span>
     );
   }
 

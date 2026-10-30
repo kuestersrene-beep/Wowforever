@@ -25,6 +25,9 @@ function revalidateFactions() {
 
 // ---------- Mitglieder: abstimmen (privat - siehe RLS in supabase/schema.sql) ----------
 
+// Eine Stimme pro Person, bewusst "beim Aufheben gebunden" - es gibt
+// absichtlich keine Möglichkeit für die Person selbst, die eigene
+// Stimme zu ändern oder zurückzuziehen (siehe RLS in supabase/schema.sql).
 export async function voteGuildDraft(draftId: string) {
   const supabase = await createClient();
   const {
@@ -35,10 +38,9 @@ export async function voteGuildDraft(draftId: string) {
     throw new Error("Nicht angemeldet.");
   }
 
-  // Eine Stimme pro Person - eine neue Wahl ersetzt die alte.
   const { error } = await supabase
     .from("guild_draft_votes")
-    .upsert({ user_id: user.id, draft_id: draftId });
+    .insert({ user_id: user.id, draft_id: draftId });
 
   if (error) {
     throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
@@ -47,23 +49,19 @@ export async function voteGuildDraft(draftId: string) {
   revalidatePath("/fraktionen");
 }
 
-export async function removeGuildDraftVote() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+// ---------- Admin: Stimme einer Person zurücksetzen (service_role, umgeht RLS) ----------
 
-  if (!user) {
-    throw new Error("Nicht angemeldet.");
-  }
+export async function adminResetGuildDraftVote(userId: string) {
+  await requireAdmin();
 
-  const { error } = await supabase.from("guild_draft_votes").delete().eq("user_id", user.id);
+  const adminSupabase = createAdminClient();
+  const { error } = await adminSupabase.from("guild_draft_votes").delete().eq("user_id", userId);
 
   if (error) {
-    throw new Error(`Löschen fehlgeschlagen: ${error.message}`);
+    throw new Error(`Zurücksetzen fehlgeschlagen: ${error.message}`);
   }
 
-  revalidatePath("/fraktionen");
+  revalidatePath("/admin/fraktionen");
 }
 
 function parseCoreFigures(raw: FormDataEntryValue | null): CoreFigure[] {

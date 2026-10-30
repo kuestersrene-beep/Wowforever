@@ -338,6 +338,8 @@ export const en: Dictionary = {
       votesTitle: "Votes (admin-only)",
       votesHint: "Who has clicked \"Loot\" so far - this overview is never shown publicly.",
       noVotes: "No votes yet.",
+      resetVote: "Reset",
+      resettingVote: "Resetting...",
       save: "Save",
       saving: "Saving...",
       cancel: "Cancel",

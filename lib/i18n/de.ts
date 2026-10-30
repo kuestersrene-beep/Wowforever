@@ -341,6 +341,8 @@ export const de: Dictionary = {
       votesHint:
         "Wer bisher auf \"Aufheben\" geklickt hat - diese Übersicht ist nirgendwo öffentlich sichtbar.",
       noVotes: "Noch keine Stimmen.",
+      resetVote: "Zurücksetzen",
+      resettingVote: "Setzt zurück...",
       save: "Speichern",
       saving: "Speichert...",
       cancel: "Abbrechen",

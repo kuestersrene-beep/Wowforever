@@ -5,6 +5,7 @@ import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import GuildDraftManager from "@/components/admin/GuildDraftManager";
+import ResetVoteButton from "@/components/admin/ResetVoteButton";
 import type { GuildDraft, GuildDraftVoteAdminRow } from "@/lib/types";
 
 export default async function AdminFraktionenPage() {
@@ -82,7 +83,10 @@ export default async function AdminFraktionenPage() {
                   </h3>
                   <ul className="mt-2 flex flex-col gap-1 text-sm text-slate-300">
                     {rows.map((r) => (
-                      <li key={r.user_id}>{r.first_name ?? r.display_name}</li>
+                      <li key={r.user_id} className="flex items-center justify-between gap-2">
+                        <span>{r.first_name ?? r.display_name}</span>
+                        <ResetVoteButton userId={r.user_id} />
+                      </li>
                     ))}
                   </ul>
                 </div>

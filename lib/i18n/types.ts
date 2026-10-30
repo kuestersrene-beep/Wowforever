@@ -341,6 +341,8 @@ export interface Dictionary {
       votesTitle: string;
       votesHint: string;
       noVotes: string;
+      resetVote: string;
+      resettingVote: string;
       save: string;
       saving: string;
       cancel: string;

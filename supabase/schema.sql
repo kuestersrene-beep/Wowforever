@@ -896,12 +896,14 @@ create trigger set_updated_at_guild_drafts
   execute function public.set_updated_at();
 
 -- ============================================================
--- Fraktions-Abstimmung: eine Stimme pro Person (änderbar), rein als
--- Entscheidungshilfe für Admins - bewusst NICHT öffentlich einsehbar
--- (anders als bei guild_name_votes). Jede Person sieht/ändert nur ihre
--- eigene Stimme (RLS select-Policy "nur eigene Zeile", keine "select
--- all" wie bei der Gildennamen-Abstimmung). Admins sehen alle Stimmen
--- im Admin-Dashboard über den service_role Key (umgeht RLS).
+-- Fraktions-Abstimmung: eine Stimme pro Person, bewusst "beim Aufheben
+-- gebunden" - einmal abgegeben, kann sie nur noch ein Admin zurücksetzen
+-- (über den service_role Key, umgeht RLS), nicht die Person selbst
+-- (keine update/delete-Policy). Rein als Entscheidungshilfe für Admins,
+-- bewusst NICHT öffentlich einsehbar (anders als bei guild_name_votes).
+-- Jede Person sieht nur ihre eigene Stimme (RLS select-Policy "nur
+-- eigene Zeile", keine "select all"). Admins sehen alle Stimmen im
+-- Admin-Dashboard über den service_role Key.
 -- ============================================================
 
 create table if not exists public.guild_draft_votes (
@@ -922,16 +924,10 @@ create policy "insert own guild draft vote"
   on public.guild_draft_votes for insert
   with check (auth.uid() = user_id);
 
+-- Bewusst KEINE update/delete-Policy für die Person selbst - die Stimme
+-- ist gebunden. Nur service_role (Admin-Reset) kann sie ändern/löschen.
 drop policy if exists "update own guild draft vote" on public.guild_draft_votes;
-create policy "update own guild draft vote"
-  on public.guild_draft_votes for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
 drop policy if exists "delete own guild draft vote" on public.guild_draft_votes;
-create policy "delete own guild draft vote"
-  on public.guild_draft_votes for delete
-  using (auth.uid() = user_id);
 
 drop trigger if exists set_updated_at_guild_draft_votes on public.guild_draft_votes;
 create trigger set_updated_at_guild_draft_votes
