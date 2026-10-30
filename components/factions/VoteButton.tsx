@@ -33,7 +33,7 @@ export default function VoteButton({ draftId, voted }: { draftId: string; voted:
         type="button"
         disabled={isPending}
         onClick={() => run(() => removeGuildDraftVote())}
-        className="rounded-lg border border-emerald-600 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-900 disabled:opacity-50"
+        className="cursor-vote rounded-lg border border-emerald-600 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-400 transition hover:bg-emerald-900 disabled:opacity-50"
       >
         {t.voted}
       </button>
@@ -46,7 +46,7 @@ export default function VoteButton({ draftId, voted }: { draftId: string; voted:
         type="button"
         disabled={isPending}
         onClick={() => setConfirming(true)}
-        className="rounded-lg border border-gold/60 px-4 py-2 text-sm font-medium text-gold-light transition hover:bg-gold/10 disabled:opacity-50"
+        className="cursor-vote rounded-lg border border-gold/60 px-4 py-2 text-sm font-medium text-gold-light transition hover:bg-gold/10 disabled:opacity-50"
       >
         {isPending ? t.activating : t.activate}
       </button>
@@ -70,7 +70,7 @@ export default function VoteButton({ draftId, voted }: { draftId: string; voted:
                     setConfirming(false);
                     run(() => voteGuildDraft(draftId));
                   }}
-                  className="rounded border border-gold/60 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold-light transition hover:bg-gold/20"
+                  className="cursor-vote rounded border border-gold/60 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold-light transition hover:bg-gold/20"
                 >
                   {t.activate}
                 </button>

@@ -8,6 +8,18 @@ body {
   background-attachment: fixed;
 }
 
+/* Eigene Cursor nur auf Desktop (Maus-Geräte) - auf Touch-Geräten ohne
+   Effekt, daher per Media Query eingeschränkt statt zu raten. */
+@media (pointer: fine) and (hover: hover) {
+  body {
+    cursor: url("/cursors/gauntlet.cur"), auto;
+  }
+
+  .cursor-vote {
+    cursor: url("/cursors/bag.cur"), pointer;
+  }
+}
+
 @layer components {
   /* Wiederkehrender "Panel"-Look für Karten/Boxen, angelehnt an
      WoW-Fensterrahmen: dunkles Panel mit dezentem Gold-Rand. */
