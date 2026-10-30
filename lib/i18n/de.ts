@@ -290,6 +290,7 @@ export const de: Dictionary = {
     equipConfirmText:
       "Durch das Aufheben wird dieser Gegenstand seelengebunden. Trotzdem aufheben?",
     equipConfirmCancel: "Abbrechen",
+    voted: "Aufgehoben ✓",
     coreFiguresLabel: "Kernfiguren",
     tabardLabel: "Wappenrock",
     heraldryTitle: "Heraldik",
@@ -332,6 +333,14 @@ export const de: Dictionary = {
       tooltipMetaLabel: "Meta-Zeilen, eine pro Zeile (z. B. \"Beim Aufheben gebunden\" / \"Wappenrock\")",
       tooltipEffectsLabel: "Effekt-Zeilen, eine pro Zeile (z. B. \"Anlegen: ...\")",
       tooltipQuoteLabel: "Flavor-Zitat (ohne Anführungszeichen)",
+      decide: "Als Ergebnis festlegen",
+      deciding: "Wird festgelegt...",
+      decideConfirmText:
+        "Soll diese Fraktion jetzt endgültig für alle als Ergebnis festgelegt werden? Das ist für alle sichtbar und wird auch im Discord angekündigt.",
+      votesTitle: "Stimmen (nur für Admins sichtbar)",
+      votesHint:
+        "Wer bisher auf \"Aufheben\" geklickt hat - diese Übersicht ist nirgendwo öffentlich sichtbar.",
+      noVotes: "Noch keine Stimmen.",
       save: "Speichern",
       saving: "Speichert...",
       cancel: "Abbrechen",

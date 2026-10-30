@@ -6,15 +6,14 @@ import { useRouter } from "next/navigation";
 import { activateGuildDraft } from "@/app/fraktionen/actions";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
 
-// Button + Bestätigungsdialog im Stil des echten WoW-"Aufheben bindet
-// diesen Gegenstand"-Popups (StaticPopup "LOOT_BIND" - der Wappenrock
-// ist laut Tooltip "Beim Aufheben gebunden", nicht erst beim Anlegen:
-// schlichtes, zentriertes Panel mit Text + zwei Buttons, kein Titel).
-// Nachgebaute Optik, kein Blizzard-Asset - verhindert vor allem, dass
-// auf Mobile ein versehentlicher Tap gleich aktiviert.
+// Admin-only: legt diese Fraktion endgültig als Ergebnis fest
+// (öffentlich sichtbar, triggert die Discord-Ankündigung). Getrennt von
+// VoteButton, über das jede angemeldete Person ihre private Stimme
+// abgibt - diese Stimmen entscheiden nichts automatisch, ein:e Admin
+// trifft die tatsächliche Wahl bewusst hier.
 export default function ActivateFactionButton({ id }: { id: string }) {
   const { dict } = useI18n();
-  const t = dict.guildDrafts;
+  const t = dict.guildDrafts.admin;
   const [confirming, setConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -35,7 +34,7 @@ export default function ActivateFactionButton({ id }: { id: string }) {
         onClick={() => setConfirming(true)}
         className="rounded-lg border border-gold/60 px-4 py-2 text-sm font-medium text-gold-light transition hover:bg-gold/10 disabled:opacity-50"
       >
-        {isPending ? t.activating : t.activate}
+        {isPending ? t.deciding : t.decide}
       </button>
 
       {confirming &&
@@ -49,21 +48,21 @@ export default function ActivateFactionButton({ id }: { id: string }) {
               className="w-[min(90vw,340px)] rounded border-2 border-[#c8aa6e] bg-black p-5 text-center shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="text-sm leading-relaxed text-white">{t.equipConfirmText}</p>
+              <p className="text-sm leading-relaxed text-white">{t.decideConfirmText}</p>
               <div className="mt-4 flex justify-center gap-3">
                 <button
                   type="button"
                   onClick={confirm}
                   className="rounded border border-gold/60 bg-gold/10 px-4 py-1.5 text-sm font-medium text-gold-light transition hover:bg-gold/20"
                 >
-                  {t.activate}
+                  {t.decide}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirming(false)}
                   className="rounded border border-slate-600 px-4 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
                 >
-                  {t.equipConfirmCancel}
+                  {dict.guildDrafts.equipConfirmCancel}
                 </button>
               </div>
             </div>

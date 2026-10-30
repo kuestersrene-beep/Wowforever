@@ -36,6 +36,14 @@ export default async function FraktionenPage() {
     .returns<GuildDraft[]>();
 
   const drafts = data ?? [];
+  const decided = drafts.some((d) => d.active);
+
+  const { data: myVoteRow } = await supabase
+    .from("guild_draft_votes")
+    .select("draft_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const myVote = myVoteRow?.draft_id ?? null;
 
   return (
     <main className="flex flex-col gap-6">
@@ -58,7 +66,14 @@ export default async function FraktionenPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2">
           {drafts.map((d) => (
-            <FactionCard key={d.id} draft={d} dict={dict} admin={admin} />
+            <FactionCard
+              key={d.id}
+              draft={d}
+              dict={dict}
+              admin={admin}
+              myVote={myVote}
+              decided={decided}
+            />
           ))}
         </div>
       )}

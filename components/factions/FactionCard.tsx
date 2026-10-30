@@ -5,6 +5,7 @@ import type { Dictionary } from "@/lib/i18n/types";
 import type { GuildDraft } from "@/lib/types";
 import ActivateFactionButton from "./ActivateFactionButton";
 import TabardIcon from "./TabardIcon";
+import VoteButton from "./VoteButton";
 
 // lore_html/rank_structure_html kommen bereits sanitisiert aus der DB
 // (sanitizeRichHtml beim Speichern in app/fraktionen/actions.ts) und
@@ -21,10 +22,14 @@ export default function FactionCard({
   draft,
   dict,
   admin,
+  myVote,
+  decided,
 }: {
   draft: GuildDraft;
   dict: Dictionary;
   admin: boolean;
+  myVote: string | null;
+  decided: boolean;
 }) {
   const t = dict.guildDrafts;
   const [lightbox, setLightbox] = useState<{ url: string; alt: string } | null>(null);
@@ -116,10 +121,20 @@ export default function FactionCard({
           </div>
         )}
 
-        {(draft.active || (!draft.active && admin)) && (
+        {draft.active && (
           <div className="flex flex-col items-center gap-2 pt-1">
-            {draft.active && <span className="text-sm font-medium text-emerald-400">{t.active}</span>}
-            {!draft.active && admin && <ActivateFactionButton id={draft.id} />}
+            <span className="text-sm font-medium text-emerald-400">{t.active}</span>
+          </div>
+        )}
+
+        {!decided && (
+          <div className="flex flex-col items-center gap-2 border-t border-gold/15 pt-4">
+            <VoteButton draftId={draft.id} voted={myVote === draft.id} />
+            {admin && (
+              <div className="pt-2">
+                <ActivateFactionButton id={draft.id} />
+              </div>
+            )}
           </div>
         )}
       </div>

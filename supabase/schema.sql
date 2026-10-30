@@ -895,6 +895,50 @@ create trigger set_updated_at_guild_drafts
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Fraktions-Abstimmung: eine Stimme pro Person (änderbar), rein als
+-- Entscheidungshilfe für Admins - bewusst NICHT öffentlich einsehbar
+-- (anders als bei guild_name_votes). Jede Person sieht/ändert nur ihre
+-- eigene Stimme (RLS select-Policy "nur eigene Zeile", keine "select
+-- all" wie bei der Gildennamen-Abstimmung). Admins sehen alle Stimmen
+-- im Admin-Dashboard über den service_role Key (umgeht RLS).
+-- ============================================================
+
+create table if not exists public.guild_draft_votes (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  draft_id uuid not null references public.guild_drafts (id) on delete cascade,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.guild_draft_votes enable row level security;
+
+drop policy if exists "select own guild draft vote" on public.guild_draft_votes;
+create policy "select own guild draft vote"
+  on public.guild_draft_votes for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "insert own guild draft vote" on public.guild_draft_votes;
+create policy "insert own guild draft vote"
+  on public.guild_draft_votes for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "update own guild draft vote" on public.guild_draft_votes;
+create policy "update own guild draft vote"
+  on public.guild_draft_votes for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "delete own guild draft vote" on public.guild_draft_votes;
+create policy "delete own guild draft vote"
+  on public.guild_draft_votes for delete
+  using (auth.uid() = user_id);
+
+drop trigger if exists set_updated_at_guild_draft_votes on public.guild_draft_votes;
+create trigger set_updated_at_guild_draft_votes
+  before update on public.guild_draft_votes
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

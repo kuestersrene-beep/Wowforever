@@ -225,3 +225,13 @@ export interface GuildDraft {
   created_at: string;
   updated_at: string;
 }
+
+// Eine Stimme in der (nicht-öffentlichen) Fraktions-Abstimmung. Nur im
+// Admin-Dashboard genutzt (service_role, umgeht RLS) - siehe
+// supabase/schema.sql, jede Person sieht sonst nur ihre eigene Zeile.
+export interface GuildDraftVoteAdminRow {
+  user_id: string;
+  draft_id: string;
+  display_name: string;
+  first_name: string | null;
+}

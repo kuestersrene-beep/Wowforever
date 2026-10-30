@@ -293,6 +293,7 @@ export interface Dictionary {
     activating: string;
     equipConfirmText: string;
     equipConfirmCancel: string;
+    voted: string;
     coreFiguresLabel: string;
     tabardLabel: string;
     heraldryTitle: string;
@@ -334,6 +335,12 @@ export interface Dictionary {
       tooltipMetaLabel: string;
       tooltipEffectsLabel: string;
       tooltipQuoteLabel: string;
+      decide: string;
+      deciding: string;
+      decideConfirmText: string;
+      votesTitle: string;
+      votesHint: string;
+      noVotes: string;
       save: string;
       saving: string;
       cancel: string;
