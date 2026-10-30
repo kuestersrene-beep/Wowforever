@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Dictionary } from "@/lib/i18n/types";
 import type { GuildDraft } from "@/lib/types";
 import ActivateFactionButton from "./ActivateFactionButton";
-import WowTooltipBox from "./WowTooltipBox";
+import TabardIcon from "./TabardIcon";
 
 type Tab = "lore" | "wappen" | "rang";
 
@@ -47,12 +47,7 @@ export default function FactionCard({
   ].filter((g): g is { url: string; label: string } => !!g);
 
   const hasLore = !!draft.lore_html;
-  const hasWappen =
-    gallery.length > 0 ||
-    !!draft.tooltip_title ||
-    !!draft.tooltip_meta ||
-    !!draft.tooltip_effects ||
-    !!draft.tooltip_quote;
+  const hasWappen = gallery.length > 0;
   const hasRang = !!draft.rank_structure_html;
   const hasExpandContent = hasLore || hasWappen || hasRang;
 
@@ -106,22 +101,37 @@ export default function FactionCard({
           </dl>
         )}
 
-        {draft.core_figures.length > 0 && (
-          <div>
-            <p className="mb-1 text-xs text-slate-500">{t.coreFiguresLabel}</p>
-            <div className="flex gap-2">
-              {draft.core_figures.map((f, i) => (
-                <span
-                  key={i}
-                  title={f.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/30 bg-ink/60 text-base"
-                >
-                  {f.icon}
-                </span>
-              ))}
+        <div className="flex items-end justify-between gap-3">
+          {draft.core_figures.length > 0 && (
+            <div>
+              <p className="mb-1 text-xs text-slate-500">{t.coreFiguresLabel}</p>
+              <div className="flex gap-2">
+                {draft.core_figures.map((f, i) => (
+                  <span
+                    key={i}
+                    title={f.label}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/30 bg-ink/60 text-base"
+                  >
+                    {f.icon}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          {draft.tabard_url && (
+            <div className="ml-auto">
+              <p className="mb-1 text-right text-xs text-slate-500">{t.tabardLabel}</p>
+              <TabardIcon
+                tabardUrl={draft.tabard_url}
+                alt={draft.name}
+                title={draft.tooltip_title}
+                meta={draft.tooltip_meta}
+                effects={draft.tooltip_effects}
+                quote={draft.tooltip_quote}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-col items-center gap-2 pt-1">
           {draft.active && <span className="text-sm font-medium text-emerald-400">{t.active}</span>}
@@ -153,7 +163,7 @@ export default function FactionCard({
                 )}
                 {hasWappen && (
                   <TabButton active={activeTab === "wappen"} onClick={() => setTab("wappen")}>
-                    {t.tooltipHint}
+                    {t.tabardLabel}
                   </TabButton>
                 )}
                 {hasRang && (
@@ -171,30 +181,18 @@ export default function FactionCard({
               )}
 
               {activeTab === "wappen" && hasWappen && (
-                <div className="flex flex-col gap-3">
-                  {gallery.length > 0 && (
-                    <div className="flex gap-2">
-                      {gallery.map((g) => (
-                        <button
-                          key={g.url}
-                          type="button"
-                          onClick={() => setLightbox({ url: g.url, alt: g.label })}
-                          className="h-14 w-14 shrink-0 cursor-zoom-in overflow-hidden rounded-md border border-gold/30"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={g.url} alt={g.label} className="h-full w-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {(draft.tooltip_title || draft.tooltip_meta || draft.tooltip_effects || draft.tooltip_quote) && (
-                    <WowTooltipBox
-                      title={draft.tooltip_title}
-                      meta={draft.tooltip_meta}
-                      effects={draft.tooltip_effects}
-                      quote={draft.tooltip_quote}
-                    />
-                  )}
+                <div className="flex gap-2">
+                  {gallery.map((g) => (
+                    <button
+                      key={g.url}
+                      type="button"
+                      onClick={() => setLightbox({ url: g.url, alt: g.label })}
+                      className="h-14 w-14 shrink-0 cursor-zoom-in overflow-hidden rounded-md border border-gold/30"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={g.url} alt={g.label} className="h-full w-full object-cover" />
+                    </button>
+                  ))}
                 </div>
               )}
 

@@ -293,13 +293,13 @@ export interface Dictionary {
     activating: string;
     expand: string;
     coreFiguresLabel: string;
+    tabardLabel: string;
     sitzLabel: string;
     anfuehrerLabel: string;
     feindeLabel: string;
     primaerwertLabel: string;
     loreTitle: string;
     rankStructureTitle: string;
-    tooltipHint: string;
     admin: {
       manageLink: string;
       manageHint: string;
