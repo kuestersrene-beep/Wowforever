@@ -38,6 +38,10 @@ SUPABASE_SERVICE_ROLE_KEY=dein-service-role-key
 SITE_URL=https://deine-id.duckdns.org
 # Optional: Bis zu diesem Tag bekommen neue Mitglieder die Willkommens-DM (Standard 2026-11-05)
 RELEASE_DATUM=2026-11-05
+# Optional: Zielkanal für die Fraktions-Entscheidung (Kanal-ID, Rechtsklick auf den Kanal ->
+# "ID kopieren" - braucht den Entwicklermodus unter Discord-Einstellungen -> Erweitert).
+# Ohne diese Angabe wird standardmäßig in 🌐│gilden-app gepostet.
+FRAKTION_KANAL_ID=1563978707381653504
 EOF
 docker compose up -d --build discord-bot
 docker compose logs -f discord-bot
@@ -90,9 +94,10 @@ Die Rolle **Class-Leader** (unter Raidleiter) sieht zusätzlich `🎓│class-le
 ## Fraktions-Entscheidung (`fraktion.py`)
 
 Läuft alle 60 Sekunden (teilt sich die Datenbank-Verbindung mit `raid.py`, braucht also
-dieselben `SUPABASE_*`-Werte). Postet in `🌐│gilden-app`, welche Fraktion auf der Website
-(Startseite → Fraktionen) zur Wahl steht, und **bearbeitet** diese eine Nachricht bei jeder
-Änderung, statt neue zu posten:
+dieselben `SUPABASE_*`-Werte). Postet, welche Fraktion auf der Website (Startseite →
+Fraktionen) zur Wahl steht, in den Kanal aus `FRAKTION_KANAL_ID` (z. B. ein öffentlicher
+Ankündigungskanal) – ohne diese Angabe standardmäßig in `🌐│gilden-app`. Die Nachricht wird bei
+jeder Änderung **bearbeitet**, nicht neu gepostet:
 
 - Solange noch niemand auf „Aufheben" geklickt hat: beide Entwürfe mit Name, Tagline und
   Kurzbeschreibung.

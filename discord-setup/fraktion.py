@@ -1,13 +1,14 @@
 """Fraktions-Entscheidung im Discord – gemeinsam mit der Gilden-Website (Supabase).
 
-Postet in 🌐│gilden-app, welche Fraktion (siehe Website → Fraktionen) gerade zur Wahl steht
-bzw. aktiviert wurde, und bearbeitet diese eine Nachricht bei jeder Änderung (Admin klickt
-auf der Website "Aufheben" -> Fraktion wird aktiv -> Nachricht aktualisiert sich spätestens
-nach INTERVALL_SEKUNDEN).
+Postet, welche Fraktion (siehe Website → Fraktionen) gerade zur Wahl steht bzw. aktiviert
+wurde, und bearbeitet diese eine Nachricht bei jeder Änderung (Admin klickt auf der Website
+"Aufheben" -> Fraktion wird aktiv -> Nachricht aktualisiert sich spätestens nach
+INTERVALL_SEKUNDEN). Zielkanal: FRAKTION_KANAL_ID aus .env, falls gesetzt (z. B. ein
+öffentlicher Ankündigungskanal), sonst 🌐│gilden-app als Standard.
 
 Nutzt dieselbe Datenbank-Verbindung wie raid.py (SUPABASE_* in .env), daher muss raid.einrichten()
 vor fraktion.einrichten() und raid.starten() vor fraktion.starten() laufen (siehe bot.py).
-Optional: SITE_URL (Link zur Website).
+Optional: SITE_URL (Link zur Website), FRAKTION_KANAL_ID (Ziel-Kanal-ID).
 """
 import hashlib
 import json
@@ -27,10 +28,16 @@ FARBE_AKTIV = 0x2ECC71
 log = logging.getLogger("gildenbot.fraktion")
 bot: discord.Client | None = None
 SITE_URL = ""
+KANAL_ID = ""
 letzte_signatur: str | None = None
 
 
 def kanal():
+    if KANAL_ID:
+        gefunden = bot.get_channel(int(KANAL_ID))
+        if gefunden:
+            return gefunden
+        log.warning("FRAKTION_KANAL_ID %s nicht gefunden – weiche auf %s aus", KANAL_ID, GILDEN_APP_KANAL)
     return discord.utils.get(bot.guild.text_channels, name=GILDEN_APP_KANAL) if bot.guild else None
 
 
@@ -131,9 +138,10 @@ async def vor_dem_abgleich():
 
 def einrichten(client: discord.Client):
     """In setup_hook aufrufen."""
-    global bot, SITE_URL
+    global bot, SITE_URL, KANAL_ID
     bot = client
     SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
+    KANAL_ID = os.environ.get("FRAKTION_KANAL_ID", "").strip()
 
 
 async def starten(client: discord.Client):
