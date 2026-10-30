@@ -15,8 +15,26 @@ body {
     cursor: url("/cursors/gauntlet.cur"), auto;
   }
 
+  /* Normaler "klickbar"-Zeiger auf Buttons/Links allgemein. */
+  button:not(:disabled),
+  a,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  select,
+  summary {
+    cursor: url("/cursors/gear.cur"), pointer;
+  }
+
+  /* Spezifischere Cursor gewinnen automatisch durch die höhere
+     CSS-Spezifität der Klassen-Selektoren gegenüber den Element-
+     Selektoren oben - unabhängig von der Reihenfolge im Stylesheet. */
   .cursor-vote {
     cursor: url("/cursors/bag.cur"), pointer;
+  }
+
+  .cursor-zoom-in {
+    cursor: url("/cursors/inspect.cur"), zoom-in;
   }
 }
 
