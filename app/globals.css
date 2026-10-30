@@ -82,6 +82,14 @@ body {
     @apply m-0;
   }
 
+  /* Für die Rangstruktur auf /fraktionen: die Liste selbst als Block
+     zentrieren (statt sie über die volle Breite links auszurichten),
+     Nummern/Text innerhalb bleiben linksbündig zueinander. */
+  .rich-text-centered-list ol,
+  .rich-text-centered-list ul {
+    @apply mx-auto w-fit;
+  }
+
   /* Sternenhimmel-Hintergrund für den Countdown-Banner: eigenes,
      rein CSS-basiertes Muster (kein Bild-Asset). */
   .starfield {

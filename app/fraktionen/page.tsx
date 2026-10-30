@@ -64,7 +64,7 @@ export default async function FraktionenPage() {
           {dict.guildDrafts.empty}
         </p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 sm:[grid-template-rows:repeat(7,auto)]">
+        <div className="grid gap-6 sm:grid-cols-2 sm:[grid-template-rows:repeat(5,auto)]">
           {drafts.map((d) => (
             <FactionCard
               key={d.id}

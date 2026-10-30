@@ -19,8 +19,8 @@ import VoteButton from "./VoteButton";
 // genug Breite seit dem breiteren Layout). Bilder öffnen per Klick
 // eine Lightbox in voller Auflösung.
 //
-// Die Karte ist in 7 feste Zeilen aufgeteilt (Bild/Titel/Beschreibung/
-// Infos/Kernfiguren/Status/unterer Block) und nutzt zusammen mit dem
+// Die Karte ist in 5 feste Zeilen aufgeteilt (Bild/Titel/Details/
+// Status/unterer Block) und nutzt zusammen mit dem
 // "sm:[grid-template-rows:...]"-Grid in app/fraktionen/page.tsx CSS
 // Subgrid: jede Zeile bekommt über beide Karten hinweg automatisch die
 // gleiche Höhe, damit Trennlinien und Abstände unabhängig von
@@ -59,7 +59,7 @@ export default function FactionCard({
 
   return (
     <div
-      className={`panel grid overflow-hidden sm:row-span-7 sm:[grid-template-rows:subgrid] ${
+      className={`panel grid overflow-hidden sm:row-span-5 sm:[grid-template-rows:subgrid] ${
         draft.active ? "border-gold ring-1 ring-gold" : "border-gold/20"
       }`}
     >
@@ -91,15 +91,16 @@ export default function FactionCard({
         {draft.tagline && <p className="mt-1 text-base text-gold-light">{draft.tagline}</p>}
       </div>
 
-      {/* Zeile 3: Kurzbeschreibung */}
-      <div className="mt-4 px-6">
+      {/* Zeile 3: Beschreibung, Infos, Kernfiguren + Wappenrock-Icon -
+          bewusst EIN Block (statt mehrerer einzelner Zeilen), damit nicht
+          mehrere unabhängig gestreckte Subgrid-Zeilen unnötige Lücken
+          addieren, wenn der Inhalt zwischen beiden Karten leicht
+          unterschiedlich hoch ist. */}
+      <div className="mt-4 flex flex-col items-center gap-4 px-6">
         {draft.summary && (
           <p className="text-center text-base text-slate-300">{draft.summary}</p>
         )}
-      </div>
 
-      {/* Zeile 4: Sitz/Anführer:in/Feinde/Primärwert */}
-      <div className="mt-4 px-6">
         {infoLines.length > 0 && (
           <dl className="mx-auto flex w-fit flex-col gap-1 text-sm text-slate-400">
             {infoLines.map((l) => (
@@ -110,10 +111,7 @@ export default function FactionCard({
             ))}
           </dl>
         )}
-      </div>
 
-      {/* Zeile 5: Kernfiguren + Wappenrock-Icon */}
-      <div className="mt-4 px-6">
         {(draft.core_figures.length > 0 || tabardIconUrl) && (
           <div className="flex flex-col items-center gap-4">
             {draft.core_figures.length > 0 && (
@@ -151,7 +149,7 @@ export default function FactionCard({
         )}
       </div>
 
-      {/* Zeile 6: Status (Aktiv), Abstimmen, Admin-Entscheidung - an den
+      {/* Zeile 4: Status (Aktiv), Abstimmen, Admin-Entscheidung - an den
           unteren Rand der Zeile angepinnt (justify-end), damit die
           Buttons bei beiden Karten auf gleicher Höhe stehen, egal ob
           "Aktiv" bei der einen Karte zusätzliche Höhe braucht. */}
@@ -178,10 +176,10 @@ export default function FactionCard({
         )}
       </div>
 
-      {/* Zeile 7: Lore, Heraldik-Stylesheet, Rangstruktur */}
+      {/* Zeile 5: Lore, Heraldik-Stylesheet, Rangstruktur */}
       <div className="border-t border-gold/15 p-6 pt-5">
         {(draft.lore_html || draft.stylesheet_url || draft.rank_structure_html) && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             {draft.lore_html && (
               <div>
                 <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
@@ -220,7 +218,7 @@ export default function FactionCard({
                   {t.rankStructureTitle}
                 </h4>
                 <div
-                  className="rich-text text-base leading-relaxed text-parchment/90"
+                  className="rich-text rich-text-centered-list text-base leading-relaxed text-parchment/90"
                   dangerouslySetInnerHTML={{ __html: draft.rank_structure_html }}
                 />
               </div>
