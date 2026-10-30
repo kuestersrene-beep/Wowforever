@@ -14,6 +14,8 @@ Zwei Teile:
   - Protokoll (`modlog.py`) in `🧾│mod-log`, siehe unten.
   - Rollen-Sync mit der Website (`rollensync.py`), siehe unten.
   - Willkommens-Nachricht per DM bis zum Release (`willkommen.py`), siehe unten.
+  - Hinweis-Liste im Mod-Log, wer die Umfrage ausgefüllt hat, aber noch nicht im Server ist
+    (`einladung.py`), siehe unten.
 
 ## Voraussetzungen im Discord Developer Portal
 
@@ -106,6 +108,17 @@ jeder Änderung **bearbeitet**, nicht neu gepostet:
 
 Welcher Kanal/welche Nachricht das ist, steht in `site_settings` (`faction_discord_channel_id`/
 `faction_discord_message_id`), genau wie bei den Raidterminen.
+
+## Noch nicht im Discord (`einladung.py`)
+
+Läuft alle 5 Minuten (teilt sich die Datenbank-Verbindung mit `raid.py`). Der Bot kann
+niemandem eine Direktnachricht schicken, mit dem er keinen gemeinsamen Server teilt – das
+trifft auf genau die Leute zu, die die Umfrage auf der Website ausgefüllt haben, aber noch
+nicht dem Discord-Server beigetreten sind. Daher postet der Bot stattdessen in `🧾│mod-log`
+eine Liste dieser Personen (Name, Discord-Erwähnung, ID), die bei jeder Änderung bearbeitet
+statt neu gepostet wird – Offiziere, die die Person kennen, können sie dann persönlich
+einladen (z. B. per privater Nachricht außerhalb Discords). Wo diese Nachricht steht, steht in
+`site_settings` (`invite_discord_channel_id`/`invite_discord_message_id`).
 
 ## Protokoll (`modlog.py`)
 
