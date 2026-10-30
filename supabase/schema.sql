@@ -558,6 +558,13 @@ alter table public.site_settings
   add constraint site_settings_logo_scale_check
   check (logo_scale between 100 and 400);
 
+-- Wo die Fraktions-Nachricht im Discord steht (discord-setup/fraktion.py
+-- bearbeitet dieselbe Nachricht bei jeder Änderung, statt neue zu posten).
+alter table public.site_settings
+  add column if not exists faction_discord_channel_id text;
+alter table public.site_settings
+  add column if not exists faction_discord_message_id text;
+
 insert into public.site_settings (id) values (1) on conflict (id) do nothing;
 
 alter table public.site_settings enable row level security;

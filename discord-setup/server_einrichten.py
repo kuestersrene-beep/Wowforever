@@ -125,7 +125,7 @@ STRUKTUR = [
     ]},
     {"name": "⚔️ GILDE", "sicht": "mitglied", "kanaele": [
         {"name": "📌│gilden-infos", "thema": "Feste Infos: Raidzeiten, Bank, Ansprechpartner.", "schreiben": "offizier"},
-        {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen.", "schreiben": "offizier"},
+        {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen, Fraktionsentscheidung.", "schreiben": "offizier"},
         {"name": "📅│raid-ankündigungen", "thema": "Wichtige Infos der Raidleitung.", "schreiben": "raid"},
         {"name": "🗓️│raid-planung", "thema": "Raidtermine mit Anmeldung per Button und Absprachen rund um Raids."},
         {"name": "🤝│gruppensuche", "thema": "Mitspieler für Dungeons, Quests und mehr finden."},

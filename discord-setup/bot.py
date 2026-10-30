@@ -4,6 +4,7 @@
 - Bewerbungen als Tickets: Button -> Formular -> privater Kanal für Bewerber und Offiziere,
   beim Schließen landet ein Protokoll in bewerbungen-intern.
 - Raid-Anmeldung gemeinsam mit der Gilden-Website (siehe raid.py).
+- Fraktions-Entscheidung von der Website live in #gilden-app (siehe fraktion.py).
 - Protokoll aller Änderungen im Kanal mod-log (siehe modlog.py).
 - Klassen-/Spielrollen von der Website setzen, Ränge an die Website melden (siehe rollensync.py).
 - Willkommens-Nachricht per DM an neue Mitglieder bis zum Release (siehe willkommen.py).
@@ -25,6 +26,7 @@ import aiohttp
 import discord
 from discord.ext import tasks
 
+import fraktion
 import modlog
 import raid
 import rollensync
@@ -81,6 +83,7 @@ class GildenBot(discord.Client):
         self.add_view(StartAnsicht())
         self.add_view(TicketAnsicht())
         raid.einrichten(self)
+        fraktion.einrichten(self)
         modlog.einrichten(self)
         willkommen.einrichten(self)
 
@@ -95,6 +98,7 @@ class GildenBot(discord.Client):
         if not blueposts_pruefen.is_running():
             blueposts_pruefen.start()
         await raid.starten(self)
+        await fraktion.starten(self)
         await rollensync.starten(self)
         await willkommen.starten(self)
 

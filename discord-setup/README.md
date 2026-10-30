@@ -87,6 +87,21 @@ sieht die Kategorie gar nicht. Ausnahme: Rollen mit Administratorrecht (Gildenme
 Die Rolle **Class-Leader** (unter Raidleiter) sieht zusätzlich `🎓│class-leader` im Bereich
 🛡️ OFFIZIERE – die übrigen Offizierskanäle bleiben für sie unsichtbar.
 
+## Fraktions-Entscheidung (`fraktion.py`)
+
+Läuft alle 60 Sekunden (teilt sich die Datenbank-Verbindung mit `raid.py`, braucht also
+dieselben `SUPABASE_*`-Werte). Postet in `🌐│gilden-app`, welche Fraktion auf der Website
+(Startseite → Fraktionen) zur Wahl steht, und **bearbeitet** diese eine Nachricht bei jeder
+Änderung, statt neue zu posten:
+
+- Solange noch niemand auf „Aufheben" geklickt hat: beide Entwürfe mit Name, Tagline und
+  Kurzbeschreibung.
+- Sobald ein Admin eine Fraktion aktiviert: 🏆-Embed mit Name, Tagline, Kurzbeschreibung und
+  Wappen als Vorschaubild, verlinkt auf die Website.
+
+Welcher Kanal/welche Nachricht das ist, steht in `site_settings` (`faction_discord_channel_id`/
+`faction_discord_message_id`), genau wie bei den Raidterminen.
+
 ## Protokoll (`modlog.py`)
 
 Der Bot schreibt in `🧾│mod-log`:
