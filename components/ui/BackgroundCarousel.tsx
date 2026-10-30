@@ -13,6 +13,11 @@ const BACKGROUNDS = [
   "/images/backgrounds/bg-2.jpg",
   "/images/backgrounds/bg-3.jpg",
   "/images/backgrounds/bg-4.jpg",
+  "/images/backgrounds/bg-5.jpg",
+  "/images/backgrounds/bg-6.jpg",
+  "/images/backgrounds/bg-7.jpg",
+  "/images/backgrounds/bg-8.jpg",
+  "/images/backgrounds/bg-9.jpg",
 ];
 
 export default function BackgroundCarousel() {
