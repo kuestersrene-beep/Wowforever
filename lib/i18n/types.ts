@@ -291,6 +291,8 @@ export interface Dictionary {
     active: string;
     activate: string;
     activating: string;
+    equipConfirmText: string;
+    equipConfirmCancel: string;
     coreFiguresLabel: string;
     tabardLabel: string;
     heraldryTitle: string;
