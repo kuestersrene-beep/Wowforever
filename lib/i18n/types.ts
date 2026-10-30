@@ -29,6 +29,7 @@ export interface Dictionary {
     toCharacters: string;
     toEvents: string;
     toGuildName: string;
+    toFactions: string;
     pendingTemplate: string; // Platzhalter: {n}
     loggedInAs: string;
     loginPrompt: string;
@@ -281,6 +282,60 @@ export interface Dictionary {
       rejectedTitle: string;
       hiddenHint: string;
       hiddenBadge: string;
+    };
+  };
+  guildDrafts: {
+    title: string;
+    hint: string;
+    empty: string;
+    active: string;
+    activate: string;
+    activating: string;
+    expand: string;
+    coreFiguresLabel: string;
+    sitzLabel: string;
+    anfuehrerLabel: string;
+    feindeLabel: string;
+    primaerwertLabel: string;
+    loreTitle: string;
+    rankStructureTitle: string;
+    tooltipHint: string;
+    admin: {
+      manageLink: string;
+      manageHint: string;
+      listTitle: string;
+      addTitle: string;
+      editTitle: string;
+      slugLabel: string;
+      slugHint: string;
+      nameLabel: string;
+      taglineLabel: string;
+      summaryLabel: string;
+      sitzLabel: string;
+      anfuehrerLabel: string;
+      feindeLabel: string;
+      primaerwertLabel: string;
+      imageUrlLabel: string;
+      crestUrlLabel: string;
+      tabardUrlLabel: string;
+      bannerUrlLabel: string;
+      coreFiguresLabel: string;
+      coreFiguresHint: string;
+      coreFigureIconPlaceholder: string;
+      coreFigureLabelPlaceholder: string;
+      addCoreFigure: string;
+      loreLabel: string;
+      rankStructureLabel: string;
+      tooltipTitleLabel: string;
+      tooltipTextLabel: string;
+      save: string;
+      saving: string;
+      cancel: string;
+      edit: string;
+      delete: string;
+      deleteConfirm: string;
+      activate: string;
+      activating: string;
     };
   };
   admin: {

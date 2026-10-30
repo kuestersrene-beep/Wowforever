@@ -188,3 +188,36 @@ export interface QuickPollResult {
   // Antwort der eingeloggten Person, null = noch nicht abgestimmt.
   myVote: string | null;
 }
+
+export interface CoreFigure {
+  icon: string;
+  label: string;
+}
+
+// Ein Gildenentwurf ("/fraktionen") - konkurrierendes Lore-/Fraktions-
+// Konzept. Nur Admins legen an/ändern/aktivieren (siehe
+// app/fraktionen/actions.ts und supabase/schema.sql).
+export interface GuildDraft {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  summary: string | null;
+  lore_html: string | null;
+  rank_structure_html: string | null;
+  tooltip_title: string | null;
+  tooltip_html: string | null;
+  image_url: string | null;
+  crest_url: string | null;
+  tabard_url: string | null;
+  banner_url: string | null;
+  core_figures: CoreFigure[];
+  sitz: string | null;
+  anfuehrer: string | null;
+  feinde: string | null;
+  primaerwert: string | null;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}

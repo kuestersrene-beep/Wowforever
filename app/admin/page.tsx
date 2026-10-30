@@ -96,6 +96,19 @@ export default async function AdminPage() {
         <span className="text-gold-light">→</span>
       </Link>
 
+      <Link
+        href="/admin/fraktionen"
+        className="panel flex items-center justify-between gap-3 border-gold/50 p-4 transition hover:bg-gold/10"
+      >
+        <span>
+          <span className="block font-heading text-base text-gold-light">
+            {dict.guildDrafts.admin.manageLink}
+          </span>
+          <span className="text-sm text-slate-400">{dict.guildDrafts.admin.manageHint}</span>
+        </span>
+        <span className="text-gold-light">→</span>
+      </Link>
+
       <StatTiles responses={responses} dict={dict} />
       <InsightBanner responses={responses} dict={dict} />
       <RoleNeedBanner responses={responses} dict={dict} />

@@ -815,6 +815,57 @@ create trigger set_updated_at_discord_members
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Gildenentwürfe ("/fraktionen"): konkurrierende Lore-/Fraktions-
+-- Konzepte, die zur Wahl stehen. Lesen darf jede:r eingeloggte Person,
+-- anlegen/ändern/löschen/aktivieren nur Admins über den service_role
+-- Key (siehe app/fraktionen/actions.ts). "active" ist absichtlich ohne
+-- DB-Constraint auf "nur einer darf aktiv sein" - das regelt die
+-- Admin-Action (setzt beim Aktivieren alle anderen zurück), einfacher
+-- als ein Partial-Unique-Index und für diesen Anwendungsfall genug.
+-- ============================================================
+
+create table if not exists public.guild_drafts (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
+  name text not null check (char_length(name) <= 100),
+  tagline text check (char_length(tagline) <= 100),
+  summary text check (char_length(summary) <= 500),
+  lore_html text check (char_length(lore_html) <= 10000),
+  rank_structure_html text check (char_length(rank_structure_html) <= 10000),
+  tooltip_title text check (char_length(tooltip_title) <= 100),
+  tooltip_html text check (char_length(tooltip_html) <= 4000),
+  image_url text,
+  crest_url text,
+  tabard_url text,
+  banner_url text,
+  -- [{ "icon": "🪓", "label": "Kriegshäuptling" }, ...]
+  core_figures jsonb not null default '[]',
+  sitz text check (char_length(sitz) <= 200),
+  anfuehrer text check (char_length(anfuehrer) <= 100),
+  feinde text check (char_length(feinde) <= 200),
+  primaerwert text check (char_length(primaerwert) <= 50),
+  active boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.guild_drafts enable row level security;
+
+drop policy if exists "select guild drafts" on public.guild_drafts;
+create policy "select guild drafts"
+  on public.guild_drafts for select
+  to authenticated
+  using (true);
+-- Absichtlich keine insert/update/delete-Policy - nur service_role.
+
+drop trigger if exists set_updated_at_guild_drafts on public.guild_drafts;
+create trigger set_updated_at_guild_drafts
+  before update on public.guild_drafts
+  for each row
+  execute function public.set_updated_at();
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

@@ -117,6 +117,17 @@ export const CONTENT_GROUPS: ContentGroup[] = [
     ],
   },
   {
+    id: "guildDrafts",
+    title: "Fraktionen (Gildenentwürfe)",
+    toggles: [
+      { key: "guildDrafts.show", label: "Für Mitglieder sichtbar (Admins sehen die Seite immer)" },
+    ],
+    fields: [
+      { key: "guildDrafts.title", kind: "text", label: "Überschrift" },
+      { key: "guildDrafts.hint", kind: "rich", label: "Hinweis (Kasten)" },
+    ],
+  },
+  {
     id: "downloads",
     title: "Downloads",
     fields: [

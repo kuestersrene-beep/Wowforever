@@ -33,14 +33,15 @@ export default async function HomePage() {
   const dict = await loadDictionary(await getLocale());
 
   // Abschnitte, die im Admin-Dashboard ausgeblendet werden können.
-  const [decision, countdown, call, privacy, guildName] = await Promise.all([
+  const [decision, countdown, call, privacy, guildName, guildDrafts] = await Promise.all([
     isSectionVisible("home.show.decision"),
     isSectionVisible("home.show.countdown"),
     isSectionVisible("home.show.call"),
     isSectionVisible("home.show.privacy"),
     isSectionVisible("guildName.show"),
+    isSectionVisible("guildDrafts.show"),
   ]);
-  const show = { decision, countdown, call, privacy, guildName };
+  const show = { decision, countdown, call, privacy, guildName, guildDrafts };
 
   const quickPolls = await loadQuickPolls(supabase, user?.id ?? null, true);
 
@@ -125,6 +126,19 @@ export default async function HomePage() {
               >
                 {dict.nav.toOverview}
               </Link>
+              {(show.guildDrafts || admin) && (
+                <Link
+                  href="/fraktionen"
+                  className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-2 font-medium text-ink transition hover:brightness-110"
+                >
+                  {dict.nav.toFactions}
+                  {!show.guildDrafts && (
+                    <span className="ml-2 rounded-full bg-ink/70 px-2 py-0.5 text-xs text-slate-200">
+                      {dict.guildName.admin.hiddenBadge}
+                    </span>
+                  )}
+                </Link>
+              )}
               {(show.guildName || admin) && (
                 <Link
                   href="/gildenname"
