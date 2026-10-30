@@ -62,7 +62,7 @@ export default async function HomePage() {
 
       {/* Ankündigung: finale Entscheidung für Horde auf einem PvP-Reich. */}
       {show.decision && (
-        <section className="panel relative overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center">
+        <section className="panel relative mx-auto w-full max-w-2xl overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center sm:px-10">
           <span className="inline-block rounded-full border border-horde px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-red-300">
             {dict.home.decisionTag}
           </span>
