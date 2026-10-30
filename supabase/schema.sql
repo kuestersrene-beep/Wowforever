@@ -844,6 +844,10 @@ create table if not exists public.guild_drafts (
   image_url text,
   crest_url text,
   tabard_url text,
+  -- Kleines quadratisches Item-Icon fürs Hover-Icon auf der Karte
+  -- (separat vom großen Wappenrock-Bild in der Galerie, genau wie im
+  -- Spiel Icon und Ausrüstungsgrafik getrennt sind).
+  tabard_icon_url text,
   banner_url text,
   -- [{ "icon": "🪓", "label": "Kriegshäuptling" }, ...]
   core_figures jsonb not null default '[]',
@@ -862,6 +866,7 @@ create table if not exists public.guild_drafts (
 alter table public.guild_drafts add column if not exists tooltip_meta text;
 alter table public.guild_drafts add column if not exists tooltip_effects text;
 alter table public.guild_drafts add column if not exists tooltip_quote text;
+alter table public.guild_drafts add column if not exists tabard_icon_url text;
 alter table public.guild_drafts drop column if exists tooltip_html;
 
 alter table public.guild_drafts enable row level security;

@@ -291,7 +291,6 @@ export interface Dictionary {
     active: string;
     activate: string;
     activating: string;
-    expand: string;
     coreFiguresLabel: string;
     tabardLabel: string;
     sitzLabel: string;
@@ -318,6 +317,7 @@ export interface Dictionary {
       imageUrlLabel: string;
       crestUrlLabel: string;
       tabardUrlLabel: string;
+      tabardIconUrlLabel: string;
       bannerUrlLabel: string;
       coreFiguresLabel: string;
       coreFiguresHint: string;

@@ -33,7 +33,7 @@ export default async function UmfragePage() {
     : null;
 
   return (
-    <main className="flex flex-col gap-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.survey.title}</h1>

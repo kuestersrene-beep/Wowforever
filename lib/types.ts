@@ -212,6 +212,7 @@ export interface GuildDraft {
   image_url: string | null;
   crest_url: string | null;
   tabard_url: string | null;
+  tabard_icon_url: string | null;
   banner_url: string | null;
   core_figures: CoreFigure[];
   sitz: string | null;

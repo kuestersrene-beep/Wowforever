@@ -144,6 +144,13 @@ export default function GuildDraftForm({
         />
         <input
           type="url"
+          name="tabard_icon_url"
+          defaultValue={draft?.tabard_icon_url ?? ""}
+          placeholder={t.tabardIconUrlLabel}
+          className={inputClass}
+        />
+        <input
+          type="url"
           name="banner_url"
           defaultValue={draft?.banner_url ?? ""}
           placeholder={t.bannerUrlLabel}

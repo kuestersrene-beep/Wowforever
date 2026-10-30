@@ -66,6 +66,7 @@ function buildPayload(formData: FormData) {
     image_url: textOrNull(formData.get("image_url"), 1000),
     crest_url: textOrNull(formData.get("crest_url"), 1000),
     tabard_url: textOrNull(formData.get("tabard_url"), 1000),
+    tabard_icon_url: textOrNull(formData.get("tabard_icon_url"), 1000),
     banner_url: textOrNull(formData.get("banner_url"), 1000),
     core_figures: parseCoreFigures(formData.get("core_figures")),
     sitz: textOrNull(formData.get("sitz"), 200),

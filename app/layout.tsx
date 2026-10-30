@@ -48,7 +48,7 @@ export default async function RootLayout({
             timerLogoUrl={timerLogoUrl}
             logoScale={logoScale}
           >
-            <div className="mx-auto max-w-5xl px-4 py-8">
+            <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8">
               <div className="mb-2 flex justify-end">
                 <LanguageSwitcher />
               </div>
