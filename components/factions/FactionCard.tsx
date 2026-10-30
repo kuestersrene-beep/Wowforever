@@ -56,11 +56,12 @@ export default function FactionCard({
 
   const canVote = myVote === draft.id || myVote === null;
   const votedHere = myVote === draft.id;
-  // "Aktiv" (offizielle Entscheidung) ist bewusst nur für Admins sichtbar,
-  // nicht auf der öffentlichen Seite - sonst wäre die Abstimmung durch die
-  // bereits sichtbare Admin-Wahl voreingenommen. Die goldene Umrandung
-  // markiert stattdessen die eigene Stimme der besuchenden Person.
-  const showActiveLabel = draft.active && admin;
+  // "Aktiv" (offizielle Entscheidung) wird auf /fraktionen bewusst GAR
+  // NICHT angezeigt, auch nicht für Admins - sonst wäre die Abstimmung
+  // durch die bereits sichtbare Admin-Wahl voreingenommen, auch für die
+  // eigene Stimme der Admin-Person. Wer entschieden wurde, sieht man in
+  // /admin/fraktionen. Die goldene Umrandung markiert stattdessen nur
+  // die eigene Stimme der besuchenden Person.
   const canShowStatusRow = canVote || (admin && !decided);
 
   return (
@@ -155,26 +156,15 @@ export default function FactionCard({
         )}
       </div>
 
-      {/* Zeile 4: Status (Aktiv), Abstimmen, Admin-Entscheidung - an den
-          unteren Rand der Zeile angepinnt (justify-end), damit die
-          Buttons bei beiden Karten auf gleicher Höhe stehen, egal ob
-          "Aktiv" bei der einen Karte zusätzliche Höhe braucht. Zeile 3
-          pinnt das Wappenrock-Icon oben (mt-auto) an den unteren Rand
-          ihrer eigenen Zelle, dadurch rücken Icon und Button so nah
-          zusammen, wie es die Höhen beider Karten zulassen. */}
+      {/* Zeile 4: Abstimmen, Admin-Entscheidung - an den unteren Rand der
+          Zeile angepinnt (justify-end), damit die Buttons bei beiden
+          Karten auf gleicher Höhe stehen. Zeile 3 pinnt das
+          Wappenrock-Icon oben (mt-auto) an den unteren Rand ihrer
+          eigenen Zelle, dadurch rücken Icon und Button so nah zusammen,
+          wie es die Höhen beider Karten zulassen. */}
       <div className="mt-2 flex h-full flex-col justify-end px-6 pb-6">
-        {showActiveLabel && (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-sm font-medium text-emerald-400">{t.active}</span>
-          </div>
-        )}
-
         {canShowStatusRow && (
-          <div
-            className={`flex flex-col items-center gap-2 ${
-              showActiveLabel ? "mt-4 border-t border-gold/15 pt-4" : ""
-            }`}
-          >
+          <div className="flex flex-col items-center gap-2">
             {canVote && <VoteButton draftId={draft.id} voted={myVote === draft.id} />}
             {admin && !decided && (
               <div className="pt-2">
