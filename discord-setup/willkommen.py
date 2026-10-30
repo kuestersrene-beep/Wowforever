@@ -133,13 +133,10 @@ async def nachricht(member: discord.Member):
     nummern = iter(["2️⃣", "3️⃣", "4️⃣"])
     entwuerfe = await offene_gildenwahl()
     if entwuerfe:
-        liste = "\n".join(f"• **{e['name']}**" + (f" – *{e['tagline']}*" if e.get("tagline") else "")
-                          for e in entwuerfe)
+        namen = " oder ".join(f"**{e['name']}**" for e in entwuerfe)
         fraktionen = f"[Fraktionen]({seite}/fraktionen)" if seite else "**Fraktionen**"
-        embed.add_field(name=f"{next(nummern)} Wähl unseren Gildennamen & Wappenrock", value=(
-            f"Zur Wahl stehen:\n{liste}\n"
-            f"Schau dir die Entwürfe unter {fraktionen} in Ruhe an und klick beim Wappenrock deiner Wahl auf "
-            "**„Aufheben“**. ⚠️ Er ist **seelengebunden** – deine Stimme lässt sich nicht mehr ändern!"
+        embed.add_field(name=f"{next(nummern)} Gildenname: Abstimmung läuft", value=(
+            f"{namen}? Gerade wählen wir Name und Wappenrock der Gilde – stimm unter {fraktionen} mit ab!"
         )[:1024], inline=False)
 
     fragen = await laufende_abstimmungen()

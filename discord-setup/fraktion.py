@@ -3,8 +3,9 @@
 Zwei Nachrichten, die sich bei jeder Änderung selbst bearbeiten (spätestens nach INTERVALL_SEKUNDEN):
 
 - Öffentlich: welche Gildenentwürfe (siehe Website → Fraktionen) zur Wahl stehen bzw. welcher
-  aktiviert wurde (Admin klickt auf der Website "Aufheben"). Ohne Stimmenzahlen, damit niemand
-  beeinflusst wird. Zielkanal: FRAKTION_KANAL_ID aus .env, sonst 🌐│gilden-app.
+  aktiviert wurde (Admin klickt auf der Website "Aufheben"). Solange offen nur versiegelte Balken
+  und die Gesamtzahl der Stimmen, damit niemand beeinflusst wird; nach der Entscheidung das
+  enthüllte Ergebnis. Zielkanal: FRAKTION_KANAL_ID aus .env, sonst 🌐│gilden-app.
 - Nur Offiziere: der Stimmenstand je Entwurf aus guild_draft_votes, live wie auf der Website im
   Admin-Bereich. Zielkanal: FRAKTION_STIMMEN_KANAL_ID aus .env, sonst 🛡️│offiziers-chat.
 
@@ -84,8 +85,13 @@ def mit_website_link(embed):
     return embed
 
 
-def fraktion_embed(entwuerfe):
-    """Öffentliche Nachricht – bewusst ohne Stimmenzahlen."""
+VERSIEGELT = "`▓▒░▓▒░▓▒░▓▒░` **🔒 ?? Stimmen** · ?? %"
+
+
+def fraktion_embed(entwuerfe, stimmen):
+    """Öffentliche Nachricht: solange offen nur versiegelte Balken und die Gesamtzahl,
+    nach der Entscheidung das enthüllte Ergebnis."""
+    gesamt = sum(stimmen.get(e["id"], 0) for e in entwuerfe)
     aktiv = next((e for e in entwuerfe if e.get("active")), None)
     if aktiv:
         teile = []
@@ -98,18 +104,34 @@ def fraktion_embed(entwuerfe):
             description="\n\n".join(teile) or None,
             color=FARBE_AKTIV,
         )
-        bild = aktiv.get("crest_url") or aktiv.get("image_url")
-        if bild:
+        bild = aktiv.get("crest_url") or aktiv.get("image_url") or ""
+        # Die Website speichert eigene Bilder als relativen Pfad, Discord braucht eine volle URL
+        if bild.startswith("/") and SITE_URL:
+            bild = SITE_URL + bild
+        if bild.startswith("http"):
             embed.set_thumbnail(url=bild)
+        if gesamt:
+            embed.add_field(
+                name=f"📜 Das Siegel ist gebrochen – {mehrzahl(gesamt)}",
+                value="\n".join(f"**{e['name']}**\n{stimmen_text(stimmen.get(e['id'], 0), gesamt)}"
+                                for e in entwuerfe)[:1024],
+                inline=False,
+            )
     else:
         embed = discord.Embed(
-            title="🛡️ Fraktion – noch offen",
-            description=f"{len(entwuerfe)} Entwürfe stehen zur Wahl. Schaut sie euch auf der Website an und stimmt ab!",
+            title="🛡️ Gildenentwurf – Abstimmung läuft",
+            description=(
+                f"Bisher haben **{gesamt}** {'Held seinen' if gesamt == 1 else 'Helden ihren'} Wappenrock "
+                "aufgehoben.\n\n"
+                "Die Stimmen liegen **versiegelt** in Noggenfoggers Tresor 🔐 – niemand soll sich "
+                "beeinflussen lassen. Sobald die Wahl entschieden ist, wird das Ergebnis **genau hier** "
+                "enthüllt."
+            ),
             color=AKZENTFARBE,
         )
         for e in entwuerfe:
             name = e["name"] + (f" – {e['tagline']}" if e.get("tagline") else "")
-            embed.add_field(name=name[:256], value=(e.get("summary") or "–")[:200], inline=False)
+            embed.add_field(name=name[:256], value=VERSIEGELT, inline=False)
     return mit_website_link(embed)
 
 
@@ -164,10 +186,10 @@ async def posten_oder_bearbeiten(embed, kanal_id, nachricht_id, ziel):
     return str(ziel.id), str(nachricht.id)
 
 
-async def oeffentlich_aktualisieren(entwuerfe, erzwingen):
+async def oeffentlich_aktualisieren(entwuerfe, stimmen, erzwingen):
     global letzte_signatur
     sig = signatur([{k: e.get(k) for k in ("id", "name", "tagline", "summary", "crest_url", "image_url", "active")}
-                    for e in entwuerfe])
+                    for e in entwuerfe], stimmen)
     if not erzwingen and sig == letzte_signatur:
         return
     einstellungen = await raid.db.lesen("site_settings", select="*", id="eq.1")
@@ -176,7 +198,7 @@ async def oeffentlich_aktualisieren(entwuerfe, erzwingen):
     # sonst würde er sie nicht wiederfinden und jede Minute neu posten.
     in_db = "faction_discord_message_id" in einstellung
     gemerkt = einstellung if in_db else lokal_lesen(OEFFENTLICH_DATEI)
-    neu = await posten_oder_bearbeiten(fraktion_embed(entwuerfe), gemerkt.get("faction_discord_channel_id"),
+    neu = await posten_oder_bearbeiten(fraktion_embed(entwuerfe, stimmen), gemerkt.get("faction_discord_channel_id"),
                                        gemerkt.get("faction_discord_message_id"),
                                        kanal(KANAL_ID, GILDEN_APP_KANAL))
     if neu:
@@ -189,9 +211,8 @@ async def oeffentlich_aktualisieren(entwuerfe, erzwingen):
     letzte_signatur = sig
 
 
-async def stimmen_aktualisieren(entwuerfe, erzwingen):
+async def stimmen_aktualisieren(entwuerfe, stimmen, erzwingen):
     global letzte_stimmen_signatur
-    stimmen = await stimmen_zaehlen()
     sig = signatur([(e["id"], e["name"], e.get("active")) for e in entwuerfe], stimmen)
     if not erzwingen and sig == letzte_stimmen_signatur:
         return
@@ -207,10 +228,11 @@ async def nachricht_aktualisieren(erzwingen=False):
     entwuerfe = await raid.db.lesen("guild_drafts", select="*", order="sort_order.asc,created_at.asc")
     if not entwuerfe:
         return
+    stimmen = await stimmen_zaehlen()
     # Getrennt abgesichert: Ein Fehler bei der einen Nachricht hält die andere nicht auf
     for teil in (oeffentlich_aktualisieren, stimmen_aktualisieren):
         try:
-            await teil(entwuerfe, erzwingen)
+            await teil(entwuerfe, stimmen, erzwingen)
         except Exception:
             log.exception("%s fehlgeschlagen", teil.__name__)
 
