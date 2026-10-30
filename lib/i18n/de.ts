@@ -285,10 +285,10 @@ export const de: Dictionary = {
     hint: "Zwei Entwürfe stehen zur Wahl, wie unsere Gilde ins Spiel startet. Schaut euch die Konzepte an – welcher passt am besten zu uns?",
     empty: "Noch keine Entwürfe angelegt.",
     active: "Aktiv",
-    activate: "Anlegen",
-    activating: "Legt an...",
+    activate: "Aufheben",
+    activating: "Hebt auf...",
     equipConfirmText:
-      "Durch das Anlegen wird dieser Gegenstand seelengebunden. Trotzdem anlegen?",
+      "Durch das Aufheben wird dieser Gegenstand seelengebunden. Trotzdem aufheben?",
     equipConfirmCancel: "Abbrechen",
     coreFiguresLabel: "Kernfiguren",
     tabardLabel: "Wappenrock",

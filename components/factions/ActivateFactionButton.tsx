@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { activateGuildDraft } from "@/app/fraktionen/actions";
 import { useI18n } from "@/lib/i18n/LocaleProvider";
 
-// Button + Bestätigungsdialog im Stil des echten WoW-"Anlegen bindet
-// diesen Gegenstand"-Popups (StaticPopup "EQUIP_BIND": schlichtes,
-// zentriertes Panel mit Text + zwei Buttons, kein Titel). Nachgebaute
-// Optik, kein Blizzard-Asset - verhindert vor allem, dass auf Mobile
-// ein versehentlicher Tap gleich aktiviert.
+// Button + Bestätigungsdialog im Stil des echten WoW-"Aufheben bindet
+// diesen Gegenstand"-Popups (StaticPopup "LOOT_BIND" - der Wappenrock
+// ist laut Tooltip "Beim Aufheben gebunden", nicht erst beim Anlegen:
+// schlichtes, zentriertes Panel mit Text + zwei Buttons, kein Titel).
+// Nachgebaute Optik, kein Blizzard-Asset - verhindert vor allem, dass
+// auf Mobile ein versehentlicher Tap gleich aktiviert.
 export default function ActivateFactionButton({ id }: { id: string }) {
   const { dict } = useI18n();
   const t = dict.guildDrafts;
