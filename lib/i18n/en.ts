@@ -11,7 +11,7 @@ export const en: Dictionary = {
     toCharacters: "Characters",
     toEvents: "Events & raids",
     toGuildName: "Guild name poll",
-    toFactions: "Factions",
+    toFactions: "Guild Vote",
     pendingTemplate: "{n} open",
     loggedInAs: "Logged in as",
     loginPrompt: "Sign in with your Discord account to enter your professions and availability.",
@@ -280,7 +280,7 @@ export const en: Dictionary = {
     },
   },
   guildDrafts: {
-    title: "Faction",
+    title: "Guild Vote",
     hint: "Two drafts are up for the choice of how our guild starts out in-game. Take a look at the concepts – which one fits us best?",
     empty: "No drafts created yet.",
     active: "Active",
@@ -299,7 +299,7 @@ export const en: Dictionary = {
     loreTitle: "Lore",
     rankStructureTitle: "Rank structure",
     admin: {
-      manageLink: "⚔ Edit factions",
+      manageLink: "⚔ Edit guild vote",
       manageHint: "Create and edit guild drafts, activate one",
       listTitle: "Existing drafts",
       addTitle: "Create new draft",

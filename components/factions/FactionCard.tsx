@@ -18,6 +18,15 @@ import VoteButton from "./VoteButton";
 // untereinander auf der Karte (keine Reiter, kein Auf-/Zuklappen -
 // genug Breite seit dem breiteren Layout). Bilder öffnen per Klick
 // eine Lightbox in voller Auflösung.
+//
+// Die Karte ist in 7 feste Zeilen aufgeteilt (Bild/Titel/Beschreibung/
+// Infos/Kernfiguren/Status/unterer Block) und nutzt zusammen mit dem
+// "sm:[grid-template-rows:...]"-Grid in app/fraktionen/page.tsx CSS
+// Subgrid: jede Zeile bekommt über beide Karten hinweg automatisch die
+// gleiche Höhe, damit Trennlinien und Abstände unabhängig von
+// unterschiedlich langen Texten identisch verlaufen und beide Karten
+// gleich groß sind. Jede Zeile wird daher IMMER gerendert (auch leer),
+// sonst würde die Subgrid-Zuordnung zwischen den Karten verrutschen.
 export default function FactionCard({
   draft,
   dict,
@@ -45,37 +54,54 @@ export default function FactionCard({
   // Item-Icon, sonst Fallback auf das große Wappenrock-Bild.
   const tabardIconUrl = draft.tabard_icon_url ?? draft.tabard_url;
 
+  const canVote = myVote === draft.id || myVote === null;
+  const canShowStatusRow = canVote || (admin && !decided) || draft.active;
+
   return (
     <div
-      className={`panel flex flex-col overflow-hidden ${
+      className={`panel grid overflow-hidden sm:row-span-7 sm:[grid-template-rows:subgrid] ${
         draft.active ? "border-gold ring-1 ring-gold" : "border-gold/20"
       }`}
     >
-      {draft.image_url ? (
-        <button
-          type="button"
-          onClick={() => setLightbox({ url: draft.image_url!, alt: draft.name })}
-          className="block h-40 w-full cursor-zoom-in sm:h-56 lg:h-72"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={draft.image_url} alt={draft.name} className="h-full w-full object-cover" />
-        </button>
-      ) : (
-        <div className="h-40 w-full bg-ink/40 sm:h-56 lg:h-72" />
-      )}
+      {/* Zeile 1: Bild - object-contain statt object-cover, damit es
+          immer vollständig zu sehen ist (kein Beschnitt mehr), egal
+          welches Seitenverhältnis die Quelle hat. */}
+      <div className="bg-ink/60">
+        {draft.image_url ? (
+          <button
+            type="button"
+            onClick={() => setLightbox({ url: draft.image_url!, alt: draft.name })}
+            className="block h-48 w-full cursor-zoom-in sm:h-60 lg:h-72"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={draft.image_url}
+              alt={draft.name}
+              className="h-full w-full object-contain"
+            />
+          </button>
+        ) : (
+          <div className="h-48 w-full sm:h-60 lg:h-72" />
+        )}
+      </div>
 
-      <div className="flex flex-col gap-4 p-6">
-        <div className="text-center">
-          <h3 className="font-heading text-2xl text-parchment">{draft.name}</h3>
-          {draft.tagline && <p className="mt-1 text-base text-gold-light">{draft.tagline}</p>}
-        </div>
+      {/* Zeile 2: Titel + Untertitel */}
+      <div className="px-6 pt-6 text-center">
+        <h3 className="font-heading text-2xl text-parchment">{draft.name}</h3>
+        {draft.tagline && <p className="mt-1 text-base text-gold-light">{draft.tagline}</p>}
+      </div>
 
+      {/* Zeile 3: Kurzbeschreibung */}
+      <div className="mt-4 px-6">
         {draft.summary && (
           <p className="text-center text-base text-slate-300">{draft.summary}</p>
         )}
+      </div>
 
+      {/* Zeile 4: Sitz/Anführer:in/Feinde/Primärwert */}
+      <div className="mt-4 px-6">
         {infoLines.length > 0 && (
-          <dl className="mx-auto flex flex-col gap-1 text-sm text-slate-400">
+          <dl className="mx-auto flex w-fit flex-col gap-1 text-sm text-slate-400">
             {infoLines.map((l) => (
               <div key={l.label} className="flex gap-1">
                 <dt className="text-slate-500">{l.label}:</dt>
@@ -84,7 +110,10 @@ export default function FactionCard({
             ))}
           </dl>
         )}
+      </div>
 
+      {/* Zeile 5: Kernfiguren + Wappenrock-Icon */}
+      <div className="mt-4 px-6">
         {(draft.core_figures.length > 0 || tabardIconUrl) && (
           <div className="flex flex-col items-center gap-4">
             {draft.core_figures.length > 0 && (
@@ -120,18 +149,23 @@ export default function FactionCard({
             )}
           </div>
         )}
+      </div>
 
+      {/* Zeile 6: Status (Aktiv), Abstimmen, Admin-Entscheidung */}
+      <div className="mt-4 px-6 pb-6">
         {draft.active && (
-          <div className="flex flex-col items-center gap-2 pt-1">
+          <div className="flex flex-col items-center gap-2">
             <span className="text-sm font-medium text-emerald-400">{t.active}</span>
           </div>
         )}
 
-        {(myVote === draft.id || myVote === null || (admin && !decided)) && (
-          <div className="flex flex-col items-center gap-2 border-t border-gold/15 pt-4">
-            {(myVote === draft.id || myVote === null) && (
-              <VoteButton draftId={draft.id} voted={myVote === draft.id} />
-            )}
+        {canShowStatusRow && (
+          <div
+            className={`flex flex-col items-center gap-2 ${
+              draft.active ? "mt-4 border-t border-gold/15 pt-4" : ""
+            }`}
+          >
+            {canVote && <VoteButton draftId={draft.id} voted={myVote === draft.id} />}
             {admin && !decided && (
               <div className="pt-2">
                 <ActivateFactionButton id={draft.id} />
@@ -141,53 +175,56 @@ export default function FactionCard({
         )}
       </div>
 
-      {(draft.lore_html || draft.stylesheet_url || draft.rank_structure_html) && (
-        <div className="flex flex-col gap-6 border-t border-gold/15 p-6 pt-5">
-          {draft.lore_html && (
-            <div>
-              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
-                {t.loreTitle}
-              </h4>
-              <div
-                className="rich-text text-base leading-relaxed text-parchment/90"
-                dangerouslySetInnerHTML={{ __html: draft.lore_html }}
-              />
-            </div>
-          )}
-
-          {draft.stylesheet_url && (
-            <div>
-              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
-                {t.heraldryTitle}
-              </h4>
-              <button
-                type="button"
-                onClick={() => setLightbox({ url: draft.stylesheet_url!, alt: draft.name })}
-                className="block w-full cursor-zoom-in overflow-hidden rounded-lg border border-gold/30"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={draft.stylesheet_url}
-                  alt={draft.name}
-                  className="w-full object-contain"
+      {/* Zeile 7: Lore, Heraldik-Stylesheet, Rangstruktur */}
+      <div className="border-t border-gold/15 p-6 pt-5">
+        {(draft.lore_html || draft.stylesheet_url || draft.rank_structure_html) && (
+          <div className="flex flex-col gap-6">
+            {draft.lore_html && (
+              <div>
+                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                  {t.loreTitle}
+                </h4>
+                <div
+                  className="rich-text text-base leading-relaxed text-parchment/90"
+                  dangerouslySetInnerHTML={{ __html: draft.lore_html }}
                 />
-              </button>
-            </div>
-          )}
+              </div>
+            )}
 
-          {draft.rank_structure_html && (
-            <div>
-              <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
-                {t.rankStructureTitle}
-              </h4>
-              <div
-                className="rich-text text-base leading-relaxed text-parchment/90"
-                dangerouslySetInnerHTML={{ __html: draft.rank_structure_html }}
-              />
-            </div>
-          )}
-        </div>
-      )}
+            {draft.stylesheet_url && (
+              <div>
+                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                  {t.heraldryTitle}
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setLightbox({ url: draft.stylesheet_url!, alt: draft.name })}
+                  className="block w-full cursor-zoom-in overflow-hidden rounded-lg border border-gold/30"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={draft.stylesheet_url}
+                    alt={draft.name}
+                    className="w-full object-contain"
+                  />
+                </button>
+              </div>
+            )}
+
+            {draft.rank_structure_html && (
+              <div>
+                <h4 className="mb-2 text-center font-heading text-lg text-gold-light">
+                  {t.rankStructureTitle}
+                </h4>
+                <div
+                  className="rich-text text-base leading-relaxed text-parchment/90"
+                  dangerouslySetInnerHTML={{ __html: draft.rank_structure_html }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {lightbox && (
         <div

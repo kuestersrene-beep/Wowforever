@@ -11,7 +11,7 @@ export const de: Dictionary = {
     toCharacters: "Charaktere",
     toEvents: "Termine & Raids",
     toGuildName: "Gildenname-Umfrage",
-    toFactions: "Fraktionen",
+    toFactions: "Gildenabstimmung",
     pendingTemplate: "{n} offen",
     loggedInAs: "Angemeldet als",
     loginPrompt: "Melde dich mit deinem Discord-Account an, um deine Berufe und Verfügbarkeit einzutragen.",
@@ -281,7 +281,7 @@ export const de: Dictionary = {
     },
   },
   guildDrafts: {
-    title: "Fraktion",
+    title: "Gildenabstimmung",
     hint: "Zwei Entwürfe stehen zur Wahl, wie unsere Gilde ins Spiel startet. Schaut euch die Konzepte an – welcher passt am besten zu uns?",
     empty: "Noch keine Entwürfe angelegt.",
     active: "Aktiv",
@@ -301,7 +301,7 @@ export const de: Dictionary = {
     loreTitle: "Lore",
     rankStructureTitle: "Rangstruktur",
     admin: {
-      manageLink: "⚔ Fraktionen bearbeiten",
+      manageLink: "⚔ Gildenabstimmung bearbeiten",
       manageHint: "Gildenentwürfe anlegen, bearbeiten und einen davon aktivieren",
       listTitle: "Vorhandene Entwürfe",
       addTitle: "Neuen Entwurf anlegen",
