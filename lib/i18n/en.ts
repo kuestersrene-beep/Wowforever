@@ -101,6 +101,8 @@ export const en: Dictionary = {
     availabilityHint:
       "Who's roughly free when? Helps you arrange groups ahead of time - just coordinate the details on Discord.",
     availabilityHeatmapEmpty: "No availability entered yet.",
+    inDiscordLabel: "In the Discord server",
+    notInDiscordLabel: "Hasn't joined the Discord server yet",
   },
   availability: {
     title: "Your availability",

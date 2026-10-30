@@ -107,6 +107,8 @@ export interface Dictionary {
     availabilityTitle: string;
     availabilityHint: string;
     availabilityHeatmapEmpty: string;
+    inDiscordLabel: string;
+    notInDiscordLabel: string;
   };
   availability: {
     title: string;

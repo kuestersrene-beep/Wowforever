@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import type { AvailabilitySummary, ParticipantSummary } from "@/lib/types";
@@ -43,6 +43,16 @@ export default async function UebersichtPage() {
     .from("availability_overview")
     .select("*")
     .returns<AvailabilitySummary[]>();
+
+  // discord_members hat bewusst keine RLS-Policy (siehe supabase/schema.sql),
+  // daher hier mit dem service_role Key lesen - zeigt nur, wer aktuell
+  // Mitglied im Discord-Server ist (vom Bot alle 2 Minuten synchronisiert),
+  // keine sensiblen Daten.
+  const { data: discordMemberRows } = await createAdminClient()
+    .from("discord_members")
+    .select("discord_id")
+    .returns<{ discord_id: string }[]>();
+  const discordMemberIds = new Set((discordMemberRows ?? []).map((r) => r.discord_id));
 
   return (
     <main className="flex flex-col gap-8">
@@ -88,6 +98,22 @@ export default async function UebersichtPage() {
                 {p.first_name && (
                   <span className="text-slate-400"> ({p.first_name})</span>
                 )}
+                <span
+                  aria-hidden="true"
+                  title={
+                    discordMemberIds.has(p.discord_id)
+                      ? dict.overview.inDiscordLabel
+                      : dict.overview.notInDiscordLabel
+                  }
+                  className={`ml-1.5 inline-block h-2 w-2 rounded-full align-middle ${
+                    discordMemberIds.has(p.discord_id) ? "bg-emerald-400" : "bg-slate-600"
+                  }`}
+                />
+                <span className="sr-only">
+                  {discordMemberIds.has(p.discord_id)
+                    ? dict.overview.inDiscordLabel
+                    : dict.overview.notInDiscordLabel}
+                </span>
               </p>
               <ParticipantSummaryLine p={p} dict={dict} />
               {p.admin_note && (

@@ -41,6 +41,12 @@ alter table public.responses add column if not exists first_name text;
 alter table public.responses add column if not exists classes text[];
 alter table public.responses add column if not exists professions text[];
 
+-- Vom Discord-Bot gepflegt (discord-setup/einladung.py): wann zuletzt
+-- (oder erstmals) versucht wurde, dieser Person eine Einladungs-DM für
+-- den Discord-Server zu schicken - verhindert wiederholtes Anschreiben
+-- bei jedem Abgleich.
+alter table public.responses add column if not exists discord_invite_sent_at timestamptz;
+
 -- Muss VOR dem Drop von "class" passieren, weil die View unten sonst
 -- noch von der alten Spalte abhängt und Postgres das Löschen verweigert
 -- (Fehler 2BP01 "cannot drop column ... because other objects depend on it").
