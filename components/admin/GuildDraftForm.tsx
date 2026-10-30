@@ -122,28 +122,28 @@ export default function GuildDraftForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <input
-          type="url"
+          type="text"
           name="image_url"
           defaultValue={draft?.image_url ?? ""}
           placeholder={t.imageUrlLabel}
           className={inputClass}
         />
         <input
-          type="url"
+          type="text"
           name="tabard_url"
           defaultValue={draft?.tabard_url ?? ""}
           placeholder={t.tabardUrlLabel}
           className={inputClass}
         />
         <input
-          type="url"
+          type="text"
           name="tabard_icon_url"
           defaultValue={draft?.tabard_icon_url ?? ""}
           placeholder={t.tabardIconUrlLabel}
           className={inputClass}
         />
         <input
-          type="url"
+          type="text"
           name="stylesheet_url"
           defaultValue={draft?.stylesheet_url ?? ""}
           placeholder={t.stylesheetUrlLabel}

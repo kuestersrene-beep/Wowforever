@@ -94,7 +94,7 @@ export default function DownloadsManager({
         />
         <div>
           <input
-            type="url"
+            type="text"
             name="image_url"
             placeholder={dict.downloads.admin.imageUrlLabel}
             className="w-full rounded-lg border border-gold/30 bg-panel px-3 py-2 text-parchment focus:border-gold focus:outline-none"
