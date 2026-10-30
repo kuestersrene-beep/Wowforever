@@ -38,7 +38,9 @@ bot: discord.Client | None = None
 SITE_URL = ""
 KANAL_ID = ""
 STIMMEN_KANAL_ID = ""
-STIMMEN_DATEI = Path(os.environ.get("DATEN_ORDNER", Path(__file__).resolve().parent / "data")) / "fraktion_stimmen.json"
+DATEN = Path(os.environ.get("DATEN_ORDNER", Path(__file__).resolve().parent / "data"))
+STIMMEN_DATEI = DATEN / "fraktion_stimmen.json"
+OEFFENTLICH_DATEI = DATEN / "fraktion_oeffentlich.json"
 letzte_signatur: str | None = None
 letzte_stimmen_signatur: str | None = None
 
@@ -50,6 +52,15 @@ def kanal(kanal_id, standard_name):
             return gefunden
         log.warning("Kanal-ID %s nicht gefunden – weiche auf %s aus", kanal_id, standard_name)
     return discord.utils.get(bot.guild.text_channels, name=standard_name) if bot.guild else None
+
+
+def lokal_lesen(datei):
+    return json.loads(datei.read_text(encoding="utf-8")) if datei.exists() else {}
+
+
+def lokal_schreiben(datei, werte):
+    datei.parent.mkdir(parents=True, exist_ok=True)
+    datei.write_text(json.dumps(werte), encoding="utf-8")
 
 
 def mehrzahl(anzahl):
@@ -161,12 +172,20 @@ async def oeffentlich_aktualisieren(entwuerfe, erzwingen):
         return
     einstellungen = await raid.db.lesen("site_settings", select="*", id="eq.1")
     einstellung = einstellungen[0] if einstellungen else {}
-    neu = await posten_oder_bearbeiten(fraktion_embed(entwuerfe), einstellung.get("faction_discord_channel_id"),
-                                       einstellung.get("faction_discord_message_id"),
+    # Ohne die Spalten aus supabase/schema.sql merkt sich der Bot die Nachricht lokal –
+    # sonst würde er sie nicht wiederfinden und jede Minute neu posten.
+    in_db = "faction_discord_message_id" in einstellung
+    gemerkt = einstellung if in_db else lokal_lesen(OEFFENTLICH_DATEI)
+    neu = await posten_oder_bearbeiten(fraktion_embed(entwuerfe), gemerkt.get("faction_discord_channel_id"),
+                                       gemerkt.get("faction_discord_message_id"),
                                        kanal(KANAL_ID, GILDEN_APP_KANAL))
     if neu:
-        await raid.db.aendern("site_settings", {"faction_discord_channel_id": neu[0],
-                                                "faction_discord_message_id": neu[1]}, id="eq.1")
+        werte = {"faction_discord_channel_id": neu[0], "faction_discord_message_id": neu[1]}
+        if in_db:
+            await raid.db.aendern("site_settings", werte, id="eq.1")
+        else:
+            log.warning("site_settings ohne faction_discord_*-Spalten – supabase/schema.sql ausführen")
+            lokal_schreiben(OEFFENTLICH_DATEI, werte)
     letzte_signatur = sig
 
 
@@ -176,12 +195,11 @@ async def stimmen_aktualisieren(entwuerfe, erzwingen):
     sig = signatur([(e["id"], e["name"], e.get("active")) for e in entwuerfe], stimmen)
     if not erzwingen and sig == letzte_stimmen_signatur:
         return
-    gemerkt = json.loads(STIMMEN_DATEI.read_text(encoding="utf-8")) if STIMMEN_DATEI.exists() else {}
+    gemerkt = lokal_lesen(STIMMEN_DATEI)
     neu = await posten_oder_bearbeiten(stimmen_embed(entwuerfe, stimmen), gemerkt.get("kanal_id"),
                                        gemerkt.get("nachricht_id"), kanal(STIMMEN_KANAL_ID, OFFIZIERS_KANAL))
     if neu:
-        STIMMEN_DATEI.parent.mkdir(parents=True, exist_ok=True)
-        STIMMEN_DATEI.write_text(json.dumps({"kanal_id": neu[0], "nachricht_id": neu[1]}), encoding="utf-8")
+        lokal_schreiben(STIMMEN_DATEI, {"kanal_id": neu[0], "nachricht_id": neu[1]})
     letzte_stimmen_signatur = sig
 
 
@@ -189,8 +207,12 @@ async def nachricht_aktualisieren(erzwingen=False):
     entwuerfe = await raid.db.lesen("guild_drafts", select="*", order="sort_order.asc,created_at.asc")
     if not entwuerfe:
         return
-    await oeffentlich_aktualisieren(entwuerfe, erzwingen)
-    await stimmen_aktualisieren(entwuerfe, erzwingen)
+    # Getrennt abgesichert: Ein Fehler bei der einen Nachricht hält die andere nicht auf
+    for teil in (oeffentlich_aktualisieren, stimmen_aktualisieren):
+        try:
+            await teil(entwuerfe, erzwingen)
+        except Exception:
+            log.exception("%s fehlgeschlagen", teil.__name__)
 
 
 @tasks.loop(seconds=INTERVALL_SEKUNDEN)
