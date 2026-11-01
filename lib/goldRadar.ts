@@ -48,11 +48,13 @@ export interface ScanSource {
   intraday: Coverage;
   history: string;
   note: string;
+  url?: string;
 }
 export const SCAN_SOURCES: readonly ScanSource[] = [
-  { tier: "S", addon: "AuctionDB (WoW-Forever-Ausgabe)", file: "AuctionDB.lua", marker: "AuctionDBForeverSaved",
+  { tier: "S", addon: "AuctionDB (AHDB von MooreaTV)", file: "AuctionDB.lua", marker: "AuctionDB",
     prices: "ja", quantity: "ja", intraday: "ja", history: "7 Tage jeder Scan, dazu 180 Tage Tageswerte",
-    note: "Komplett-Scan des ganzen Auktionshauses alle 15 Minuten, mit Tiefstpreis, Median und Menge. Damit funktioniert alles." },
+    note: "Scannt beim Öffnen des Auktionshauses automatisch das ganze AH (höchstens alle 15 Minuten), mit Tiefstpreis, Median und Menge. Damit funktioniert alles.",
+    url: "https://github.com/mooreatv/AuctionDB/releases" },
   { tier: "A", addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
     prices: "ja", quantity: "ja", intraday: "ja", history: "die letzten 12 Messungen je Item",
     note: "Preis und Menge je Messung. Gut, solange regelmäßig gescannt wird." },

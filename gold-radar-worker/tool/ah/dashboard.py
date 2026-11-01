@@ -47,15 +47,15 @@ def live_data(cfg):
     return analysed(con, realm, cfg, now)
 
 
-def demo_data(cfg):
+def demo_data(cfg, snapdir=None):
     """TSM public data (Classic EU by default) replayed as if it were our own scan on day 3.5 after launch, for
     demonstration only. TSM publishes one state per item (no history, no AH quantities), so every build keeps one copy
     per day in tsm_demo/ and the price history grows from those (up to 14 days). Sold per day stands in for
     sell-through; while there are fewer than 3 days, the average sale price 3 days earlier gives trends a reference."""
     path = cfg.get('tsm_demo') or 'classic/eu/region'
-    snapdir = os.path.join(ROOT, 'tsm_demo')
+    snapdir = snapdir or os.path.join(ROOT, 'tsm_demo')
     try:
-        latest = tsm.archive(path, snapdir)  # also filled daily by tools/tsm_archiv.py (Windows task)
+        latest = tsm.archive(path, snapdir)  # on the website the worker keeps this archive (daily)
     except OSError as e:
         print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
         return None

@@ -99,6 +99,15 @@ export default async function GoldRadarUploadPage() {
             <li key={s.file}>
               <span className={`mr-2 inline-block w-5 rounded text-center text-xs font-bold ${TIER_STYLE[s.tier]}`}>{s.tier}</span>
               <b className="text-gold-light">{s.addon}</b> &rarr; Datei <code>{s.file}</code>
+              {s.url && (
+                <>
+                  {" "}
+                  &middot;{" "}
+                  <a href={s.url} target="_blank" rel="noopener" className="text-gold-light hover:underline">
+                    herunterladen
+                  </a>
+                </>
+              )}
             </li>
           ))}
         </ul>

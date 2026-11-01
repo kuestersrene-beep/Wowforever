@@ -10,7 +10,10 @@ Loop (every INTERVAL_SECONDS):
    the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again. Without
    GOLD_RADAR_TSM the worker checks once a day whether TSM offers WoW Forever data (tool/ah/tsm.py CANDIDATES) and
    then uses it for the first auction house; status/tsm.json in the bucket tells the admin page.
-4. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
+4. Demo: once a day the TSM data behind the page's Demo button (GOLD_RADAR_TSM_DEMO, default classic/eu/region)
+   is archived in DATA_DIR/tsm_demo (one file per day: TSM publishes no history), and every page gets its demo built
+   from that archive, so the demo's price history grows on the server without anyone running anything locally.
+5. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
 
@@ -37,6 +40,7 @@ INTERVAL = int(os.environ.get('INTERVAL_SECONDS', '60'))
 BUCKET = 'gold-radar'
 TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
 TSM_HOURS = float(os.environ.get('TSM_HOURS', '6'))
+TSM_DEMO = os.environ.get('GOLD_RADAR_TSM_DEMO', 'classic/eu/region')
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
 
@@ -194,6 +198,15 @@ def build(ruleset, con):
         log.warning('%s: Vorlage ohne ctx – neu erzeugen und hochladen', ruleset)
         return
     live = dashboard.live_payload(con, ruleset, CFG, data['ctx'])
+    if TSM_DEMO:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
+        try:
+            fills = {tier: [tuple(f) for f in v] for tier, v in data['ctx']['fills'].items()}
+            demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
+                                  CFG, set(data['ctx']['wanted']), fills)
+            if demo:
+                data['demo'] = demo
+        except Exception as e:
+            log.warning('Demo aus dem TSM-Archiv nicht gebaut: %s', e)
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
@@ -224,6 +237,7 @@ def main():
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
+    demo_next = 0.0
     while True:
         dirty = set()
         try:
@@ -257,6 +271,17 @@ def main():
                     tsm_next[RULESETS[0]] = 0.0
                 else:
                     log.info('TSM: noch keine WoW-Forever-Daten, nächste Prüfung in 24 Std.')
+            if TSM_DEMO and time.time() >= demo_next:  # demo archive: TSM updates region data once a day
+                demo_next = time.time() + 6 * 3600
+                try:
+                    before = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo'))) if os.path.isdir(os.path.join(DATA_DIR, 'tsm_demo')) else 0
+                    tsm.archive(TSM_DEMO, os.path.join(DATA_DIR, 'tsm_demo'))
+                    after = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo')))
+                    if after != before:  # a new day in the archive: rebuild the pages with the longer demo history
+                        log.info('Demo-Archiv %s: neuer Tag, %d Dateien', TSM_DEMO, after)
+                        dirty.update(RULESETS)
+                except Exception as e:
+                    log.warning('Demo-Archiv %s: Abruf fehlgeschlagen: %s', TSM_DEMO, e)
             for r, when in tsm_next.items():  # TSM public data, every TSM_HOURS (also right after a resync)
                 if time.time() < when and r not in revoked:
                     continue

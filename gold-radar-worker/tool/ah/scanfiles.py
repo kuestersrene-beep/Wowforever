@@ -223,6 +223,10 @@ FORMATS = (('BlackthornesTSDB', from_tradeskills), ('AuctionDBForeverSaved', fro
 def read(raw, faction=None):
     """Prices of one auction house (faction) from the bytes of a SavedVariables file."""
     sv = lua_sv.loads(raw.decode('latin-1'))  # byte for byte: Auctionator keeps binary data in strings
+    # AuctionDB has renamed its variable between versions (AuctionDBForeverSaved, ...): any AuctionDB* with houses
+    for name, v in list(sv.items()):
+        if name.startswith('AuctionDB') and name != 'AuctionDBForeverSaved' and isinstance(v, dict) and 'houses' in v:
+            sv.setdefault('AuctionDBForeverSaved', v)
     known = [(name, fn) for name, fn in FORMATS if isinstance(sv.get(name), dict)]
     if not known:
         raise ValueError('keine Daten von AuctionDB, Auctionator, aux oder Tradeskills in der Datei')
