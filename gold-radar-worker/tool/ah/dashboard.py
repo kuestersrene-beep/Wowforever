@@ -8,7 +8,7 @@ Both files also contain a demo data set from TradeSkillMaster's public Classic E
 config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
 never part of the evaluation.
 """
-import base64, json, os, sqlite3, sys, statistics
+import base64, glob, json, os, shutil, sqlite3, sys, statistics
 from datetime import datetime, date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -49,31 +49,42 @@ def live_data(cfg):
 
 def demo_data(cfg):
     """TSM public data (Classic EU by default) replayed as if it were our own scan on day 3.5 after launch, for
-    demonstration only. TSM has no AH quantities: sold per day stands in for sell-through; its average sale price (or
-    60-day value) a few days earlier gives the trends a reference. Cached in tsm_demo.csv, refreshed daily."""
+    demonstration only. TSM publishes one state per item (no history, no AH quantities), so every build keeps one copy
+    per day in tsm_demo/ and the price history grows from those (up to 14 days). Sold per day stands in for
+    sell-through; while there are fewer than 3 days, the average sale price 3 days earlier gives trends a reference."""
     path = cfg.get('tsm_demo') or 'classic/eu/region'
+    snapdir = os.path.join(ROOT, 'tsm_demo')
+    os.makedirs(snapdir, exist_ok=True)
     try:
-        rows = tsm.fetch(path, cache=os.path.join(ROOT, 'tsm_demo.csv'))
+        latest = tsm.fetch(path, cache=os.path.join(snapdir, 'latest.csv'))
     except OSError as e:
         print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
         return None
-    known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
-    rows = [r for r in (rows or []) if str(r['item_id']) in known]  # only items that exist in WoW Forever
-    if not rows:
+    if not latest:
         return None
+    day_file = os.path.join(snapdir, datetime.fromtimestamp(max(r['t'] for r in latest)).strftime('%Y-%m-%d') + '.csv')
+    if not os.path.exists(day_file):
+        shutil.copy(os.path.join(snapdir, 'latest.csv'), day_file)
+    snaps = [tsm.parse(open(f, encoding='utf-8').read()) for f in sorted(glob.glob(os.path.join(snapdir, '20*.csv')))[-14:]]
+    known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+    snaps = [[r for r in rows if str(r['item_id']) in known] for rows in snaps]  # only items that exist in WoW Forever
     launch = datetime.fromisoformat(cfg.get('launch', '2026-11-04'))
     now = int(launch.timestamp() + 3.5 * 86400)
-    shift = now - max(r['t'] for r in rows)
-    for r in rows:
-        r['t'] += shift
+    shift = now - max(r['t'] for r in snaps[-1])
     con = sqlite3.connect(':memory:')
     con.executescript(SCHEMA)
     realm = 'TSM ' + path.split('/')[0].capitalize() + ' ' + path.split('/')[1].upper()
-    tsm.store(con, realm, rows)
-    con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
-                    [(realm, r['item_id'], r['t'] - 3 * 86400, r['avg_sale'] or r['historical'], None)
-                     for r in rows if r['avg_sale'] or r['historical']])
-    return analysed(con, realm, cfg, now)
+    for rows in snaps:
+        for r in rows:
+            r['t'] += shift
+        tsm.store(con, realm, rows)
+    if len(snaps) < 3:
+        con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
+                        [(realm, r['item_id'], r['t'] - 3 * 86400, r['avg_sale'] or r['historical'], None)
+                         for r in snaps[-1] if r['avg_sale'] or r['historical']])
+    live = analysed(con, realm, cfg, now)
+    live['tsm_days'] = len(snaps)
+    return live
 
 
 def flips(live, cfg):
@@ -164,8 +175,8 @@ def pack(live, cfg, wanted, fills):
         if str(iid) in wanted:
             rows[str(iid)] = dict(lp=lr['price'], lq=lr['qty'], sell=lr['sell'], med7=lr['median7'],
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
-                                  spark=[[p[0], p[1], p[3]] for p in lr['series'][-40:]])
-    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'),
+                                  spark=[[p[0], p[1], p[3]] for p in lr['series'][-40:]], tsm=lr.get('tsm'))
+    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
                 days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],

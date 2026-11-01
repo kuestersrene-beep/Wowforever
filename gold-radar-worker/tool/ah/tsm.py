@@ -79,11 +79,17 @@ def store(con, realm, rows):
     """Writes the rows into an ah.db-style database (realm column = auction house label). Returns the count."""
     con.execute('CREATE TABLE IF NOT EXISTS tsm (realm TEXT, item_id INTEGER, t INTEGER, market INTEGER, '
                 'sold_per_day REAL, sale_rate REAL, PRIMARY KEY (realm, item_id, t))')
+    cols = {c[1] for c in con.execute('PRAGMA table_info(tsm)')}
+    for c in ('avg_sale', 'historical'):  # added later: older databases get the columns here
+        if c not in cols:
+            con.execute(f'ALTER TABLE tsm ADD COLUMN {c} INTEGER')
     con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)',
                     [(realm, r['item_id'], r['t'], r['market'], r['market'], None, None, None, int(time.time()))
                      for r in rows if r['market']])
-    con.executemany('INSERT OR IGNORE INTO tsm VALUES (?,?,?,?,?,?)',
-                    [(realm, r['item_id'], r['t'], r['market'], r['sold_per_day'], r['sale_rate']) for r in rows])
+    con.executemany('INSERT OR IGNORE INTO tsm (realm, item_id, t, market, sold_per_day, sale_rate, avg_sale, historical) '
+                    'VALUES (?,?,?,?,?,?,?,?)',
+                    [(realm, r['item_id'], r['t'], r['market'], r['sold_per_day'], r['sale_rate'], r.get('avg_sale'),
+                      r.get('historical')) for r in rows])
     con.commit()
     return len(rows)
 

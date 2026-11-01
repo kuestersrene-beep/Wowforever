@@ -60,8 +60,11 @@ def analyse(con, realm, cfg, now):
     crates = json.load(open(crates_path, encoding='utf-8')) if os.path.exists(crates_path) else {}
     series = load_series(con, realm)
     try:  # latest TSM sales per item (ah/tsm.py), if any
-        tsm = {i: s for i, s in con.execute('SELECT item_id, sold_per_day FROM tsm t WHERE realm=? AND t = '
-                                            '(SELECT MAX(t) FROM tsm u WHERE u.realm=t.realm AND u.item_id=t.item_id)', (realm,))}
+        cols = {c[1] for c in con.execute('PRAGMA table_info(tsm)')}
+        extra = ', avg_sale, historical' if 'avg_sale' in cols else ', NULL, NULL'
+        tsm = {i: dict(sold=s, rate=rt, market=m, avg_sale=a, historical=h) for i, s, rt, m, a, h in con.execute(
+            f'SELECT item_id, sold_per_day, sale_rate, market{extra} FROM tsm t WHERE realm=? AND t = '
+            '(SELECT MAX(t) FROM tsm u WHERE u.realm=t.realm AND u.item_id=t.item_id)', (realm,))}
     except sqlite3.OperationalError:
         tsm = {}
     rows = {}
@@ -91,7 +94,8 @@ def analyse(con, realm, cfg, now):
                 span += b[0] - a[0]
         r['gone_per_day'] = gone / (span / D) if span >= 6 * H else None
         # where our own readings can't measure sell-through (daily add-on data), TSM's sold per day stands in
-        r['tsm_sold'] = tsm.get(item)
+        r['tsm'] = tsm.get(item)
+        r['tsm_sold'] = r['tsm']['sold'] if r['tsm'] else None
         if r['gone_per_day'] is None and r['tsm_sold'] is not None:
             r['gone_per_day'] = r['tsm_sold']
         rows[item] = r
