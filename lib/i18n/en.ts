@@ -9,6 +9,7 @@ export const en: Dictionary = {
     toAvailability: "Set your availability",
     toDownloads: "Downloads",
     toGoldRadar: "Gold radar",
+    toGuides: "Guides",
     toCharacters: "Characters",
     toEvents: "Events & raids",
     toGuildName: "Guild name poll",
