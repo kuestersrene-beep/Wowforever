@@ -2,7 +2,7 @@
 
 Loop (every INTERVAL_SECONDS):
 1. New uploads (gold_radar_uploads, status 'pending'): download the SavedVariables file from the private bucket
-   (AuctionDB, Auctionator or Tradeskills), parse it (data only, nothing is executed), keep the auction house's
+   (AuctionDB, Auctionator, aux or Tradeskills; tool/ah/scanfiles.py), parse it (data only, nothing is executed), keep the auction house's
    faction and store every price point once in Supabase (gold_radar_scans / gold_radar_history) and in a local
    SQLite copy.
 2. Uploads marked 'revoke' by the owner: delete the points they contributed, rebuild the local copy.

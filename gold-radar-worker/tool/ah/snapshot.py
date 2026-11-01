@@ -1,6 +1,6 @@
 """Phase 2: archive the AH add-ons' saved prices after every AH session and append them to ah.db.
 
-Reads AuctionDB.lua (AuctionDB, WoW Forever edition), Auctionator.lua and Blackthornes_TS.lua (Tradeskills), whichever
+Reads AuctionDB.lua (AuctionDB, WoW Forever edition), Auctionator.lua, aux-addon.lua and Blackthornes_TS.lua (Tradeskills), whichever
 are there (ah/scanfiles.py), and keeps the auction house of the faction in config.json "ruleset".
 Run after you logged out or typed /reload (only then does the game write the files):
     python ah/snapshot.py
@@ -15,7 +15,7 @@ sys.path.insert(0, HERE)
 import scanfiles
 
 DEFAULT_WOW = r'C:\Program Files (x86)\World of Warcraft\_forever_'
-SV_NAMES = ('AuctionDB.lua', 'Auctionator.lua', 'Blackthornes_TS.lua')
+SV_NAMES = ('AuctionDB.lua', 'Auctionator.lua', 'aux-addon.lua', 'Blackthornes_TS.lua')
 DB_PATH = os.path.join(HERE, 'ah.db')
 SNAP_DIR = os.path.join(HERE, 'snapshots')
 
@@ -80,7 +80,7 @@ def main():
     files = [a.file] if a.file else find_files(a.wow)
     if not files:
         raise SystemExit(f'Keine {", ".join(SV_NAMES)} unter {a.wow}\\WTF\\Account\\*\\SavedVariables gefunden. '
-                         'Ist AuctionDB, Auctionator oder Tradeskills im Forever-Ordner installiert und warst du einmal '
+                         'Ist AuctionDB, Auctionator, aux oder Tradeskills im Forever-Ordner installiert und warst du einmal '
                          'ausgeloggt / /reload?')
     con = sqlite3.connect(DB_PATH)
     con.executescript(SCHEMA)

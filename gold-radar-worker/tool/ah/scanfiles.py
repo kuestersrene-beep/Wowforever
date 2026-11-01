@@ -5,6 +5,8 @@
     Auctionator.lua      Auctionator: per item the current min price and one price + quantity per day. Since
                          database version 8 every realm is a CBOR-encoded string instead of a Lua table.
     Blackthornes_TS.lua  Tradeskills: per item the last reading plus a short history.
+    aux-addon.lua        aux: per realm and faction the lowest buyout of the current day and up to 11 older daily
+                         values per item; no quantities.
 
 read(raw_bytes, faction) -> Prices with scans (one row per item and scan time) and history (older points), only for
 the auction house of that faction ("Horde" / "Alliance"; None = all). Only data is parsed, nothing is executed.
@@ -183,8 +185,37 @@ def from_auctionator(db, faction, out):
             out.sources.append(f'Auctionator {realm}')
 
 
+def from_aux(db, faction, out):
+    """faction["Realm|Faction"].history["itemID:suffixID"] = "nextPush#dailyMinBuyout#value@time;value@time...":
+    the lowest unit buyout of the running day (it is stored as a daily point at nextPush, the end of that day) and
+    the older daily values. Random-suffix gear (suffix other than 0) is skipped."""
+    for key, data in (db.get('faction') or {}).items():
+        if not isinstance(key, str) or not isinstance(data, dict) or (faction and not key.endswith('|' + faction)):
+            continue
+        realm = text(key).replace('|', ' ')
+        n = 0
+        for item_key, entry in (data.get('history') or {}).items():
+            if not isinstance(item_key, str) or not isinstance(entry, str):
+                continue
+            item_id, _, suffix = item_key.partition(':')
+            if not item_id.isdigit() or suffix not in ('', '0'):
+                continue
+            item_id = int(item_id)
+            push, daily_min, points = (entry.split('#') + ['', '', ''])[:3]
+            for point in points.split(';'):
+                value, _, t = point.partition('@')
+                if value and t.isdigit():
+                    out.point(realm, item_id, int(t), int(float(value)), None)
+            if push.isdigit() and daily_min:
+                price = int(float(daily_min))
+                out.scan(realm, item_id, int(push) - DAY // 2, price, price, None)
+            n += 1
+        if n:
+            out.sources.append(f'aux {realm}')
+
+
 FORMATS = (('BlackthornesTSDB', from_tradeskills), ('AuctionDBForeverSaved', from_auctiondb),
-           ('AUCTIONATOR_PRICE_DATABASE', from_auctionator))
+           ('AUCTIONATOR_PRICE_DATABASE', from_auctionator), ('aux', from_aux))
 
 
 def read(raw, faction=None):
@@ -192,7 +223,7 @@ def read(raw, faction=None):
     sv = lua_sv.loads(raw.decode('latin-1'))  # byte for byte: Auctionator keeps binary data in strings
     known = [(name, fn) for name, fn in FORMATS if isinstance(sv.get(name), dict)]
     if not known:
-        raise ValueError('keine Daten von AuctionDB, Auctionator oder Tradeskills in der Datei')
+        raise ValueError('keine Daten von AuctionDB, Auctionator, aux oder Tradeskills in der Datei')
     out = Prices()
     for name, fn in known:
         fn(sv[name], faction, out)

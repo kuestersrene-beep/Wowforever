@@ -18,7 +18,7 @@ export interface UploadResult {
   message: string;
 }
 
-// Nimmt eine SavedVariables-Datei eines AH-Addons (AuctionDB, Auctionator, Tradeskills) eines Mitglieds an.
+// Nimmt eine SavedVariables-Datei eines AH-Addons (AuctionDB, Auctionator, aux, Tradeskills) eines Mitglieds an.
 // Hier wird sie nur grob geprüft und abgelegt; eingelesen wird sie vom
 // Dienst gold-radar-worker (Python, liest die Datei nur, führt nichts aus).
 export async function uploadScan(_prev: UploadResult | null, formData: FormData): Promise<UploadResult> {

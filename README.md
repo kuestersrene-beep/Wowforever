@@ -363,7 +363,7 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
 
 5. **Gemeinsame Scans:** Mitglieder mit der Rolle laden unter `/gold-radar/upload` die
    SavedVariables-Datei ihres AH-Addons hoch: `AuctionDB.lua` (AuctionDB, WoW-Forever-Ausgabe; am
-   besten), `Auctionator.lua` oder `Blackthornes_TS.lua` (Tradeskills). Der Dienst
+   besten), `Auctionator.lua`, `aux-addon.lua` oder `Blackthornes_TS.lua` (Tradeskills). Der Dienst
    `gold-radar-worker` (eigener Container in `docker-compose.yml`, nutzt dieselbe `.env`) liest sie
    jede Minute ein, speichert jeden Preis-Messpunkt einmal in `gold_radar_scans`/`gold_radar_history`
    und baut `<ruleset>/dashboard.html` mit Live-Daten aus der hochgeladenen Vorlage neu. Unter

@@ -32,7 +32,7 @@ export function uploadRulesets(): string[] {
   return list.length ? list : [defaultRuleset()];
 }
 
-// Gemeinsame Scans: SavedVariables-Dateien der AH-Addons der Mitglieder
+// Gemeinsame Scans: SavedVariables-Dateien der AH-Addons der Mitglieder (Leser: gold-radar-worker/tool/ah/scanfiles.py)
 // (siehe app/gold-radar/upload und gold-radar-worker/worker.py), beste zuerst.
 // marker = Variable in der Datei, an der der Upload sie erkennt.
 export const SCAN_SOURCES = [
@@ -40,6 +40,8 @@ export const SCAN_SOURCES = [
     note: "Komplett-Scan des ganzen Auktionshauses alle 15 Minuten, mit Menge und Median. Am besten." },
   { addon: "Auctionator", file: "Auctionator.lua", marker: "AUCTIONATOR_PRICE_DATABASE",
     note: "Haben die meisten. Nur ein Preis pro Tag, aber besser als nichts." },
+  { addon: "aux", file: "aux-addon.lua", marker: "aux = {",
+    note: "Tagestiefstpreis und die letzten Tageswerte, ohne Mengen." },
   { addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
     note: "Preise mit Verlauf der letzten Messungen." },
 ] as const;

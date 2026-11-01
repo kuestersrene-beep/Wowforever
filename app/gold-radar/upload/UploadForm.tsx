@@ -54,7 +54,7 @@ export default function UploadForm({ rulesets, wowPath }: { rulesets: string[]; 
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-sm text-slate-300">2. Datei wählen (AuctionDB.lua, Auctionator.lua oder Blackthornes_TS.lua)</span>
+        <span className="text-sm text-slate-300">2. Datei wählen (AuctionDB.lua, Auctionator.lua, aux-addon.lua oder Blackthornes_TS.lua)</span>
         <input type="file" name="file" accept=".lua" required className="text-sm text-slate-300" />
       </label>
 
