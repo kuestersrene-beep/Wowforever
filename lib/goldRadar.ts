@@ -3,7 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getDisplayName } from "@/lib/admin";
 
-// Gold-Radar: das Auktionshaus-/Nachfrage-Tool aus dem Projekt
+// Blackwater Terminal (früher Gold-Radar): das Auktionshaus-/Nachfrage-Tool aus dem Projekt
 // WowForever-Gold (ah/dashboard.py erzeugt eine einzelne HTML-Datei).
 // Die Datei liegt im privaten Supabase-Storage-Bucket "gold-radar" unter
 // "<ruleset>/dashboard.html" (z. B. "pvp-eu-horde/dashboard.html") und wird

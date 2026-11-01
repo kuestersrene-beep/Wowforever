@@ -40,8 +40,9 @@ export async function uploadDashboard(formData: FormData) {
     throw new Error("Datei ist zu groß (max. 9 MB).");
   }
   const html = await file.text();
-  if (!html.includes("<html") || !html.includes("Gold-Radar")) {
-    throw new Error("Das sieht nicht nach einer Gold-Radar-HTML-Datei aus.");
+  // ältere Dateien heißen noch "Gold-Radar", neue "Blackwater Terminal"
+  if (!html.includes("<html") || !["Gold-Radar", "Blackwater Terminal"].some((n) => html.includes(n))) {
+    throw new Error("Das sieht nicht nach einer Blackwater-Terminal-HTML-Datei aus.");
   }
 
   const { error } = await createAdminClient()

@@ -8,7 +8,7 @@ export const de: Dictionary = {
     toAdmin: "Admin-Dashboard",
     toAvailability: "Verfügbarkeit eintragen",
     toDownloads: "Downloads",
-    toGoldRadar: "Gold-Radar",
+    toGoldRadar: "Blackwater Terminal",
     toGuides: "Guides",
     toCharacters: "Charaktere",
     toEvents: "Termine & Raids",

@@ -28,7 +28,7 @@ const fmt = (iso: string) =>
   });
 
 // Nur für die in GOLD_RADAR_ADMIN_IDS eingetragenen Personen: wer nutzt das
-// Gold-Radar, und neue Tool-Daten hochladen. Normale Admins sehen das nicht.
+// Tool (Blackwater Terminal), und neue Tool-Daten hochladen. Normale Admins sehen das nicht.
 export default async function GoldRadarAdminPage() {
   const supabase = await createClient();
   const {
@@ -85,7 +85,7 @@ export default async function GoldRadarAdminPage() {
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
-        <h1 className="heading-ornate text-2xl">Gold-Radar: Nutzung &amp; Daten</h1>
+        <h1 className="heading-ornate text-2xl">Blackwater Terminal: Nutzung &amp; Daten</h1>
         <Link href="/gold-radar" className="text-sm text-gold-light hover:underline">
           ← Zum Tool
         </Link>

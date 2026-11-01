@@ -9,7 +9,7 @@ import {
   logUsage,
 } from "@/lib/goldRadar";
 
-export const metadata = { title: "Gold-Radar", robots: { index: false } };
+export const metadata = { title: "Blackwater Terminal", robots: { index: false } };
 
 export default async function GoldRadarPage() {
   const supabase = await createClient();
@@ -28,9 +28,9 @@ export default async function GoldRadarPage() {
     if (discordId) await logUsage(user, discordId, "denied", null);
     return (
       <main className="flex flex-col gap-4">
-        <h1 className="heading-ornate text-2xl">Gold-Radar</h1>
+        <h1 className="heading-ornate text-2xl">Blackwater Terminal</h1>
         <p className="panel p-5 text-slate-300">
-          Für das Gold-Radar brauchst du im Gilden-Discord die Rolle{" "}
+          Für Blackwater Terminal brauchst du im Gilden-Discord die Rolle{" "}
           <b className="text-gold-light">{getAccessRoles().join(" oder ")}</b>. Frag
           einen Offizier. Nach der Vergabe dauert es bis zu ein paar Minuten, bis der
           Zugang hier ankommt.
@@ -45,7 +45,7 @@ export default async function GoldRadarPage() {
   return (
     <main className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="heading-ornate text-2xl">Gold-Radar</h1>
+        <h1 className="heading-ornate text-2xl">Blackwater Terminal</h1>
         <div className="flex gap-4 text-sm">
           {isGoldRadarOwner(discordId) && (
             <Link href="/admin/gold-radar" className="text-horde hover:underline">
@@ -62,7 +62,7 @@ export default async function GoldRadarPage() {
       </div>
       <iframe
         src="/gold-radar/app"
-        title="Gold-Radar"
+        title="Blackwater Terminal"
         className="h-[calc(100vh-10rem)] min-h-[600px] w-full rounded-lg border border-gold/30 bg-white"
       />
       <p className="text-xs text-slate-500">

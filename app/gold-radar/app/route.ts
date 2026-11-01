@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   if (!(await hasGoldRadarAccess(discordId))) {
     await logUsage(user, discordId, "denied", ruleset);
-    return new NextResponse("Kein Zugang zum Gold-Radar.", { status: 403 });
+    return new NextResponse("Kein Zugang zu Blackwater Terminal.", { status: 403 });
   }
 
   const html = await loadDashboard(ruleset);

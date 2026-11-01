@@ -341,9 +341,9 @@ Notfall-Zugang, falls der Bot einmal nicht läuft.
 
 ---
 
-## 9. Gold-Radar (Auktionshaus-Tool, nur mit Discord-Rolle)
+## 9. Blackwater Terminal (Auktionshaus-Tool, nur mit Discord-Rolle)
 
-`/gold-radar` zeigt das Gold-Radar aus dem Projekt *WowForever-Gold* (eine einzelne HTML-Datei)
+`/gold-radar` zeigt Blackwater Terminal (früher „Gold-Radar“) aus dem Projekt *WowForever-Gold* (eine einzelne HTML-Datei)
 nur Mitgliedern mit einer bestimmten Discord-Rolle.
 
 1. **Rolle anlegen:** im Discord eine Rolle `Gold-Radar` erstellen und den Leuten geben, die das
