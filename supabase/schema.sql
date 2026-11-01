@@ -969,6 +969,70 @@ insert into storage.buckets (id, name, public)
 values ('gold-radar', 'gold-radar', false)
 on conflict (id) do nothing;
 
+-- Gemeinsame AH-Scans: Mitglieder mit Zugangsrolle laden ihre
+-- Tradeskills-Datei (Blackthornes_TS.lua) unter /gold-radar/upload hoch.
+-- Die Rohdatei liegt im Bucket unter uploads/<ruleset>/<id>.lua, der
+-- Dienst gold-radar-worker liest sie ein, schreibt die Preise in die
+-- Tabellen darunter und baut <ruleset>/dashboard.html mit Live-Daten neu.
+-- Jeder Preis-Messpunkt (Auktionshaus, Item, Zeitpunkt) wird einmal
+-- gespeichert; derselbe Scan von zwei Leuten zählt also nur einmal.
+-- Ein Upload lässt sich zurücknehmen (status 'revoke'): der Dienst löscht
+-- dann alle Messpunkte, die er beigetragen hat. Ebenfalls ohne Policies.
+create table if not exists public.gold_radar_uploads (
+  id uuid primary key default gen_random_uuid(),
+  discord_id text not null,
+  display_name text,
+  ruleset text not null check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  file_path text not null,
+  size_bytes integer,
+  status text not null default 'pending'
+    check (status in ('pending', 'done', 'error', 'revoke', 'revoked')),
+  message text,
+  items integer,
+  realms text[],
+  created_at timestamptz not null default now(),
+  processed_at timestamptz
+);
+
+alter table public.gold_radar_uploads enable row level security;
+
+create index if not exists gold_radar_uploads_status
+  on public.gold_radar_uploads (status, created_at);
+create index if not exists gold_radar_uploads_user
+  on public.gold_radar_uploads (discord_id, created_at desc);
+
+-- Aktueller Stand je Item und Scan-Zeitpunkt (Tradeskills "prices")
+create table if not exists public.gold_radar_scans (
+  ruleset text not null,
+  item_id integer not null,
+  seen bigint not null,
+  realm text,
+  market integer,
+  min_price integer,
+  quantity integer,
+  scans integer,
+  upload_id uuid not null references public.gold_radar_uploads (id) on delete cascade,
+  primary key (ruleset, item_id, seen)
+);
+
+-- Verlauf je Item (Tradeskills hält die letzten Messpunkte pro Item)
+create table if not exists public.gold_radar_history (
+  ruleset text not null,
+  item_id integer not null,
+  t bigint not null,
+  realm text,
+  market integer,
+  quantity integer,
+  upload_id uuid not null references public.gold_radar_uploads (id) on delete cascade,
+  primary key (ruleset, item_id, t)
+);
+
+alter table public.gold_radar_scans enable row level security;
+alter table public.gold_radar_history enable row level security;
+
+create index if not exists gold_radar_scans_upload on public.gold_radar_scans (upload_id);
+create index if not exists gold_radar_history_upload on public.gold_radar_history (upload_id);
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

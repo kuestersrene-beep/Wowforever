@@ -22,3 +22,6 @@ npm-debug.log*
 # Discord-Bot: gemerkte Blueposts
 discord-setup/data/
 __pycache__/
+
+# Blackwater Terminal: lokale Scan-Kopie des Workers
+gold-radar-worker/data/

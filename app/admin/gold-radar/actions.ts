@@ -6,6 +6,7 @@ import { getDiscordId } from "@/lib/admin";
 import {
   DASHBOARD_FILE,
   GOLD_RADAR_BUCKET,
+  MODEL_FILE,
   isGoldRadarOwner,
   isValidRuleset,
 } from "@/lib/goldRadar";
@@ -45,14 +46,38 @@ export async function uploadDashboard(formData: FormData) {
     throw new Error("Das sieht nicht nach einer Blackwater-Terminal-HTML-Datei aus.");
   }
 
-  const { error } = await createAdminClient()
-    .storage.from(GOLD_RADAR_BUCKET)
-    .upload(`${ruleset}/${DASHBOARD_FILE}`, html, {
+  // model.html ist die Vorlage für gold-radar-worker (der baut daraus mit
+  // den gemeinsamen Scans dashboard.html neu); dashboard.html sofort
+  // ersetzen, damit die neue Version auch ohne laufenden Worker sichtbar ist.
+  const storage = createAdminClient().storage.from(GOLD_RADAR_BUCKET);
+  for (const name of [MODEL_FILE, DASHBOARD_FILE]) {
+    const { error } = await storage.upload(`${ruleset}/${name}`, html, {
       contentType: "text/html; charset=utf-8",
       upsert: true,
     });
+    if (error) {
+      throw new Error(`Hochladen fehlgeschlagen: ${error.message}`);
+    }
+  }
+  revalidatePath("/admin/gold-radar");
+}
+
+// Nimmt einen Scan-Upload zurück: der Worker löscht alle Messpunkte, die
+// er beigetragen hat, und baut die Tool-Seite neu.
+export async function revokeUpload(formData: FormData) {
+  await requireOwner();
+
+  const id = String(formData.get("id") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id)) {
+    throw new Error("Ungültige Upload-ID.");
+  }
+  const { error } = await createAdminClient()
+    .from("gold_radar_uploads")
+    .update({ status: "revoke" })
+    .eq("id", id)
+    .in("status", ["done", "error", "pending"]);
   if (error) {
-    throw new Error(`Hochladen fehlgeschlagen: ${error.message}`);
+    throw new Error(`Zurücknehmen fehlgeschlagen: ${error.message}`);
   }
   revalidatePath("/admin/gold-radar");
 }

@@ -1,3 +1,5 @@
 # Der Discord-Bot hat ein eigenes Image (discord-setup/Dockerfile) und
 # sein Token gehört nicht in das Image der Web-App.
 discord-setup
+# Eigenes Image (gold-radar-worker/Dockerfile), lokale Scan-Kopie gehört nicht ins Web-Image
+gold-radar-worker

@@ -6,11 +6,13 @@ import { discordUserUrl } from "@/lib/discordUrl";
 import {
   DASHBOARD_FILE,
   GOLD_RADAR_BUCKET,
+  UPLOAD_STATUS_LABEL,
   defaultRuleset,
   getAccessRoles,
   isGoldRadarOwner,
+  type UploadRow,
 } from "@/lib/goldRadar";
-import { pruneUsage, uploadDashboard } from "./actions";
+import { pruneUsage, revokeUpload, uploadDashboard } from "./actions";
 
 interface UsageRow {
   discord_id: string;
@@ -40,7 +42,7 @@ export default async function GoldRadarAdminPage() {
   }
 
   const db = createAdminClient();
-  const [{ data: usage, error }, { data: folders }] = await Promise.all([
+  const [{ data: usage, error }, { data: folders }, { data: uploads }] = await Promise.all([
     db
       .from("gold_radar_usage")
       .select("discord_id, display_name, event, ruleset, created_at")
@@ -48,6 +50,12 @@ export default async function GoldRadarAdminPage() {
       .limit(2000)
       .returns<UsageRow[]>(),
     db.storage.from(GOLD_RADAR_BUCKET).list("", { limit: 100 }),
+    db
+      .from("gold_radar_uploads")
+      .select("id, discord_id, display_name, ruleset, size_bytes, status, message, items, created_at, processed_at")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .returns<UploadRow[]>(),
   ]);
 
   const rows = usage ?? [];
@@ -74,7 +82,7 @@ export default async function GoldRadarAdminPage() {
   // Aktuelle Datei je Ruleset-Ordner (Ordner = ein Auktionshaus)
   const files = await Promise.all(
     (folders ?? [])
-      .filter((f) => !f.metadata) // Ordner haben keine Metadaten
+      .filter((f) => !f.metadata && f.name !== "uploads") // Ordner haben keine Metadaten
       .map(async (f) => {
         const { data } = await db.storage.from(GOLD_RADAR_BUCKET).list(f.name);
         const file = (data ?? []).find((x) => x.name === DASHBOARD_FILE);
@@ -168,6 +176,64 @@ export default async function GoldRadarAdminPage() {
       </section>
 
       <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">Scan-Uploads der Mitglieder</h2>
+        <p className="text-xs text-slate-500">
+          Mitglieder laden unter <Link href="/gold-radar/upload" className="text-gold-light hover:underline">/gold-radar/upload</Link>{" "}
+          ihre Tradeskills-Datei hoch; gold-radar-worker liest sie ein und baut die Tool-Seite neu.
+          &bdquo;Zurücknehmen&ldquo; entfernt alle Preise, die ein Upload beigetragen hat.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-slate-400">
+              <tr>
+                <th className="py-1 pr-4">Zeit</th>
+                <th className="py-1 pr-4">Discord</th>
+                <th className="py-1 pr-4">Auktionshaus</th>
+                <th className="py-1 pr-4">Status</th>
+                <th className="py-1 pr-4 text-right">Preise</th>
+                <th className="py-1"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(uploads ?? []).map((u) => (
+                <tr key={u.id} className="border-t border-gold/10 align-top">
+                  <td className="py-1 pr-4 text-slate-400">{fmt(u.created_at)}</td>
+                  <td className="py-1 pr-4">
+                    <a href={discordUserUrl(u.discord_id)} target="_blank" rel="noopener" className="hover:underline">
+                      {u.display_name ?? u.discord_id}
+                    </a>
+                  </td>
+                  <td className="py-1 pr-4 text-slate-400">{u.ruleset}</td>
+                  <td className={`py-1 pr-4 ${u.status === "error" ? "text-red-400" : u.status === "done" ? "text-green-400" : "text-slate-300"}`}>
+                    {UPLOAD_STATUS_LABEL[u.status]}
+                    {u.message && <div className="text-xs text-slate-500">{u.message}</div>}
+                  </td>
+                  <td className="py-1 pr-4 text-right">{u.items ?? ""}</td>
+                  <td className="py-1">
+                    {["done", "error", "pending"].includes(u.status) && (
+                      <form action={revokeUpload}>
+                        <input type="hidden" name="id" value={u.id} />
+                        <button className="rounded border border-horde/60 px-2 py-0.5 text-xs text-horde hover:bg-horde/10">
+                          zurücknehmen
+                        </button>
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {(uploads ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-2 text-slate-500">
+                    Noch keine Uploads.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
         <h2 className="font-heading text-lg text-gold-light">Tool-Daten</h2>
         <ul className="text-sm">
           {files.map((f) => (
@@ -197,8 +263,9 @@ export default async function GoldRadarAdminPage() {
         </form>
         <p className="text-xs text-slate-500">
           Hochladen: <code>dashboard-teilen.html</code> aus <code>python ah/dashboard.py --teilen</code>{" "}
-          (enthält das Nachfrage-Modell und die Beta-Demo, keine eigenen Scans). Ein Ordner je
-          Ruleset-Region-Fraktion, z. B. <code>pvp-eu-horde</code>.
+          (enthält das Nachfrage-Modell und die Beta-Demo). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
+          <code>pvp-eu-horde</code>. Die Datei wird als Vorlage gespeichert; gold-radar-worker setzt die
+          gemeinsamen Scans der Mitglieder ein und baut die Seite innerhalb weniger Minuten neu.
         </p>
       </section>
     </main>

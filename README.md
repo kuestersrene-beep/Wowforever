@@ -361,6 +361,19 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
    nginx muss dafür Uploads über 1 MB erlauben: `client_max_body_size 10m;` im
    `server`-Block (siehe `deploy/nginx-wowforever.conf.example`), danach `sudo nginx -t && sudo systemctl reload nginx`.
 
+5. **Gemeinsame Scans:** Mitglieder mit der Rolle laden unter `/gold-radar/upload` die
+   SavedVariables-Datei ihres AH-Addons hoch: `AuctionDB.lua` (AuctionDB, WoW-Forever-Ausgabe; am
+   besten), `Auctionator.lua` oder `Blackthornes_TS.lua` (Tradeskills). Der Dienst
+   `gold-radar-worker` (eigener Container in `docker-compose.yml`, nutzt dieselbe `.env`) liest sie
+   jede Minute ein, speichert jeden Preis-Messpunkt einmal in `gold_radar_scans`/`gold_radar_history`
+   und baut `<ruleset>/dashboard.html` mit Live-Daten aus der hochgeladenen Vorlage neu. Unter
+   `/admin/gold-radar` siehst du alle Uploads und kannst einen zurücknehmen (entfernt seine Preise).
+   Auktionshäuser für Uploads: `GOLD_RADAR_RULESETS` (Standard `GOLD_RADAR_RULESET`).
+   Einmalig nach dem Pull: Schema einspielen, dann `docker compose up -d --build`. Log:
+   `docker compose logs -f gold-radar-worker`.
+   Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
+   *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.
+
 Protokolliert werden nur Discord-ID, Anzeigename, Zeitpunkt, Ruleset und ob der Zugang abgelehnt
 wurde (wiederholte Aufrufe innerhalb von 15 Minuten zählen einmal). Alte Einträge lassen sich auf
 der Admin-Seite löschen. Für späteres Teilen von Daten ist pro Auktionshaus ein Ordner im Bucket

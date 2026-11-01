@@ -22,6 +22,56 @@ export function isValidRuleset(value: string): boolean {
   return /^[a-z0-9-]{1,40}$/.test(value);
 }
 
+// Auktionshäuser, für die Mitglieder Scans hochladen dürfen (Komma-Liste,
+// z. B. "pvp-eu-horde,pvp-eu-alliance"). Standard: das eine Ruleset der Gilde.
+export function uploadRulesets(): string[] {
+  const list = (process.env.GOLD_RADAR_RULESETS || defaultRuleset())
+    .split(",")
+    .map((r) => r.trim())
+    .filter(isValidRuleset);
+  return list.length ? list : [defaultRuleset()];
+}
+
+// Gemeinsame Scans: SavedVariables-Dateien der AH-Addons der Mitglieder
+// (siehe app/gold-radar/upload und gold-radar-worker/worker.py), beste zuerst.
+// marker = Variable in der Datei, an der der Upload sie erkennt.
+export const SCAN_SOURCES = [
+  { addon: "AuctionDB (WoW-Forever-Ausgabe)", file: "AuctionDB.lua", marker: "AuctionDBForeverSaved",
+    note: "Komplett-Scan des ganzen Auktionshauses alle 15 Minuten, mit Menge und Median. Am besten." },
+  { addon: "Auctionator", file: "Auctionator.lua", marker: "AUCTIONATOR_PRICE_DATABASE",
+    note: "Haben die meisten. Nur ein Preis pro Tag, aber besser als nichts." },
+  { addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
+    note: "Preise mit Verlauf der letzten Messungen." },
+] as const;
+export const SCAN_FILE_MAX_BYTES = 9 * 1024 * 1024; // bodySizeLimit in next.config.ts ist 10 MB
+export const SCAN_UPLOADS_PER_DAY = 24;
+// Das Modell (dashboard-teilen.html) liegt hier; der Worker baut daraus
+// mit den Live-Daten <ruleset>/dashboard.html.
+export const MODEL_FILE = "model.html";
+
+export type UploadStatus = "pending" | "done" | "error" | "revoke" | "revoked";
+
+export interface UploadRow {
+  id: string;
+  discord_id: string;
+  display_name: string | null;
+  ruleset: string;
+  size_bytes: number | null;
+  status: UploadStatus;
+  message: string | null;
+  items: number | null;
+  created_at: string;
+  processed_at: string | null;
+}
+
+export const UPLOAD_STATUS_LABEL: Record<UploadStatus, string> = {
+  pending: "wartet auf Verarbeitung",
+  done: "übernommen",
+  error: "Fehler",
+  revoke: "wird zurückgenommen",
+  revoked: "zurückgenommen",
+};
+
 // Discord-Rollen, die Zugang zum Tool geben. Der Gilden-Bot meldet sie
 // (wie die Ränge) in die Tabelle discord_members (discord-setup/rollensync.py).
 export function getAccessRoles(): string[] {

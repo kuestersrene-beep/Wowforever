@@ -52,6 +52,9 @@ export default async function GoldRadarPage() {
               Nutzung &amp; Daten
             </Link>
           )}
+          <Link href="/gold-radar/upload" className="text-gold-light hover:underline">
+            Scan hochladen
+          </Link>
           <a href="/gold-radar/app" target="_blank" rel="noopener" className="text-gold-light hover:underline">
             Im eigenen Tab öffnen ↗
           </a>

@@ -24,3 +24,14 @@ services:
       - ./discord-setup/.env
     volumes:
       - ./discord-setup/data:/bot/data
+
+  # Blackwater Terminal: liest die Scan-Uploads der Mitglieder ein und baut die
+  # Tool-Seite mit Live-Preisen neu (siehe gold-radar-worker/worker.py).
+  # Nutzt dieselbe .env wie die App (Supabase-URL und service_role Key).
+  gold-radar-worker:
+    build: ./gold-radar-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./gold-radar-worker/data:/data
