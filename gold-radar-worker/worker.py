@@ -83,9 +83,9 @@ def now_iso():
 
 
 # ---------- local copy (the tool's own SQLite schema; realm column = ruleset) ----------
-def local(ruleset):
+def local(ruleset, suffix=''):
     os.makedirs(DATA_DIR, exist_ok=True)
-    con = sqlite3.connect(os.path.join(DATA_DIR, f'{ruleset}.db'))
+    con = sqlite3.connect(os.path.join(DATA_DIR, f'{ruleset}.db{suffix}'))
     con.executescript(SCHEMA)
     return con
 
@@ -100,11 +100,12 @@ def put_local(con, ruleset, scans, history):
 
 
 def resync(ruleset):
-    """Rebuilds the local copy from Supabase (after a revoke, or when the copy is missing)."""
+    """Rebuilds the local copy from Supabase (after a revoke, or when the copy is missing). Built next to the old
+    copy and swapped in only when complete, so a failed attempt never leaves a half-filled copy behind."""
     path = os.path.join(DATA_DIR, f'{ruleset}.db')
-    if os.path.exists(path):
-        os.remove(path)
-    con = local(ruleset)
+    if os.path.exists(path + '.new'):
+        os.remove(path + '.new')
+    con = local(ruleset, '.new')
     for table, cols in (('gold_radar_scans', 'item_id,seen,market,min_price,quantity,scans'),
                         ('gold_radar_history', 'item_id,t,market,quantity')):
         offset = 0
@@ -119,8 +120,10 @@ def resync(ruleset):
                 break
             offset += 1000
     n = con.execute('SELECT COUNT(*) FROM scans').fetchone()[0]
+    con.close()
+    os.replace(path + '.new', path)
     log.info('%s: lokale Kopie neu aufgebaut (%d Messpunkte)', ruleset, n)
-    return con
+    return local(ruleset)
 
 
 # ---------- uploads ----------
@@ -296,8 +299,15 @@ def main():
     except (OSError, ValueError):
         state = {}
     cons = {}
-    for r in RULESETS:
-        cons[r] = local(r) if os.path.exists(os.path.join(DATA_DIR, f'{r}.db')) else resync(r)
+    while True:  # without the tables nothing works: wait for the schema instead of crashing in a loop
+        try:
+            for r in RULESETS:
+                if r not in cons:
+                    cons[r] = local(r) if os.path.exists(os.path.join(DATA_DIR, f'{r}.db')) else resync(r)
+            break
+        except urllib.error.HTTPError as e:
+            log.error('Supabase antwortet %s – ist supabase/schema.sql eingespielt? Neuer Versuch in %d s', e.code, INTERVAL)
+            time.sleep(INTERVAL)
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
     while True:
         dirty = set()
@@ -329,6 +339,9 @@ def main():
                 build(r, cons[r])
             if dirty:
                 json.dump(state, open(state_path, 'w', encoding='utf-8'))
+        except urllib.error.HTTPError as e:
+            log.error('Supabase antwortet %s auf %s – ist supabase/schema.sql eingespielt? Neuer Versuch in %d s',
+                      e.code, e.url.split('?')[0].replace(URL, ''), INTERVAL)
         except Exception:
             log.exception('Durchlauf fehlgeschlagen, nächster Versuch in %d s', INTERVAL)
         time.sleep(INTERVAL)
