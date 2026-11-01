@@ -82,13 +82,22 @@ export default async function GoldRadarAdminPage() {
   // Aktuelle Datei je Ruleset-Ordner (Ordner = ein Auktionshaus)
   const files = await Promise.all(
     (folders ?? [])
-      .filter((f) => !f.metadata && f.name !== "uploads") // Ordner haben keine Metadaten
+      .filter((f) => !f.metadata && f.name !== "uploads" && f.name !== "status") // Ordner haben keine Metadaten
       .map(async (f) => {
         const { data } = await db.storage.from(GOLD_RADAR_BUCKET).list(f.name);
         const file = (data ?? []).find((x) => x.name === DASHBOARD_FILE);
         return { ruleset: f.name, updated: file?.updated_at ?? null, size: file?.metadata?.size ?? null };
       })
   );
+
+  // Status der TSM-Suche (gold-radar-worker prüft täglich, ob TradeSkillMaster WoW-Forever-Daten anbietet)
+  let tsm: { checked?: string; found?: string | null; ruleset?: string | null } | null = null;
+  try {
+    const { data } = await db.storage.from(GOLD_RADAR_BUCKET).download("status/tsm.json");
+    if (data) tsm = JSON.parse(await data.text());
+  } catch {
+    tsm = null;
+  }
 
   return (
     <main className="flex flex-col gap-8">
@@ -235,6 +244,18 @@ export default async function GoldRadarAdminPage() {
 
       <section className="panel flex flex-col gap-3 p-5">
         <h2 className="font-heading text-lg text-gold-light">Tool-Daten</h2>
+        <p className={`rounded border px-3 py-2 text-sm ${tsm?.found ? "border-green-500/50 text-green-300" : "border-gold/20 text-slate-400"}`}>
+          {tsm?.found ? (
+            <>
+              <b>TradeSkillMaster bietet WoW-Forever-Daten an</b> ({tsm.found}). Der Dienst lädt sie alle 6 Stunden für{" "}
+              {tsm.ruleset}. Dauerhaft festlegen: <code>GOLD_RADAR_TSM={tsm.ruleset}={tsm.found}</code> in der <code>.env</code>.
+            </>
+          ) : tsm?.checked ? (
+            <>TradeSkillMaster: noch keine WoW-Forever-Daten (zuletzt geprüft {fmt(tsm.checked)}, täglich automatisch).</>
+          ) : (
+            <>TradeSkillMaster: noch nicht geprüft (der Dienst prüft einmal am Tag).</>
+          )}
+        </p>
         <ul className="text-sm">
           {files.map((f) => (
             <li key={f.ruleset}>

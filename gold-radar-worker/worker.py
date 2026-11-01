@@ -7,7 +7,9 @@ Loop (every INTERVAL_SECONDS):
    SQLite copy.
 2. Uploads marked 'revoke' by the owner: delete the points they contributed, rebuild the local copy.
 3. TSM public data (GOLD_RADAR_TSM, e.g. "pvp-eu-horde=forever/eu/realm/<realm>"): every TSM_HOURS fetched into
-   the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again.
+   the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again. Without
+   GOLD_RADAR_TSM the worker checks once a day whether TSM offers WoW Forever data (tool/ah/tsm.py CANDIDATES) and
+   then uses it for the first auction house; status/tsm.json in the bucket tells the admin page.
 4. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
@@ -221,6 +223,7 @@ def main():
             time.sleep(INTERVAL)
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
+    probe_next = 0.0
     while True:
         dirty = set()
         try:
@@ -242,6 +245,18 @@ def main():
                 cons[r].close()
                 cons[r] = resync(r)
                 dirty.add(r)
+            if not TSM and time.time() >= probe_next:  # look for WoW Forever data at TSM once a day
+                probe_next = time.time() + 86400
+                found = tsm.find_forever()
+                status = {'checked': now_iso(), 'found': found, 'ruleset': RULESETS[0] if found else None,
+                          'candidates': tsm.CANDIDATES}
+                storage_put('status/tsm.json', json.dumps(status).encode(), 'application/json')
+                if found:
+                    log.warning('TSM bietet jetzt WoW-Forever-Daten an: %s – wird für %s genutzt', found, RULESETS[0])
+                    TSM[RULESETS[0]] = found
+                    tsm_next[RULESETS[0]] = 0.0
+                else:
+                    log.info('TSM: noch keine WoW-Forever-Daten, nächste Prüfung in 24 Std.')
             for r, when in tsm_next.items():  # TSM public data, every TSM_HOURS (also right after a resync)
                 if time.time() < when and r not in revoked:
                     continue

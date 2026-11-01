@@ -4,8 +4,9 @@ in the page), item icons and tooltips, refining candidates, limited vendor recip
     python ah/dashboard.py            -> dashboard.html (with your own scan data, if any)
     python ah/dashboard.py --teilen   -> dashboard-teilen.html (model only, to give to guild mates)
 
-Both files also contain a demo data set built from the beta AH snapshots (button "Demo" in the page). It runs
-through exactly the same analysis as real scans, but beta prices are not meaningful and never feed the model.
+Both files also contain a demo data set from TradeSkillMaster's public Classic EU data (button "Demo" in the page,
+config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
+never part of the evaluation.
 """
 import base64, json, os, sqlite3, sys, statistics
 from datetime import datetime, date
@@ -13,7 +14,7 @@ from datetime import datetime, date
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import analyse
+import analyse, tsm
 from snapshot import SCHEMA
 
 
@@ -47,26 +48,31 @@ def live_data(cfg):
 
 
 def demo_data(cfg):
-    """Beta AH snapshots replayed as if they were our own scans (day 3 after launch), for demonstration only."""
-    beta = load('beta_ah.json')
-    best = {}
-    for fac in beta.values():          # per item the faction with the deeper market
-        for r in fac['rows']:
-            if r['itemId'] not in best or r['quantity'] > best[r['itemId']]['quantity']:
-                best[r['itemId']] = r
+    """TSM public data (Classic EU by default) replayed as if it were our own scan on day 3.5 after launch, for
+    demonstration only. TSM has no AH quantities: sold per day stands in for sell-through; its average sale price (or
+    60-day value) a few days earlier gives the trends a reference. Cached in tsm_demo.csv, refreshed daily."""
+    path = cfg.get('tsm_demo') or 'classic/eu/region'
+    try:
+        rows = tsm.fetch(path, cache=os.path.join(ROOT, 'tsm_demo.csv'))
+    except OSError as e:
+        print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
+        return None
+    known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+    rows = [r for r in (rows or []) if str(r['item_id']) in known]  # only items that exist in WoW Forever
+    if not rows:
+        return None
     launch = datetime.fromisoformat(cfg.get('launch', '2026-11-04'))
     now = int(launch.timestamp() + 3.5 * 86400)
+    shift = now - max(r['t'] for r in rows)
+    for r in rows:
+        r['t'] += shift
     con = sqlite3.connect(':memory:')
     con.executescript(SCHEMA)
-    realm = 'Beta-Demo'
-    for iid, r in best.items():
-        hist = r['history'] if isinstance(r.get('history'), list) and r['history'] else [r['price']]
-        n = len(hist)
-        for k, price in enumerate(hist):  # spread the recorded price points over the last days, 12 h apart
-            con.execute('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
-                        (realm, iid, now - (n - 1 - k) * 43200, price, r['quantity']))
-        con.execute('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)',
-                    (realm, iid, now, int(statistics.median(hist)), r['price'], None, r['quantity'], n, now))
+    realm = 'TSM ' + path.split('/')[0].capitalize() + ' ' + path.split('/')[1].upper()
+    tsm.store(con, realm, rows)
+    con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
+                    [(realm, r['item_id'], r['t'] - 3 * 86400, r['avg_sale'] or r['historical'], None)
+                     for r in rows if r['avg_sale'] or r['historical']])
     return analysed(con, realm, cfg, now)
 
 
@@ -84,6 +90,8 @@ def flips(live, cfg):
         if iid in vendor_ids or r['name'] in vendor_goods:
             continue
         price, target, vendor, qty = r['price'], r['median7'] or r['market'], r['sell'], r['qty'] or 0
+        if not qty and r.get('tsm_sold'):  # no AH quantity (TSM data): about two days of sales
+            qty = max(1, round(2 * r['tsm_sold']))
         if not price or not target or not qty:
             continue
         net = target * (1 - fee)
@@ -122,7 +130,7 @@ def favor_index(live, fills):
         rows = []
         for iid, name, count in fills.get(tier, []):
             lr = live['rows'].get(iid)
-            if lr and lr['price'] and (lr['qty'] or 0) >= count:   # at least one full fill on the AH
+            if lr and lr['price'] and (lr['qty'] is None or lr['qty'] >= count):   # a full fill on the AH (unknown: TSM)
                 rows.append(dict(tier=tier, id=iid, name=name, count=count, price=lr['price'], qty=lr['qty'],
                                  med7=lr['median7'], cost=lr['price'] * count))
         rows.sort(key=lambda r: r['cost'])
