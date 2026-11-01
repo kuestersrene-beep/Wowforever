@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
-import dashboard, lua_sv  # noqa: E402  (tool code from WowForever-Gold)
+import dashboard, scanfiles  # noqa: E402  (tool code from WowForever-Gold)
 from snapshot import SCHEMA  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -131,107 +131,14 @@ def faction_of(ruleset):
     return 'Horde' if ruleset.endswith('-horde') else 'Alliance' if ruleset.endswith('-alliance') else None
 
 
-def num(v):
-    return int(v) if isinstance(v, (int, float)) else None
-
-
-class Points:
-    """Price points of one upload, each (item, time) once: scans = state per scan, history = older points."""
-    def __init__(self, ruleset, upload_id):
-        self.ruleset, self.upload_id, self.scans, self.history = ruleset, upload_id, {}, {}
-
-    def scan(self, realm, item_id, seen, market, min_price, quantity, scans=None):
-        self.scans[(item_id, seen)] = dict(ruleset=self.ruleset, item_id=item_id, seen=seen, realm=realm, market=market,
-                                           min_price=min_price, quantity=quantity, scans=scans, upload_id=self.upload_id)
-
-    def point(self, realm, item_id, t, market, quantity):
-        self.history[(item_id, t)] = dict(ruleset=self.ruleset, item_id=item_id, t=t, realm=realm, market=market,
-                                          quantity=quantity, upload_id=self.upload_id)
-
-
-def from_tradeskills(db, fac, pts):
-    """Tradeskills (Blackthornes_TS.lua): prices[realm][item] = {seen, market, min, quantity, history = {{t, m, q}}}."""
-    prices = {r: t for r, t in (db.get('prices') or {}).items() if isinstance(t, dict)}
-    # realm keys look like "Realm-Horde"; when they carry a faction, keep only this auction house's faction
-    if fac and any(str(r).endswith(('-Horde', '-Alliance')) for r in prices):
-        prices = {r: t for r, t in prices.items() if str(r).endswith('-' + fac)}
-    for realm, table in prices.items():
-        for item_id, rec in table.items():
-            if not isinstance(rec, dict) or not isinstance(item_id, int):
-                continue
-            if rec.get('seen'):
-                pts.scan(str(realm), item_id, int(rec['seen']), num(rec.get('market')), num(rec.get('min')),
-                         num(rec.get('quantity')), num(rec.get('scans')))
-            for p in lua_sv.as_list(rec.get('history')):
-                if isinstance(p, dict) and p.get('t'):
-                    pts.point(str(realm), item_id, int(p['t']), num(p.get('m')), num(p.get('q')))
-    return [f'Tradeskills {r}' for r in sorted(map(str, prices))]
-
-
-def from_auctiondb(sv, fac, pts):
-    """AuctionDB, WoW Forever edition (AuctionDB.lua): houses[faction] = {items = {[id] = "ts,min,median,qty ..."}
-    (every full scan of the last days), daily = {[id] = "ts,min,median,qty,scans ..."} (older days, one per day)}.
-    Full scans of the whole auction house, so the best source. Houses are per faction; the realm is not stored."""
-    house = (sv.get('houses') or {}).get(fac or '')
-    if not isinstance(house, dict):
-        return []
-    for key in ('items', 'daily'):
-        for item_id, text in (house.get(key) or {}).items():
-            if not isinstance(item_id, int) or not isinstance(text, str):
-                continue
-            for entry in text.split():
-                v = [int(float(x)) if x else 0 for x in entry.split(',')]
-                if len(v) < 4 or not v[0]:
-                    continue
-                ts, low, median, qty = v[:4]
-                if key == 'items':
-                    pts.scan(fac, item_id, ts, median or low or None, low or None, qty)
-                else:
-                    pts.point(fac, item_id, ts, median or low or None, qty)
-    return [f'AuctionDB {fac}']
-
-
-# Auctionator counts days from 2020-01-01 (Auctionator.Constants.SCAN_DAY_0); not yet checked against a Forever file
-AUCTIONATOR_DAY0 = 1577836800
-
-
-def from_auctionator(db, fac, pts):
-    """Auctionator (Auctionator.lua): AUCTIONATOR_PRICE_DATABASE["Realm Faction"][itemKey] = {m = latest min price,
-    l = {[day] = lowest price}, h = {[day] = highest}, a = {[day] = quantity available}}. One point per day only."""
-    realms = [r for r in db if isinstance(r, str) and isinstance(db[r], dict) and (not fac or r.endswith(' ' + fac))]
-    for realm in realms:
-        for key, rec in db[realm].items():
-            item_id = key if isinstance(key, int) else int(key) if isinstance(key, str) and key.isdigit() else None
-            if not item_id or not isinstance(rec, dict):
-                continue
-            low, avail = rec.get('l') or {}, rec.get('a') or {}
-            days = [d for d in low if isinstance(d, int)]
-            for d in days:
-                pts.point(realm, item_id, AUCTIONATOR_DAY0 + d * 86400 + 43200, num(low[d]), num(avail.get(d)))
-            if days and num(rec.get('m')):
-                d = max(days)
-                pts.scan(realm, item_id, AUCTIONATOR_DAY0 + d * 86400 + 43200, num(rec['m']), num(rec['m']),
-                         num(avail.get(d)))
-    return [f'Auctionator {r}' for r in sorted(realms)]
-
-
-FORMATS = (('BlackthornesTSDB', from_tradeskills), ('AuctionDBForeverSaved', from_auctiondb),
-           ('AUCTIONATOR_PRICE_DATABASE', from_auctionator))
-
-
-def parse(text, ruleset, upload_id):
-    """Prices of this auction house from a Tradeskills, AuctionDB or Auctionator file -> (scans, history, sources)."""
-    sv = lua_sv.loads(text)
-    fac = faction_of(ruleset)
-    pts, sources = Points(ruleset, upload_id), []
-    known = [(name, fn) for name, fn in FORMATS if isinstance(sv.get(name), dict)]
-    if not known:
-        raise ValueError('keine Daten von AuctionDB, Auctionator oder Tradeskills in der Datei')
-    for name, fn in known:
-        sources += fn(sv[name], fac, pts)
-    if not pts.scans and not pts.history:
-        raise ValueError(f'keine Preise für {fac or ruleset} in der Datei')
-    return list(pts.scans.values()), list(pts.history.values()), sources
+def parse(raw, ruleset, upload_id):
+    """Prices of this auction house from an AuctionDB, Auctionator or Tradeskills file -> (scans, history, sources)."""
+    p = scanfiles.read(raw, faction_of(ruleset))
+    scans = [dict(ruleset=ruleset, item_id=i, seen=t, realm=r, market=m, min_price=lo, quantity=q, scans=n,
+                  upload_id=upload_id) for r, i, t, m, lo, q, n in p.scans.values()]
+    history = [dict(ruleset=ruleset, item_id=i, t=t, realm=r, market=m, quantity=q, upload_id=upload_id)
+               for r, i, t, m, q in p.history.values()]
+    return scans, history, p.sources
 
 
 def store(table, rows, conflict):
@@ -244,7 +151,7 @@ def process(u, con):
     raw = storage_get(u['file_path'])
     if raw is None:
         raise ValueError('Datei nicht im Speicher gefunden')
-    scans, history, realms = parse(raw.decode('utf-8', errors='replace'), u['ruleset'], u['id'])
+    scans, history, realms = parse(raw, u['ruleset'], u['id'])
     store('gold_radar_scans', scans, 'ruleset,item_id,seen')
     store('gold_radar_history', history, 'ruleset,item_id,t')
     put_local(con, u['ruleset'], scans, history)
