@@ -377,9 +377,10 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
    TSM-Classic-EU-Daten für den Demo-Knopf (`GOLD_RADAR_TSM_DEMO`) und baut die Demo daraus, mit wachsendem Verlauf. Fest einstellen lässt es sich mit
    `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>`.
    **Blizzard-API:** Mit `BLIZZARD_CLIENT_ID`/`BLIZZARD_CLIENT_SECRET` (develop.battle.net) liest der Dienst
-   stündlich das ganze Auktionshaus: `GOLD_RADAR_BLIZZARD=pvp-eu-horde=forever:eu:<Realm>` für das eigene AH
-   (ab Launch; Realmnamen stehen unter `/admin/gold-radar`), `GOLD_RADAR_BLIZZARD_DEMO` (Standard
-   `classicann:eu:Spineshatter:Horde`) für den Demo-Knopf. Die Stände bleiben auf dem Server (letzte 10 Tage).
+   stündlich das ganze Auktionshaus. Forever hat keine Realms, nur Rulesets: `pvp-eu-horde` liest von selbst alle
+   PvP-Realms EU, Horde (`forever:eu:pvp:Horde`), sobald Blizzard sie freigibt; `GOLD_RADAR_BLIZZARD` nur zum
+   Überschreiben. Der Demo-Knopf nimmt Classic (Standard Spineshatter; liefert die API dessen AH nicht, sucht der
+   Dienst selbst ein Classic-AH; fest setzen mit `GOLD_RADAR_BLIZZARD_DEMO`). Die Stände bleiben auf dem Server (letzte 10 Tage).
    Prüfen: `docker compose exec gold-radar-worker python blizzard_probe.py`.
    Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
    *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.

@@ -91,7 +91,7 @@ export default async function GoldRadarAdminPage() {
   );
 
   // Status des Blizzard-Imports (gold-radar-worker, stündlich): Ziele, Fehler, Forever-Realms zur Auswahl
-  type BlizzTarget = { target: string; ok?: boolean; error?: string | null; items?: number; auctions?: number; dump?: string; checked?: string; realms?: string[] };
+  type BlizzTarget = { target: string; ok?: boolean; error?: string | null; items?: number; auctions?: number; dump?: string; checked?: string; realms?: string[]; realms_used?: string[] };
   let blizz: { checked?: string; targets?: Record<string, BlizzTarget>; forever_realms?: { eu?: string[] } } | null = null;
   try {
     const { data } = await db.storage.from(GOLD_RADAR_BUCKET).download("status/blizzard.json");
@@ -276,15 +276,15 @@ export default async function GoldRadarAdminPage() {
                 {t.ok
                   ? `${t.auctions} Auktionen, ${t.items} Items, Stand ${t.dump ? fmt(t.dump) : "?"}`
                   : `noch keine Daten (${t.error ?? "?"})`}
+                {t.ok && key !== "demo" && t.realms_used?.length ? ` · gelesen: ${t.realms_used.join(", ")}` : ""}
               </div>
             ))}
-          {blizz && !Object.keys(blizz.targets ?? {}).some((k) => k !== "demo") && (
+          {blizz && (
             <div className="mt-1 text-slate-400">
-              Für das eigene Auktionshaus: nach dem Launch in der .env{" "}
-              <code>GOLD_RADAR_BLIZZARD=pvp-eu-horde=forever:eu:&lt;Realmname&gt;</code> eintragen und{" "}
-              <code>docker compose up -d</code>.
+              Jedes Ruleset liest sein Forever-Auktionshaus von selbst (z. B. pvp-eu-horde = alle PvP-Realms EU, Horde),
+              sobald Blizzard es freigibt; nichts einzutragen.
               {(blizz.forever_realms?.eu ?? []).length > 0 && (
-                <> Forever-Realms EU laut Blizzard: {(blizz.forever_realms?.eu ?? []).join(", ")}</>
+                <> Forever EU laut Blizzard derzeit: {(blizz.forever_realms?.eu ?? []).join(", ")}</>
               )}
             </div>
           )}

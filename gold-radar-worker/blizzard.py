@@ -2,11 +2,13 @@
 
 Blizzard publishes every auction of a connected realm about once an hour (namespace e.g. dynamic-forever-eu for WoW
 Forever, dynamic-classicann-eu for Classic Anniversary). A target is "namespace:region:realm[:faction]", for example
-"forever:eu:Ashbringer" or "classicann:eu:Spineshatter:Horde"; the realm is a name (or a connected-realm id).
-snapshot() returns per item the lowest and the median unit buyout and the quantity listed, ready for the tool's
-scans table. Credentials: BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET (client credentials, develop.battle.net).
+"forever:eu:pvp:Horde" or "classicann:eu:Spineshatter:Horde". WoW Forever has no realms to choose, only rulesets: there
+the third part is the ruleset (pvp, pve, rp, rppvp) and every connected realm of that type counts as its auction house
+(ruleset_target() derives it from a gold-radar ruleset like "pvp-eu-horde"). Elsewhere it is a realm name or a
+connected-realm id. snapshot() returns per item the lowest and the median unit buyout and the quantity listed, ready
+for the tool's scans table. Credentials: BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET (client credentials, develop.battle.net).
 """
-import base64, json, time, urllib.error, urllib.parse, urllib.request
+import base64, json, re, time, urllib.error, urllib.parse, urllib.request
 from email.utils import parsedate_to_datetime
 
 
@@ -38,6 +40,16 @@ class Client:
             return e.code, None, None
 
 
+RULESET_TYPES = {'pvp': 'PVP', 'pve': 'NORMAL', 'normal': 'NORMAL', 'rp': 'RP', 'rppvp': 'RPPVP'}
+TEST_REALM = re.compile(r'\b(GMSS|Web|Partner)\b')  # Blizzard's internal realms in the Forever namespace
+
+
+def ruleset_target(ruleset, ns='forever'):
+    """"pvp-eu-horde" -> "forever:eu:pvp:Horde"; None for names that are no ruleset (e.g. test-horde)."""
+    m = re.fullmatch(r'(pvp|pve|normal|rp|rppvp)-(eu|us)-(horde|alliance)', ruleset)
+    return f'{ns}:{m[2]}:{m[1]}:{m[3].title()}' if m else None
+
+
 def parse_target(text):
     parts = text.split(':')
     if len(parts) < 3:
@@ -50,36 +62,86 @@ def realm_names(client, region, ns):
     return sorted(r['name'] for r in (data or {}).get('realms', [])) if code == 200 else []
 
 
-def connected_realm(client, region, ns, realm):
-    """Connected-realm id for a realm name (or the id itself). Raises LookupError with a readable reason."""
-    if realm.isdigit():
-        return int(realm)
+def _connected(client, region, ns, limit=None):
+    """[(connected-realm id, its realms)]; LookupError while the namespace has none."""
     code, data, _ = client.get(region, '/data/wow/connected-realm/index', ns)
     if code != 200:
         raise LookupError(f'Realm-Verbünde von {ns}-{region} noch nicht veröffentlicht (Status {code})')
-    for c in data.get('connected_realms', []):
+    out = []
+    for c in data.get('connected_realms', [])[:limit]:
         cid = int(c['href'].split('/connected-realm/')[1].split('?')[0])
         code, cr, _ = client.get(region, f'/data/wow/connected-realm/{cid}', ns)
-        if any(r.get('name', '').lower() == realm.lower() or r.get('slug') == realm.lower() for r in (cr or {}).get('realms', [])):
-            return cid
-    raise LookupError(f'Realm "{realm}" in {ns}-{region} nicht gefunden')
+        out.append((cid, (cr or {}).get('realms', [])))
+    return out
 
 
-def snapshot(client, target, cid):
-    """(time of Blizzard's dump, {item_id: (min unit buyout, median unit buyout, quantity)}, auction count)."""
-    t = parse_target(target)
-    code, idx, _ = client.get(t['region'], f'/data/wow/connected-realm/{cid}/auctions/index', t['ns'])
-    houses = (idx or {}).get('auctions', []) if code == 200 else []
-    if houses:  # classic flavours: one auction house per faction (Alliance, Horde, neutral)
-        fac = (t['faction'] or 'Horde').lower()
+def connected_realms(client, region, ns, realm):
+    """([connected-realm ids], [realm names]) for a ruleset (all realms of that type), a realm name or an id."""
+    if realm.isdigit():
+        return [int(realm)], [realm]
+    want = RULESET_TYPES.get(realm.lower())
+    ids, names = [], []
+    for cid, realms in _connected(client, region, ns):
+        if want:
+            hit = [r for r in realms if ((r.get('type') or {}).get('type') or '').upper() == want
+                   and not TEST_REALM.search(r.get('name', ''))]
+        else:
+            hit = [r for r in realms if r.get('name', '').lower() == realm.lower() or r.get('slug') == realm.lower()]
+        if hit:
+            ids.append(cid)
+            names += [r.get('name', '?') for r in hit]
+    if not ids:
+        raise LookupError(f'{"Ruleset" if want else "Realm"} "{realm}" in {ns}-{region} nicht gefunden')
+    return ids, names
+
+
+def auctions(client, region, ns, cid, faction):
+    """(auctions, last-modified) of one connected realm; classic flavours have one house per faction."""
+    code_idx, idx, _ = client.get(region, f'/data/wow/connected-realm/{cid}/auctions/index', ns)
+    houses = (idx or {}).get('auctions', []) if code_idx == 200 else []
+    if houses:
+        fac = (faction or 'Horde').lower()
         house = next((h for h in houses if fac in (h.get('name') or '').lower()), houses[0])
-        code, data, lm = client.get(t['region'], f'/data/wow/connected-realm/{cid}/auctions/{house["id"]}', t['ns'])
+        code, data, lm = client.get(region, f'/data/wow/connected-realm/{cid}/auctions/{house["id"]}', ns)
+        where = f'Haus {house.get("name")}'
     else:  # retail form: one list for the connected realm
-        code, data, lm = client.get(t['region'], f'/data/wow/connected-realm/{cid}/auctions', t['ns'])
+        code, data, lm = client.get(region, f'/data/wow/connected-realm/{cid}/auctions', ns)
+        where = f'Hausliste Status {code_idx}, Gesamtliste'
     if code != 200 or not data:
-        raise LookupError(f'Auktionen nicht verfügbar (Status {code})')
+        raise LookupError(f'Auktionen von Verbund {cid} nicht verfügbar ({where} Status {code})')
+    return data.get('auctions', []), lm
+
+
+def find_demo(client, region='eu', faction='Horde', flavours=('classicann', 'classic1x', 'classic'), per=12):
+    """First Classic realm whose auction house the API really delivers: (target, label) or None."""
+    for ns in flavours:
+        try:
+            found = _connected(client, region, ns, per)
+        except LookupError:
+            continue
+        for cid, realms in found:
+            name = next((r.get('name') for r in realms if not TEST_REALM.search(r.get('name', ''))), None)
+            if not name:
+                continue
+            try:
+                if auctions(client, region, ns, cid, faction)[0]:
+                    return f'{ns}:{region}:{cid}:{faction}', f'{name} {faction}'
+            except LookupError:
+                continue
+    return None
+
+
+def snapshot(client, target, cids):
+    """(time of Blizzard's dump, {item_id: (min unit buyout, median unit buyout, quantity)}, auction count).
+    Several connected realms (one ruleset) count as one market."""
+    t = parse_target(target)
+    every, stamps = [], []
+    for cid in cids:
+        got, lm = auctions(client, t['region'], t['ns'], cid, t['faction'])
+        every += got
+        stamps.append(lm or int(time.time()))
     per = {}
-    for a in data.get('auctions', []):
+    for a in every:
         item = (a.get('item') or {}).get('id')
         qty = a.get('quantity') or 1
         unit = a.get('unit_price') or ((a.get('buyout') or 0) / qty if a.get('buyout') else None)
@@ -97,4 +159,4 @@ def snapshot(client, target, cid):
                 median = unit
                 break
         out[item] = (int(offers[0][0]), int(median), total)
-    return lm or int(time.time()), out, len(data.get('auctions', []))
+    return max(stamps), out, len(every)
