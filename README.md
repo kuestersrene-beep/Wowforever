@@ -371,6 +371,8 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
    Auktionshäuser für Uploads: `GOLD_RADAR_RULESETS` (Standard `GOLD_RADAR_RULESET`).
    Einmalig nach dem Pull: Schema einspielen, dann `docker compose up -d --build`. Log:
    `docker compose logs -f gold-radar-worker`.
+   Sobald TradeSkillMaster Forever-Daten veröffentlicht (tradeskillmaster.com/public-data), holt der Dienst
+   sie mit `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>` alle 6 Stunden dazu (Marktwert und Verkäufe pro Tag).
    Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
    *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.
 

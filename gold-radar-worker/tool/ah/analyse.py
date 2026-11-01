@@ -59,6 +59,11 @@ def analyse(con, realm, cfg, now):
     crates_path = os.path.join(DATA, 'crates.json')
     crates = json.load(open(crates_path, encoding='utf-8')) if os.path.exists(crates_path) else {}
     series = load_series(con, realm)
+    try:  # latest TSM sales per item (ah/tsm.py), if any
+        tsm = {i: s for i, s in con.execute('SELECT item_id, sold_per_day FROM tsm t WHERE realm=? AND t = '
+                                            '(SELECT MAX(t) FROM tsm u WHERE u.realm=t.realm AND u.item_id=t.item_id)', (realm,))}
+    except sqlite3.OperationalError:
+        tsm = {}
     rows = {}
     for item, ser in series.items():
         last = ser[-1]
@@ -70,7 +75,8 @@ def analyse(con, realm, cfg, now):
         week = [p[1] for p in ser if p[0] >= now - 7 * D and p[1] and (p[3] or 0) >= 5] \
             or [p[1] for p in ser if p[0] >= now - 7 * D and p[1]]
         r = dict(item=item, name=items.get(str(item), {}).get('name', f'#{item}'), price=price, market=last[1],
-                 qty=last[3], seen=last[0], median7=statistics.median(week) if week else None,
+                 # quantity: the newest reading that has one (TSM points carry none), at most a day older
+                 qty=next((p[3] for p in reversed(ser) if p[3] is not None and p[0] >= last[0] - D), None), seen=last[0], median7=statistics.median(week) if week else None,
                  vol=(statistics.pstdev(week) / statistics.mean(week)) if len(week) > 2 else None,
                  sell=items.get(str(item), {}).get('sell'), w=watch.get(str(item), {}), crate=crates.get(str(item)), series=ser)
         for label, back in (('d1', D), ('d3', 3 * D), ('d7', 7 * D)):
@@ -84,6 +90,10 @@ def analyse(con, realm, cfg, now):
                 gone += max(0, a[3] - b[3])
                 span += b[0] - a[0]
         r['gone_per_day'] = gone / (span / D) if span >= 6 * H else None
+        # where our own readings can't measure sell-through (daily add-on data), TSM's sold per day stands in
+        r['tsm_sold'] = tsm.get(item)
+        if r['gone_per_day'] is None and r['tsm_sold'] is not None:
+            r['gone_per_day'] = r['tsm_sold']
         rows[item] = r
 
     def price_of(i):

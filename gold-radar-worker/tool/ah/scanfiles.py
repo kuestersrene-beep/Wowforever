@@ -10,6 +10,8 @@
 
 read(raw_bytes, faction) -> Prices with scans (one row per item and scan time) and history (older points), only for
 the auction house of that faction ("Horde" / "Alliance"; None = all). Only data is parsed, nothing is executed.
+One kind of price for every add-on: "market" is the lowest unit buyout (what you pay right now), because Auctionator
+and aux only know that one; mixing it with AuctionDB's median would make prices jump between uploads.
 Used by ah/snapshot.py (own scans) and by the website's scan worker (members' uploads).
 """
 import struct
@@ -115,8 +117,8 @@ def from_tradeskills(db, faction, out):
             if not isinstance(rec, dict) or not isinstance(item_id, int):
                 continue
             if rec.get('seen'):
-                out.scan(realm, item_id, int(rec['seen']), num(rec.get('market')), num(rec.get('min')),
-                         num(rec.get('quantity')), num(rec.get('scans')))
+                low = num(rec.get('min')) or num(rec.get('market'))
+                out.scan(realm, item_id, int(rec['seen']), low, low, num(rec.get('quantity')), num(rec.get('scans')))
             for p in lua_sv.as_list(rec.get('history')):
                 if isinstance(p, dict) and p.get('t'):
                     out.point(realm, item_id, int(p['t']), num(p.get('m')), num(p.get('q')))
@@ -138,9 +140,9 @@ def from_auctiondb(sv, faction, out):
                         continue
                     ts, low, median, qty = v[:4]
                     if key == 'items':
-                        out.scan(name, item_id, ts, median or low or None, low or None, qty)
+                        out.scan(name, item_id, ts, low or median or None, low or median or None, qty)
                     else:
-                        out.point(name, item_id, ts, median or low or None, qty)
+                        out.point(name, item_id, ts, low or median or None, qty)
         out.sources.append(f'AuctionDB {name}')
 
 

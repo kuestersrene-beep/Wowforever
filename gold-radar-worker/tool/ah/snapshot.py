@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS history (    -- older points per item (Tradeskills ri
 CREATE TABLE IF NOT EXISTS hourly (     -- cheapest price per hour (crafted/used/starred items only, 14 days)
     realm TEXT, item_id INTEGER, hour INTEGER, price INTEGER, listed INTEGER, PRIMARY KEY (realm, item_id, hour));
 CREATE TABLE IF NOT EXISTS snapshots (file TEXT PRIMARY KEY, sha1 TEXT, taken INTEGER, items INTEGER);
+CREATE TABLE IF NOT EXISTS tsm (        -- TradeSkillMaster public data (ah/tsm.py): sales per day per item
+    realm TEXT, item_id INTEGER, t INTEGER, market INTEGER, sold_per_day REAL, sale_rate REAL, PRIMARY KEY (realm, item_id, t));
 """
 
 

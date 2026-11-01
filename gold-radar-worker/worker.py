@@ -6,7 +6,9 @@ Loop (every INTERVAL_SECONDS):
    faction and store every price point once in Supabase (gold_radar_scans / gold_radar_history) and in a local
    SQLite copy.
 2. Uploads marked 'revoke' by the owner: delete the points they contributed, rebuild the local copy.
-3. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
+3. TSM public data (GOLD_RADAR_TSM, e.g. "pvp-eu-horde=forever/eu/realm/<realm>"): every TSM_HOURS fetched into
+   the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again.
+4. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
 
@@ -19,7 +21,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
-import dashboard, scanfiles  # noqa: E402  (tool code from WowForever-Gold)
+import dashboard, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
 from snapshot import SCHEMA  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -31,6 +33,8 @@ RULESETS = [r.strip() for r in os.environ.get('GOLD_RADAR_RULESETS', os.environ.
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
 INTERVAL = int(os.environ.get('INTERVAL_SECONDS', '60'))
 BUCKET = 'gold-radar'
+TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
+TSM_HOURS = float(os.environ.get('TSM_HOURS', '6'))
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
 
@@ -216,6 +220,7 @@ def main():
             log.error('Supabase antwortet %s – ist supabase/schema.sql eingespielt? Neuer Versuch in %d s', e.code, INTERVAL)
             time.sleep(INTERVAL)
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
+    tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     while True:
         dirty = set()
         try:
@@ -237,6 +242,20 @@ def main():
                 cons[r].close()
                 cons[r] = resync(r)
                 dirty.add(r)
+            for r, when in tsm_next.items():  # TSM public data, every TSM_HOURS (also right after a resync)
+                if time.time() < when and r not in revoked:
+                    continue
+                tsm_next[r] = time.time() + TSM_HOURS * 3600
+                try:
+                    rows = tsm.fetch(TSM[r])
+                except Exception as e:
+                    log.warning('TSM %s: Abruf fehlgeschlagen: %s', TSM[r], e)
+                    continue
+                if rows is None:
+                    log.info('TSM: unter %s gibt es (noch) keine Daten', TSM[r])
+                else:
+                    log.info('TSM %s: %d Items übernommen', r, tsm.store(cons[r], r, rows))
+                    dirty.add(r)
             for r in RULESETS:
                 updated = storage_updated(r, 'model.html')
                 if updated and updated != state.get(r):

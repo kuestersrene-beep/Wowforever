@@ -50,5 +50,7 @@
   "flip_min_gewinn_stueck": 20,
   "flip_min_gewinn_tag": 2000,
   "flip_exponent": 0.35,
+  "tsm": "",
+  "_tsm": "Pfad der TSM-Public-Data für dein Auktionshaus, z. B. forever/eu/realm/<realm>; leer = aus. Für Forever gibt es bei TSM noch keine Daten (Stand 01.11.2026).",
   "_flip_exponent": "Gewichtung Gewinn/Tag im Flip-Score: höher = Massenware mit viel Umsatz zählt mehr als hohe Marge (0.35 Start, nach echten Scans prüfen)"
 }
