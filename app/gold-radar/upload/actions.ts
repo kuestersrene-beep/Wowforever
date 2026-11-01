@@ -42,7 +42,10 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
   if (file.size > SCAN_FILE_MAX_BYTES) {
     return { ok: false, message: "Datei ist zu groß (max. 9 MB)." };
   }
-  const text = await file.text();
+  // Byte für Byte speichern: Auctionator legt Binärdaten (CBOR) in Lua-Strings ab,
+  // die eine Umwandlung in UTF-8-Text zerstören würde.
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const text = bytes.toString("latin1");
   if (!SCAN_SOURCES.some((s) => text.includes(s.marker))) {
     return {
       ok: false,
@@ -65,7 +68,7 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
   const path = `uploads/${ruleset}/${id}.lua`;
   const { error: storageError } = await db.storage
     .from(GOLD_RADAR_BUCKET)
-    .upload(path, text, { contentType: "text/plain; charset=utf-8" });
+    .upload(path, bytes, { contentType: "application/octet-stream" });
   if (storageError) {
     return { ok: false, message: `Hochladen fehlgeschlagen: ${storageError.message}` };
   }

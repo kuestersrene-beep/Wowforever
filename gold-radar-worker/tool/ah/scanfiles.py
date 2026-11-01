@@ -22,7 +22,7 @@ DAY = 86400
 
 class Prices:
     def __init__(self):
-        self.scans, self.history, self.sources = {}, {}, []
+        self.scans, self.history, self.sources, self.errors = {}, {}, [], []
 
     def scan(self, realm, item_id, seen, market, min_price, quantity, scans=None):
         self.scans[(item_id, seen)] = (realm, item_id, seen, market, min_price, quantity, scans)
@@ -151,7 +151,8 @@ def from_auctionator(db, faction, out):
         if isinstance(table, str):
             try:
                 table = cbor(table.encode('latin-1'))
-            except (ValueError, IndexError, struct.error):
+            except (ValueError, IndexError, struct.error, UnicodeEncodeError):
+                out.errors.append(f'Auctionator-Daten von {text(realm)} sind beschädigt (Datei unverändert hochladen)')
                 continue
         if not isinstance(table, dict):
             continue
@@ -196,5 +197,5 @@ def read(raw, faction=None):
     for name, fn in known:
         fn(sv[name], faction, out)
     if not out.scans and not out.history:
-        raise ValueError(f'keine Preise für {faction or "dieses Auktionshaus"} in der Datei')
+        raise ValueError('; '.join(out.errors) or f'keine Preise für {faction or "dieses Auktionshaus"} in der Datei')
     return out
