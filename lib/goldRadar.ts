@@ -35,16 +35,34 @@ export function uploadRulesets(): string[] {
 // Gemeinsame Scans: SavedVariables-Dateien der AH-Addons der Mitglieder (Leser: gold-radar-worker/tool/ah/scanfiles.py)
 // (siehe app/gold-radar/upload und gold-radar-worker/worker.py), beste zuerst.
 // marker = Variable in der Datei, an der der Upload sie erkennt.
-export const SCAN_SOURCES = [
-  { addon: "AuctionDB (WoW-Forever-Ausgabe)", file: "AuctionDB.lua", marker: "AuctionDBForeverSaved",
-    note: "Komplett-Scan des ganzen Auktionshauses alle 15 Minuten, mit Menge und Median. Am besten." },
-  { addon: "Auctionator", file: "Auctionator.lua", marker: "AUCTIONATOR_PRICE_DATABASE",
-    note: "Haben die meisten. Nur ein Preis pro Tag, aber besser als nichts." },
-  { addon: "aux", file: "aux-addon.lua", marker: "aux = {",
-    note: "Tagestiefstpreis und die letzten Tageswerte, ohne Mengen." },
-  { addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
-    note: "Preise mit Verlauf der letzten Messungen." },
-] as const;
+// tier = Empfehlung (S am besten); prices/quantity/intraday/history = was die Datei liefert
+// ("ja" | "teils" | "nein"), daraus folgt, welche Teile des Tools damit funktionieren.
+export type Coverage = "ja" | "teils" | "nein";
+export interface ScanSource {
+  tier: "S" | "A" | "B" | "C";
+  addon: string;
+  file: string;
+  marker: string;
+  prices: Coverage;
+  quantity: Coverage;
+  intraday: Coverage;
+  history: string;
+  note: string;
+}
+export const SCAN_SOURCES: readonly ScanSource[] = [
+  { tier: "S", addon: "AuctionDB (WoW-Forever-Ausgabe)", file: "AuctionDB.lua", marker: "AuctionDBForeverSaved",
+    prices: "ja", quantity: "ja", intraday: "ja", history: "7 Tage jeder Scan, dazu 180 Tage Tageswerte",
+    note: "Komplett-Scan des ganzen Auktionshauses alle 15 Minuten, mit Tiefstpreis, Median und Menge. Damit funktioniert alles." },
+  { tier: "A", addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
+    prices: "ja", quantity: "ja", intraday: "ja", history: "die letzten 12 Messungen je Item",
+    note: "Preis und Menge je Messung. Gut, solange regelmäßig gescannt wird." },
+  { tier: "B", addon: "Auctionator", file: "Auctionator.lua", marker: "AUCTIONATOR_PRICE_DATABASE",
+    prices: "ja", quantity: "teils", intraday: "nein", history: "ein Wert pro Tag (Standard 21 Tage)",
+    note: "Haben die meisten. Ein Preis und eine Menge pro Tag: gut für Preise und Trends, kein Abverkauf." },
+  { tier: "C", addon: "aux", file: "aux-addon.lua", marker: "aux = {",
+    prices: "ja", quantity: "nein", intraday: "nein", history: "ein Wert pro Tag (bis 11 Tage)",
+    note: "Tagestiefstpreis ohne Mengen: nur Preise und Trends." },
+];
 export const SCAN_FILE_MAX_BYTES = 9 * 1024 * 1024; // bodySizeLimit in next.config.ts ist 10 MB
 export const SCAN_UPLOADS_PER_DAY = 24;
 // Das Modell (dashboard-teilen.html) liegt hier; der Worker baut daraus

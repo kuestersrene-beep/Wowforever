@@ -17,6 +17,14 @@ export const metadata = { title: "Scan hochladen · Blackwater Terminal", robots
 // Standard-Installationsort von WoW Forever; der Account-Ordner ist bei jedem anders.
 const WOW_PATH = "C:\\Program Files (x86)\\World of Warcraft\\_forever_\\WTF\\Account";
 
+const TIER_STYLE: Record<string, string> = {
+  S: "bg-gold text-ink",
+  A: "bg-green-500/80 text-ink",
+  B: "bg-sky-500/70 text-ink",
+  C: "bg-slate-500/70 text-ink",
+};
+const COVER_STYLE: Record<string, string> = { ja: "text-green-400", teils: "text-gold-light", nein: "text-slate-500" };
+
 const fmt = (iso: string) =>
   new Date(iso).toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" });
 
@@ -89,11 +97,12 @@ export default async function GoldRadarUploadPage() {
         <ul className="flex flex-col gap-1 pl-5 text-sm">
           {SCAN_SOURCES.map((s) => (
             <li key={s.file}>
+              <span className={`mr-2 inline-block w-5 rounded text-center text-xs font-bold ${TIER_STYLE[s.tier]}`}>{s.tier}</span>
               <b className="text-gold-light">{s.addon}</b> &rarr; Datei <code>{s.file}</code>
-              <div className="text-xs text-slate-500">{s.note}</div>
             </li>
           ))}
         </ul>
+        <p className="pl-5 text-xs text-slate-500">Welches Addon was liefert, steht unten in der Übersicht.</p>
         <ol start={2} className="list-decimal pl-5 text-sm text-slate-300">
           <li>Im Spiel das Auktionshaus öffnen und mit dem Addon scannen (bei AuctionDB: Komplett-Scan).</li>
           <li>
@@ -108,6 +117,54 @@ export default async function GoldRadarUploadPage() {
 
       <section className="panel flex flex-col gap-3 p-5">
         <UploadForm rulesets={rulesets} wowPath={WOW_PATH} />
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">Welches Addon? Empfehlung und Übersicht</h2>
+        <p className="text-sm text-slate-300">
+          Am meisten bringt <b>AuctionDB</b>: Nur mit mehreren Scans am Tag inklusive Menge sieht das Tool, wie schnell
+          Ware verkauft wird (Flips, „Leerkauf droht“). Jede Datei hilft aber, auch Auctionator oder aux. Hast du
+          mehrere Addons, lade alle Dateien hoch.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-slate-400">
+              <tr>
+                <th className="py-1 pr-3">Tier</th>
+                <th className="py-1 pr-3">Addon</th>
+                <th className="py-1 pr-3">Preise</th>
+                <th className="py-1 pr-3">Menge im AH</th>
+                <th className="py-1 pr-3">Mehrmals am Tag</th>
+                <th className="py-1">Verlauf</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SCAN_SOURCES.map((s) => (
+                <tr key={s.file} className="border-t border-gold/10 align-top">
+                  <td className="py-1.5 pr-3">
+                    <span className={`inline-block w-5 rounded text-center text-xs font-bold ${TIER_STYLE[s.tier]}`}>{s.tier}</span>
+                  </td>
+                  <td className="py-1.5 pr-3">
+                    <b className="text-gold-light">{s.addon}</b>
+                    <div className="text-xs text-slate-500">{s.note}</div>
+                  </td>
+                  <td className={`py-1.5 pr-3 ${COVER_STYLE[s.prices]}`}>{s.prices}</td>
+                  <td className={`py-1.5 pr-3 ${COVER_STYLE[s.quantity]}`}>{s.quantity}</td>
+                  <td className={`py-1.5 pr-3 ${COVER_STYLE[s.intraday]}`}>{s.intraday}</td>
+                  <td className="py-1.5 text-xs text-slate-400">{s.history}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <dl className="grid gap-x-4 gap-y-1 text-xs text-slate-400 sm:grid-cols-[auto_1fr]">
+          <dt className="text-slate-300">Preise</dt>
+          <dd>Aktuelle Preise, Trends, Veredeln, Händler-Shuffle, Favor-Index. Klappt mit jedem Addon.</dd>
+          <dt className="text-slate-300">Menge im AH</dt>
+          <dd>Wie viel angeboten wird: Konfidenz der Preise und Signale wie „Akkumulation“. „teils“ = nur ein Wert pro Tag.</dd>
+          <dt className="text-slate-300">Mehrmals am Tag</dt>
+          <dd>Mehrere Messungen am selben Tag zeigen den Abverkauf. Den brauchen AH-Flips und „Leerkauf droht“.</dd>
+        </dl>
       </section>
 
       <section className="panel flex flex-col gap-3 p-5">
