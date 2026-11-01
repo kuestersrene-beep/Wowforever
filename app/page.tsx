@@ -177,6 +177,12 @@ export default async function HomePage() {
               >
                 {dict.nav.toDownloads}
               </Link>
+              <Link
+                href="/guides"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toGuides}
+              </Link>
               {goldRadar && (
                 <Link
                   href="/gold-radar"
