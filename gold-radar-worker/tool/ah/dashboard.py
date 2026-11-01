@@ -8,7 +8,7 @@ Both files also contain a demo data set from TradeSkillMaster's public Classic E
 config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
 never part of the evaluation.
 """
-import base64, glob, json, os, shutil, sqlite3, sys, statistics
+import base64, glob, json, os, sqlite3, sys, statistics
 from datetime import datetime, date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -54,17 +54,13 @@ def demo_data(cfg):
     sell-through; while there are fewer than 3 days, the average sale price 3 days earlier gives trends a reference."""
     path = cfg.get('tsm_demo') or 'classic/eu/region'
     snapdir = os.path.join(ROOT, 'tsm_demo')
-    os.makedirs(snapdir, exist_ok=True)
     try:
-        latest = tsm.fetch(path, cache=os.path.join(snapdir, 'latest.csv'))
+        latest = tsm.archive(path, snapdir)  # also filled daily by tools/tsm_archiv.py (Windows task)
     except OSError as e:
         print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
         return None
     if not latest:
         return None
-    day_file = os.path.join(snapdir, datetime.fromtimestamp(max(r['t'] for r in latest)).strftime('%Y-%m-%d') + '.csv')
-    if not os.path.exists(day_file):
-        shutil.copy(os.path.join(snapdir, 'latest.csv'), day_file)
     snaps = [tsm.parse(open(f, encoding='utf-8').read()) for f in sorted(glob.glob(os.path.join(snapdir, '20*.csv')))[-14:]]
     known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
     snaps = [[r for r in rows if str(r['item_id']) in known] for rows in snaps]  # only items that exist in WoW Forever

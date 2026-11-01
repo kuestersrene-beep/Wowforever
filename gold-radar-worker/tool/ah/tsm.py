@@ -13,7 +13,7 @@ Two uses, kept strictly apart:
     python ah/tsm.py                      -> live import (or the Forever check while "tsm" is empty)
     python ah/tsm.py forever/eu/realm/x   -> that path once
 """
-import csv, io, json, os, sqlite3, sys, time, urllib.error, urllib.request
+import csv, io, json, os, shutil, sqlite3, sys, time, urllib.error, urllib.request
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +62,18 @@ def fetch(path, cache=None, max_age=DAY):
     if cache:
         open(cache, 'w', encoding='utf-8').write(text)
     return parse(text)
+
+
+def archive(path, snapdir):
+    """Fetches path (at most once a day, cached as latest.csv) and keeps one copy per day as YYYY-MM-DD.csv, named
+    after TSM's own update time. TSM publishes no history, so these copies are the history. Returns the latest rows."""
+    os.makedirs(snapdir, exist_ok=True)
+    rows = fetch(path, cache=os.path.join(snapdir, 'latest.csv'), max_age=6 * 3600)
+    if rows:
+        day_file = os.path.join(snapdir, datetime.fromtimestamp(max(r['t'] for r in rows)).strftime('%Y-%m-%d') + '.csv')
+        if not os.path.exists(day_file):
+            shutil.copy(os.path.join(snapdir, 'latest.csv'), day_file)
+    return rows
 
 
 def find_forever(candidates=None):
