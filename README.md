@@ -358,6 +358,8 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
 4. **Daten hochladen:** lokal `python ah/dashboard.py --teilen` → `dashboard-teilen.html` unter
    `/admin/gold-radar` hochladen (Ordner z. B. `pvp-eu-horde`). Die Datei enthält das
    Nachfrage-Modell und die Beta-Demo, aber keine eigenen Scans.
+   nginx muss dafür Uploads über 1 MB erlauben: `client_max_body_size 10m;` im
+   `server`-Block (siehe `deploy/nginx-wowforever.conf.example`), danach `sudo nginx -t && sudo systemctl reload nginx`.
 
 Protokolliert werden nur Discord-ID, Anzeigename, Zeitpunkt, Ruleset und ob der Zugang abgelehnt
 wurde (wiederholte Aufrufe innerhalb von 15 Minuten zählen einmal). Alte Einträge lassen sich auf
