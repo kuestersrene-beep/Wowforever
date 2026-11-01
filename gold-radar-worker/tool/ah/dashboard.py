@@ -24,7 +24,8 @@ def load(name):
 
 def analysed(con, realm, cfg, now):
     rows, crafts, sig, days = analyse.analyse(con, realm, cfg, now)
-    n_scans = con.execute('SELECT COUNT(DISTINCT t) FROM history WHERE realm=?', (realm,)).fetchone()[0]
+    n_scans = con.execute('SELECT COUNT(*) FROM (SELECT t FROM history WHERE realm=? UNION SELECT seen FROM scans WHERE realm=?)',
+                          (realm, realm)).fetchone()[0]
     flags = {}
     for key, label in (('akku', 'Akkumulation'), ('unter', 'Unterbewertet'), ('heiss', 'Überhitzt'), ('squeeze', 'Leerkauf droht'),
                        ('vendor', 'Vendor-Flip')):

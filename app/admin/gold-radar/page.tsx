@@ -90,6 +90,16 @@ export default async function GoldRadarAdminPage() {
       })
   );
 
+  // Status des Blizzard-Imports (gold-radar-worker, stündlich): Ziele, Fehler, Forever-Realms zur Auswahl
+  type BlizzTarget = { target: string; ok?: boolean; error?: string | null; items?: number; auctions?: number; dump?: string; checked?: string; realms?: string[] };
+  let blizz: { checked?: string; targets?: Record<string, BlizzTarget>; forever_realms?: { eu?: string[] } } | null = null;
+  try {
+    const { data } = await db.storage.from(GOLD_RADAR_BUCKET).download("status/blizzard.json");
+    if (data) blizz = JSON.parse(await data.text());
+  } catch {
+    blizz = null;
+  }
+
   // Status der TSM-Suche (gold-radar-worker prüft täglich, ob TradeSkillMaster WoW-Forever-Daten anbietet)
   let tsm: { checked?: string; found?: string | null; ruleset?: string | null } | null = null;
   try {
@@ -256,6 +266,29 @@ export default async function GoldRadarAdminPage() {
             <>TradeSkillMaster: noch nicht geprüft (der Dienst prüft einmal am Tag).</>
           )}
         </p>
+        <div className="rounded border border-gold/20 px-3 py-2 text-sm text-slate-300">
+          <b>Blizzard-API</b> (ganzes Auktionshaus, stündlich)
+          {!blizz && <div className="text-slate-400">Noch kein Status. Braucht BLIZZARD_CLIENT_ID und BLIZZARD_CLIENT_SECRET in der .env.</div>}
+          {blizz &&
+            Object.entries(blizz.targets ?? {}).map(([key, t]) => (
+              <div key={key} className={t.ok ? "text-green-300" : "text-slate-400"}>
+                {key === "demo" ? "Demo" : key}: <code>{t.target}</code> –{" "}
+                {t.ok
+                  ? `${t.auctions} Auktionen, ${t.items} Items, Stand ${t.dump ? fmt(t.dump) : "?"}`
+                  : `noch keine Daten (${t.error ?? "?"})`}
+              </div>
+            ))}
+          {blizz && !Object.keys(blizz.targets ?? {}).some((k) => k !== "demo") && (
+            <div className="mt-1 text-slate-400">
+              Für das eigene Auktionshaus: nach dem Launch in der .env{" "}
+              <code>GOLD_RADAR_BLIZZARD=pvp-eu-horde=forever:eu:&lt;Realmname&gt;</code> eintragen und{" "}
+              <code>docker compose up -d</code>.
+              {(blizz.forever_realms?.eu ?? []).length > 0 && (
+                <> Forever-Realms EU laut Blizzard: {(blizz.forever_realms?.eu ?? []).join(", ")}</>
+              )}
+            </div>
+          )}
+        </div>
         <ul className="text-sm">
           {files.map((f) => (
             <li key={f.ruleset}>

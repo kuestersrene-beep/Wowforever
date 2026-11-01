@@ -13,7 +13,12 @@ Loop (every INTERVAL_SECONDS):
 4. Demo: once a day the TSM data behind the page's Demo button (GOLD_RADAR_TSM_DEMO, default classic/eu/region)
    is archived in DATA_DIR/tsm_demo (one file per day: TSM publishes no history), and every page gets its demo built
    from that archive, so the demo's price history grows on the server without anyone running anything locally.
-5. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
+5. Blizzard Game Data API (BLIZZARD_CLIENT_ID/SECRET): every auction of the auction house, about hourly.
+   GOLD_RADAR_BLIZZARD = "pvp-eu-horde=forever:eu:<Realm>" feeds the live page (lowest unit buyout + quantity per
+   item, so trends and sell-through come from Blizzard's own hourly dumps); GOLD_RADAR_BLIZZARD_DEMO (default
+   classicann:eu:Spineshatter:Horde) feeds the Demo button instead of TSM when available. Snapshots live only on the
+   server (blizzard-*.db, last BLIZZARD_KEEP_DAYS days), not in Supabase; status/blizzard.json tells the admin page.
+6. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
 
@@ -27,6 +32,7 @@ from datetime import datetime, timezone
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
 import dashboard, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
+import blizzard  # noqa: E402
 from snapshot import SCHEMA  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -41,6 +47,14 @@ BUCKET = 'gold-radar'
 TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
 TSM_HOURS = float(os.environ.get('TSM_HOURS', '6'))
 TSM_DEMO = os.environ.get('GOLD_RADAR_TSM_DEMO', 'classic/eu/region')
+BLIZZ = blizzard.Client(os.environ['BLIZZARD_CLIENT_ID'], os.environ['BLIZZARD_CLIENT_SECRET']) \
+    if os.environ.get('BLIZZARD_CLIENT_ID') and os.environ.get('BLIZZARD_CLIENT_SECRET') else None
+BLIZZ_TARGETS = dict(x.strip().split('=', 1) for x in os.environ.get('GOLD_RADAR_BLIZZARD', '').split(',') if '=' in x)
+BLIZZ_DEMO = os.environ.get('GOLD_RADAR_BLIZZARD_DEMO', 'classicann:eu:Spineshatter:Horde') if BLIZZ else ''
+BLIZZ_MINUTES = float(os.environ.get('BLIZZARD_MINUTES', '60'))
+BLIZZ_KEEP_DAYS = float(os.environ.get('BLIZZARD_KEEP_DAYS', '10'))
+DEMO_LABEL = 'Blizzard ' + ' '.join(BLIZZ_DEMO.split(':')[2:]) if BLIZZ_DEMO else ''
+DEMO = {'con': None}
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
 
@@ -129,11 +143,35 @@ def resync(ruleset):
             if len(rows) < 1000:
                 break
             offset += 1000
+    arch = os.path.join(DATA_DIR, f'blizzard-{ruleset}.db')
+    if os.path.exists(arch):  # Blizzard snapshots are not in Supabase: take them over from their own file
+        con.execute('ATTACH DATABASE ? AS arch', (arch,))
+        con.execute('INSERT OR IGNORE INTO scans SELECT * FROM arch.scans')
+        con.commit()
+        con.execute('DETACH DATABASE arch')
     n = con.execute('SELECT COUNT(*) FROM scans').fetchone()[0]
     con.close()
     os.replace(path + '.new', path)
     log.info('%s: lokale Kopie neu aufgebaut (%d Messpunkte)', ruleset, n)
     return local(ruleset)
+
+
+# ---------- Blizzard snapshots (kept on the server only) ----------
+def blizz_db(name):
+    con = sqlite3.connect(os.path.join(DATA_DIR, f'blizzard-{name}.db'))
+    con.executescript(SCHEMA)
+    return con
+
+
+def blizz_put(cons, label, ts, snap):
+    """One snapshot into the given databases: lowest unit buyout as price (same kind as every other source), quantity."""
+    rows = [(label, item, ts, low, low, None, qty, None, int(time.time())) for item, (low, _median, qty) in snap.items()]
+    cutoff = int(time.time() - BLIZZ_KEEP_DAYS * 86400)
+    for con in cons:
+        con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)', rows)
+        con.execute('DELETE FROM scans WHERE seen < ?', (cutoff,))  # a working set: hourly points of the last days
+        con.execute('DELETE FROM history WHERE t < ?', (cutoff,))
+        con.commit()
 
 
 # ---------- uploads ----------
@@ -198,7 +236,16 @@ def build(ruleset, con):
         log.warning('%s: Vorlage ohne ctx – neu erzeugen und hochladen', ruleset)
         return
     live = dashboard.live_payload(con, ruleset, CFG, data['ctx'])
-    if TSM_DEMO:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
+    blizz_demo = None
+    if DEMO['con'] is not None:  # demo from Blizzard's own hourly dumps (Classic), if there are any yet
+        try:
+            blizz_demo = dashboard.live_payload(DEMO['con'], DEMO_LABEL, CFG, data['ctx'])
+            if blizz_demo:
+                blizz_demo['realm'] = DEMO_LABEL + ' (Classic)'
+                data['demo'] = blizz_demo
+        except Exception as e:
+            log.warning('Demo aus den Blizzard-Daten nicht gebaut: %s', e)
+    if TSM_DEMO and not blizz_demo:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
         try:
             fills = {tier: [tuple(f) for f in v] for tier, v in data['ctx']['fills'].items()}
             demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
@@ -238,6 +285,10 @@ def main():
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
     demo_next = 0.0
+    blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, {}
+    if BLIZZ_DEMO:
+        DEMO['con'] = blizz_db('demo')
+    arch = {r: blizz_db(r) for r in BLIZZ_TARGETS if r in RULESETS}
     while True:
         dirty = set()
         try:
@@ -271,6 +322,52 @@ def main():
                     tsm_next[RULESETS[0]] = 0.0
                 else:
                     log.info('TSM: noch keine WoW-Forever-Daten, nächste Prüfung in 24 Std.')
+            if BLIZZ:  # Blizzard: whole auction house about hourly (live targets, then the demo)
+                jobs = [(r, t) for r, t in BLIZZ_TARGETS.items() if r in RULESETS] + ([('demo', BLIZZ_DEMO)] if BLIZZ_DEMO else [])
+                changed = False
+                if time.time() >= blizz_next.get('_realms', 0):  # Forever realm names, so the admin can pick one
+                    blizz_next['_realms'] = time.time() + 86400
+                    try:
+                        blizz_status['_forever_realms'] = {'eu': blizzard.realm_names(BLIZZ, 'eu', 'forever')}
+                        changed = True
+                    except Exception as e:
+                        log.info('Blizzard: Forever-Realmliste nicht abrufbar: %s', e)
+                for key, target in jobs:
+                    if time.time() < blizz_next.get(key, 0):
+                        continue
+                    blizz_next[key] = time.time() + BLIZZ_MINUTES * 60
+                    st = blizz_status.setdefault(key, {'target': target})
+                    st['checked'] = now_iso()
+                    try:
+                        t = blizzard.parse_target(target)
+                        if key not in blizz_cid:
+                            blizz_cid[key] = blizzard.connected_realm(BLIZZ, t['region'], t['ns'], t['realm'])
+                        ts, snap, n = blizzard.snapshot(BLIZZ, target, blizz_cid[key])
+                        st.update(ok=True, error=None, auctions=n, items=len(snap),
+                                  dump=datetime.fromtimestamp(ts, timezone.utc).isoformat())
+                        if ts != blizz_last.get(key):
+                            blizz_last[key] = ts
+                            if key == 'demo':
+                                blizz_put([DEMO['con']], DEMO_LABEL, ts, snap)
+                                dirty.update(RULESETS)
+                            else:
+                                blizz_put([cons[key], arch[key]], key, ts, snap)
+                                dirty.add(key)
+                            log.info('Blizzard %s: %d Auktionen, %d Items (Stand %s)', target, n, len(snap), st['dump'])
+                    except Exception as e:  # not published yet, realm unknown, API down: report, try again later
+                        st.update(ok=False, error=str(e)[:200])
+                        if isinstance(e, LookupError) and 'nicht gefunden' in str(e):
+                            st['realms'] = blizzard.realm_names(BLIZZ, t['region'], t['ns'])[:80]
+                        log.info('Blizzard %s: %s', target, e)
+                    changed = True
+                if changed:
+                    try:
+                        realms = blizz_status.get('_forever_realms', {})
+                        targets = {k: v for k, v in blizz_status.items() if not k.startswith('_')}
+                        storage_put('status/blizzard.json', json.dumps({'checked': now_iso(), 'targets': targets,
+                                                                        'forever_realms': realms}).encode(), 'application/json')
+                    except Exception as e:
+                        log.warning('Blizzard-Status nicht gespeichert: %s', e)
             if TSM_DEMO and time.time() >= demo_next:  # demo archive: TSM updates region data once a day
                 demo_next = time.time() + 6 * 3600
                 try:
