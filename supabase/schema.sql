@@ -942,6 +942,33 @@ create trigger set_updated_at_guild_draft_votes
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Gold-Radar (/gold-radar): Auktionshaus-Tool nur für Mitglieder mit
+-- Discord-Zugangsrolle (GOLD_RADAR_ROLES, Bot-Sync nach discord_members).
+-- Das Protokoll hat bewusst KEINE Policies: lesen/schreiben nur über den
+-- service_role Key; die Auswertung sieht nur GOLD_RADAR_ADMIN_IDS
+-- (app/admin/gold-radar). Die Tool-Datei liegt im privaten Bucket
+-- "gold-radar" unter <ruleset>/dashboard.html, ebenfalls ohne Policies.
+-- ============================================================
+
+create table if not exists public.gold_radar_usage (
+  id bigint generated always as identity primary key,
+  discord_id text not null,
+  display_name text,
+  event text not null check (event in ('open', 'denied')),
+  ruleset text check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  created_at timestamptz not null default now()
+);
+
+alter table public.gold_radar_usage enable row level security;
+
+create index if not exists gold_radar_usage_user_time
+  on public.gold_radar_usage (discord_id, created_at desc);
+
+insert into storage.buckets (id, name, public)
+values ('gold-radar', 'gold-radar', false)
+on conflict (id) do nothing;
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.

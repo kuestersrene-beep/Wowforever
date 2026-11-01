@@ -1,0 +1,206 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getDiscordId } from "@/lib/admin";
+import { discordUserUrl } from "@/lib/discordUrl";
+import {
+  DASHBOARD_FILE,
+  GOLD_RADAR_BUCKET,
+  defaultRuleset,
+  getAccessRoles,
+  isGoldRadarOwner,
+} from "@/lib/goldRadar";
+import { pruneUsage, uploadDashboard } from "./actions";
+
+interface UsageRow {
+  discord_id: string;
+  display_name: string | null;
+  event: "open" | "denied";
+  ruleset: string | null;
+  created_at: string;
+}
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+
+// Nur für die in GOLD_RADAR_ADMIN_IDS eingetragenen Personen: wer nutzt das
+// Gold-Radar, und neue Tool-Daten hochladen. Normale Admins sehen das nicht.
+export default async function GoldRadarAdminPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isGoldRadarOwner(getDiscordId(user))) {
+    redirect("/");
+  }
+
+  const db = createAdminClient();
+  const [{ data: usage, error }, { data: folders }] = await Promise.all([
+    db
+      .from("gold_radar_usage")
+      .select("discord_id, display_name, event, ruleset, created_at")
+      .order("created_at", { ascending: false })
+      .limit(2000)
+      .returns<UsageRow[]>(),
+    db.storage.from(GOLD_RADAR_BUCKET).list("", { limit: 100 }),
+  ]);
+
+  const rows = usage ?? [];
+  const people = new Map<
+    string,
+    { name: string; opens: number; denied: number; first: string; last: string }
+  >();
+  for (const r of rows) {
+    const p = people.get(r.discord_id) ?? {
+      name: r.display_name ?? r.discord_id,
+      opens: 0,
+      denied: 0,
+      first: r.created_at,
+      last: r.created_at,
+    };
+    if (r.event === "open") p.opens += 1;
+    else p.denied += 1;
+    if (r.created_at < p.first) p.first = r.created_at;
+    if (r.created_at > p.last) p.last = r.created_at;
+    people.set(r.discord_id, p);
+  }
+  const persons = [...people.entries()].sort((a, b) => b[1].last.localeCompare(a[1].last));
+
+  // Aktuelle Datei je Ruleset-Ordner (Ordner = ein Auktionshaus)
+  const files = await Promise.all(
+    (folders ?? [])
+      .filter((f) => !f.metadata) // Ordner haben keine Metadaten
+      .map(async (f) => {
+        const { data } = await db.storage.from(GOLD_RADAR_BUCKET).list(f.name);
+        const file = (data ?? []).find((x) => x.name === DASHBOARD_FILE);
+        return { ruleset: f.name, updated: file?.updated_at ?? null, size: file?.metadata?.size ?? null };
+      })
+  );
+
+  return (
+    <main className="flex flex-col gap-8">
+      <div className="flex items-center justify-between">
+        <h1 className="heading-ornate text-2xl">Gold-Radar: Nutzung &amp; Daten</h1>
+        <Link href="/gold-radar" className="text-sm text-gold-light hover:underline">
+          ← Zum Tool
+        </Link>
+      </div>
+
+      <p className="rounded-lg border border-gold/30 bg-gold/5 px-4 py-2 text-sm text-parchment/90">
+        Zugang hat, wer im Discord die Rolle <b>{getAccessRoles().join(" / ")}</b> hat (Bot-Sync
+        alle 2 Minuten). Diese Seite sehen nur die Discord-IDs aus <code>GOLD_RADAR_ADMIN_IDS</code>.
+        Aufrufe derselben Person innerhalb von 15 Minuten zählen einmal.
+      </p>
+
+      {error && <p className="text-red-400">Protokoll konnte nicht geladen werden: {error.message}</p>}
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">Wer nutzt das Tool ({persons.length})</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-slate-400">
+              <tr>
+                <th className="py-1 pr-4">Discord</th>
+                <th className="py-1 pr-4 text-right">Besuche</th>
+                <th className="py-1 pr-4 text-right">Abgewiesen</th>
+                <th className="py-1 pr-4">Erster Besuch</th>
+                <th className="py-1">Letzter Besuch</th>
+              </tr>
+            </thead>
+            <tbody>
+              {persons.map(([id, p]) => (
+                <tr key={id} className="border-t border-gold/10">
+                  <td className="py-1 pr-4">
+                    <a href={discordUserUrl(id)} target="_blank" rel="noopener" className="hover:underline">
+                      {p.name}
+                    </a>
+                  </td>
+                  <td className="py-1 pr-4 text-right">{p.opens}</td>
+                  <td className={`py-1 pr-4 text-right ${p.denied ? "text-horde" : ""}`}>{p.denied}</td>
+                  <td className="py-1 pr-4">{fmt(p.first)}</td>
+                  <td className="py-1">{fmt(p.last)}</td>
+                </tr>
+              ))}
+              {persons.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-2 text-slate-500">
+                    Noch keine Aufrufe.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">Letzte Aufrufe</h2>
+        <ul className="flex flex-col gap-1 text-sm">
+          {rows.slice(0, 50).map((r, i) => (
+            <li key={i} className="flex flex-wrap gap-x-3">
+              <span className="text-slate-400">{fmt(r.created_at)}</span>
+              <span>{r.display_name ?? r.discord_id}</span>
+              {r.event === "denied" ? (
+                <span className="text-horde">ohne Rolle abgewiesen</span>
+              ) : (
+                <span className="text-slate-400">{r.ruleset}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+        <form action={pruneUsage} className="mt-2 flex items-center gap-2 text-sm">
+          <span className="text-slate-400">Einträge älter als</span>
+          <input
+            name="days"
+            type="number"
+            min={1}
+            defaultValue={90}
+            className="w-20 rounded border border-gold/30 bg-ink px-2 py-1"
+          />
+          <span className="text-slate-400">Tage</span>
+          <button className="rounded border border-horde/60 px-3 py-1 text-horde hover:bg-horde/10">löschen</button>
+        </form>
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">Tool-Daten</h2>
+        <ul className="text-sm">
+          {files.map((f) => (
+            <li key={f.ruleset}>
+              <a href={`/gold-radar/app?r=${f.ruleset}`} target="_blank" rel="noopener" className="text-gold-light hover:underline">
+                {f.ruleset}
+              </a>{" "}
+              <span className="text-slate-400">
+                {f.updated ? `Stand ${fmt(f.updated)}` : "keine Datei"}
+                {f.size ? ` · ${(f.size / 1_048_576).toFixed(1)} MB` : ""}
+              </span>
+            </li>
+          ))}
+          {files.length === 0 && <li className="text-slate-500">Noch nichts hochgeladen.</li>}
+        </ul>
+        <form action={uploadDashboard} className="flex flex-wrap items-center gap-2 text-sm">
+          <input
+            name="ruleset"
+            defaultValue={defaultRuleset()}
+            pattern="[a-z0-9-]{1,40}"
+            className="w-40 rounded border border-gold/30 bg-ink px-2 py-1"
+          />
+          <input name="file" type="file" accept=".html,text/html" required className="text-slate-300" />
+          <button className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-1 font-medium text-ink hover:brightness-110">
+            Hochladen
+          </button>
+        </form>
+        <p className="text-xs text-slate-500">
+          Hochladen: <code>dashboard-teilen.html</code> aus <code>python ah/dashboard.py --teilen</code>{" "}
+          (enthält das Nachfrage-Modell und die Beta-Demo, keine eigenen Scans). Ein Ordner je
+          Ruleset-Region-Fraktion, z. B. <code>pvp-eu-horde</code>.
+        </p>
+      </section>
+    </main>
+  );
+}

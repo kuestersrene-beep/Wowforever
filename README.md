@@ -341,6 +341,29 @@ Notfall-Zugang, falls der Bot einmal nicht läuft.
 
 ---
 
+## 9. Gold-Radar (Auktionshaus-Tool, nur mit Discord-Rolle)
+
+`/gold-radar` zeigt das Gold-Radar aus dem Projekt *WowForever-Gold* (eine einzelne HTML-Datei)
+nur Mitgliedern mit einer bestimmten Discord-Rolle.
+
+1. **Rolle anlegen:** im Discord eine Rolle `Gold-Radar` erstellen und den Leuten geben, die das
+   Tool nutzen dürfen. Der Gilden-Bot (`discord-setup/rollensync.py`) meldet sie alle 2 Minuten
+   in `discord_members` – Bot also neu starten, damit er die Rolle mitschickt. Anderer Rollenname:
+   `GOLD_RADAR_ROLES` (Website) und `ZUGANGSROLLEN` (Bot-`.env`) gleich setzen.
+2. **Schema:** `supabase/schema.sql` erneut einspielen (legt `gold_radar_usage` und den privaten
+   Storage-Bucket `gold-radar` an, beide ohne Policies → nur serverseitig erreichbar).
+3. **Umgebung:** `GOLD_RADAR_ADMIN_IDS` = deine Discord-ID. Nur diese ID(s) sehen unter
+   `/admin/gold-radar`, wer das Tool wann benutzt hat, und dürfen neue Daten hochladen –
+   Offiziere/Admins ausdrücklich nicht. Du selbst hast immer Zugang zum Tool.
+4. **Daten hochladen:** lokal `python ah/dashboard.py --teilen` → `dashboard-teilen.html` unter
+   `/admin/gold-radar` hochladen (Ordner z. B. `pvp-eu-horde`). Die Datei enthält das
+   Nachfrage-Modell und die Beta-Demo, aber keine eigenen Scans.
+
+Protokolliert werden nur Discord-ID, Anzeigename, Zeitpunkt, Ruleset und ob der Zugang abgelehnt
+wurde (wiederholte Aufrufe innerhalb von 15 Minuten zählen einmal). Alte Einträge lassen sich auf
+der Admin-Seite löschen. Für späteres Teilen von Daten ist pro Auktionshaus ein Ordner im Bucket
+vorgesehen (`<ruleset>/…`), Aufruf mit `/gold-radar/app?r=<ruleset>`.
+
 ## Projektstruktur
 
 ```

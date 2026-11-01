@@ -26,6 +26,7 @@ export interface Dictionary {
     toAdmin: string;
     toAvailability: string;
     toDownloads: string;
+    toGoldRadar: string;
     toCharacters: string;
     toEvents: string;
     toGuildName: string;

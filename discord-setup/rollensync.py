@@ -7,12 +7,14 @@ der Umfrage. Dadurch öffnen sich die
 passenden Kanäle in 🧙 KLASSEN & ROLLEN von selbst. Mitglieder ohne Angaben auf der Website
 werden nicht angefasst – dort vergeben Offiziere die Rollen weiter von Hand.
 
-Discord -> Website: Die Rang-Rollen (Gildenmeister, Offizier, ...) jedes Mitglieds landen in
-der Tabelle discord_members. Die Website macht daraus ihre Admin-Rechte (lib/admin.ts).
+Discord -> Website: Die Rang-Rollen (Gildenmeister, Offizier, ...) und Zugangsrollen (Gold-Radar)
+jedes Mitglieds landen in der Tabelle discord_members. Die Website macht daraus ihre Admin-Rechte
+(lib/admin.ts) und den Zugang zu Modulen wie dem Gold-Radar (lib/goldRadar.ts).
 
 Läuft alle INTERVALL_MINUTEN, nutzt die Datenbank-Verbindung aus raid.py (SUPABASE_* in .env).
 """
 import logging
+import os
 
 import discord
 from discord.ext import tasks
@@ -26,6 +28,9 @@ GRUND = "Rollen-Sync mit der Gilden-Website"
 KLASSEN = raid.KLASSEN
 SPIELROLLEN = {"tank": "🛡️ Tank", "heiler": "💚 Heiler", "dd": "⚔️ Schaden"}
 RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Gast")
+# Zugangsrollen für Website-Module, landen ebenfalls in discord_members.ranks
+# (Website: GOLD_RADAR_ROLES in lib/goldRadar.ts). Weitere per .env, kommagetrennt.
+ZUGANGSROLLEN = tuple(r.strip() for r in os.getenv("ZUGANGSROLLEN", "Gold-Radar").split(",") if r.strip())
 
 log = logging.getLogger("gildenbot.rollensync")
 bot: discord.Client | None = None
@@ -87,7 +92,7 @@ async def rollen_abgleichen(guild, ziel):
 async def raenge_speichern(guild):
     """Schreibt die Rang-Rollen aller Mitglieder nach discord_members und entfernt Ehemalige."""
     zeilen = [{"discord_id": str(m.id), "display_name": m.display_name,
-               "ranks": [r.name for r in m.roles if r.name in RAENGE]}
+               "ranks": [r.name for r in m.roles if r.name in RAENGE + ZUGANGSROLLEN]}
               for m in guild.members if not m.bot]
     if not zeilen:
         return

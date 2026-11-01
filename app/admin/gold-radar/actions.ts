@@ -1,0 +1,76 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { getDiscordId } from "@/lib/admin";
+import {
+  DASHBOARD_FILE,
+  GOLD_RADAR_BUCKET,
+  isGoldRadarOwner,
+  isValidRuleset,
+} from "@/lib/goldRadar";
+
+const MAX_FILE_BYTES = 9 * 1024 * 1024; // bodySizeLimit in next.config.ts ist 10 MB
+
+async function requireOwner() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || !isGoldRadarOwner(getDiscordId(user))) {
+    throw new Error("Nicht berechtigt.");
+  }
+}
+
+// Lädt eine neue dashboard-teilen.html (aus ah/dashboard.py --teilen) für
+// ein Ruleset hoch und ersetzt die alte.
+export async function uploadDashboard(formData: FormData) {
+  await requireOwner();
+
+  const ruleset = String(formData.get("ruleset") ?? "").trim();
+  const file = formData.get("file");
+  if (!isValidRuleset(ruleset)) {
+    throw new Error("Ruleset nur aus Kleinbuchstaben, Ziffern und Bindestrichen.");
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Keine Datei ausgewählt.");
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error("Datei ist zu groß (max. 9 MB).");
+  }
+  const html = await file.text();
+  if (!html.includes("<html") || !html.includes("Gold-Radar")) {
+    throw new Error("Das sieht nicht nach einer Gold-Radar-HTML-Datei aus.");
+  }
+
+  const { error } = await createAdminClient()
+    .storage.from(GOLD_RADAR_BUCKET)
+    .upload(`${ruleset}/${DASHBOARD_FILE}`, html, {
+      contentType: "text/html; charset=utf-8",
+      upsert: true,
+    });
+  if (error) {
+    throw new Error(`Hochladen fehlgeschlagen: ${error.message}`);
+  }
+  revalidatePath("/admin/gold-radar");
+}
+
+// Löscht Protokolleinträge, die älter als die angegebene Anzahl Tage sind.
+export async function pruneUsage(formData: FormData) {
+  await requireOwner();
+
+  const days = Number(formData.get("days"));
+  if (!Number.isInteger(days) || days < 1) {
+    throw new Error("Ungültige Anzahl Tage.");
+  }
+  const before = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { error } = await createAdminClient()
+    .from("gold_radar_usage")
+    .delete()
+    .lt("created_at", before);
+  if (error) {
+    throw new Error(`Löschen fehlgeschlagen: ${error.message}`);
+  }
+  revalidatePath("/admin/gold-radar");
+}

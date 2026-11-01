@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { formatPending } from "@/lib/i18n/format";
 import { getDiscordId, isAdmin } from "@/lib/admin";
+import { hasGoldRadarAccess } from "@/lib/goldRadar";
 import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
@@ -20,6 +21,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const admin = user ? (await isAdmin(getDiscordId(user))) : false;
+  const goldRadar = user ? await hasGoldRadarAccess(getDiscordId(user)) : false;
 
   // Für Admins: wie viele Gildennamen-Vorschläge auf Freigabe warten.
   let pendingGuildNames = 0;
@@ -175,6 +177,14 @@ export default async function HomePage() {
               >
                 {dict.nav.toDownloads}
               </Link>
+              {goldRadar && (
+                <Link
+                  href="/gold-radar"
+                  className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+                >
+                  {dict.nav.toGoldRadar}
+                </Link>
+              )}
               {admin && (
                 <Link
                   href="/admin"
