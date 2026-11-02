@@ -8,6 +8,7 @@ Both files also contain a demo data set from TradeSkillMaster's public Classic E
 config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
 never part of the evaluation.
 """
+import math
 import random
 import base64, glob, json, os, sqlite3, sys, statistics
 from datetime import datetime, date
@@ -76,15 +77,32 @@ def demo_data(cfg, snapdir=None):
         for r in rows:
             r['t'] += shift
         tsm.store(con, realm, rows)
+    simulate_history(con, realm, snaps)
     simulate_quantities(con, realm, snaps)
-    if len(snaps) < 3:
-        con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
-                        [(realm, r['item_id'], r['t'] - 3 * 86400, r['avg_sale'] or r['historical'], None)
-                         for r in snaps[-1] if r['avg_sale'] or r['historical']])
     live = analysed(con, realm, cfg, now)
     live['tsm_days'] = len(snaps)
     live['qty_simulated'] = True
     return live
+
+
+def simulate_history(con, realm, snaps, days=30):
+    """DEMO ONLY: TSM gives one state per item, so the demo has no 7- or 30-day price curve. Every item gets a plausible
+    daily history before its first real point: a mean-reverting walk that ends at today's price and drifts toward TSM's
+    60-day value, more restless for rarely sold items. Reproducible, marked as simulated on the page, never real data."""
+    first = min(r['t'] for r in snaps[0])
+    for r in snaps[-1]:
+        if not r['market']:
+            continue
+        ref = r.get('historical') or r.get('avg_sale') or r['market']
+        rng = random.Random(r['item_id'] * 104729)
+        sigma = 0.04 + 0.10 / (1 + (r.get('sold_per_day') or 0))
+        x, rows = math.log(r['market'] / ref), []
+        for k in range(1, days + 1):
+            x = 0.9 * x + rng.gauss(0, sigma)
+            price = max(1, int(ref * math.exp(x)))
+            rows.append((realm, r['item_id'], first - k * 86400, price, price, None, None, None, int(first)))
+        con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)', rows)
+    con.commit()
 
 
 def simulate_quantities(con, realm, snaps):
@@ -92,15 +110,16 @@ def simulate_quantities(con, realm, snaps):
     sell-through. So the demo gets plausible, reproducible quantities: about three days of sales listed, fewer when the
     price is above its long-run value and more when below, with some day-to-day noise. Marked as simulated on the page;
     never used for real data (the live database never goes through here)."""
-    for rows in snaps:
-        for r in rows:
-            if not r['market']:
-                continue
-            ref = r.get('historical') or r.get('avg_sale') or r['market']
-            rng = random.Random(r['item_id'] * 7919 + r['t'] // 86400)
-            q = max(2.0, (r.get('sold_per_day') or 0) * 3.0) * (ref / r['market']) ** 0.5 * rng.uniform(0.8, 1.25)
-            con.execute('UPDATE scans SET quantity=? WHERE realm=? AND item_id=? AND seen=?',
-                        (int(max(1, min(q, 3000))), realm, r['item_id'], r['t']))
+    sold = {r['item_id']: r for r in snaps[-1]}
+    for iid, seen, price in con.execute('SELECT item_id, seen, market FROM scans WHERE realm=?', (realm,)).fetchall():
+        r = sold.get(iid)
+        if not r or not price:
+            continue
+        ref = r.get('historical') or r.get('avg_sale') or price
+        rng = random.Random(iid * 7919 + seen // 86400)
+        q = max(2.0, (r.get('sold_per_day') or 0) * 3.0) * (ref / price) ** 0.5 * rng.uniform(0.8, 1.25)
+        con.execute('UPDATE scans SET quantity=? WHERE realm=? AND item_id=? AND seen=?',
+                    (int(max(1, min(q, 3000))), realm, iid, seen))
     con.commit()
 
 
