@@ -224,6 +224,24 @@ def sources_of(con, realm):
     return out
 
 
+def thin(series):
+    """Price history for the page's chart without bloating it: every point of the last 48 hours (hourly Blizzard
+    dumps), then the last point per 6 hours up to 7 days, then one per day up to 30 days. So the 7- and 30-day views
+    and the 6 h ... 30 day changes keep their reference points while the page stays small."""
+    if not series:
+        return []
+    last, out, seen = series[-1][0], [], set()
+    for p in reversed(series):
+        age = last - p[0]
+        if age > 30 * 86400:
+            break
+        key = ('h', p[0]) if age <= 48 * 3600 else ('q', p[0] // 21600) if age <= 7 * 86400 else ('d', p[0] // 86400)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out[::-1]
+
+
 def pack(live, cfg, wanted, fills):
     """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows."""
     if not live:
@@ -233,7 +251,7 @@ def pack(live, cfg, wanted, fills):
         if str(iid) in wanted:
             rows[str(iid)] = dict(lp=lr['price'], lq=lr['qty'], sell=lr['sell'], med7=lr['median7'],
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
-                                  spark=[[p[0], p[1], p[3]] for p in lr['series'][-40:]], tsm=lr.get('tsm'))
+                                  spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'))
     return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
                 qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,

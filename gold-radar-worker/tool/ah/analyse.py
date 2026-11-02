@@ -126,8 +126,16 @@ def analyse(con, realm, cfg, now):
 
     days = (date.fromtimestamp(now) - date.fromisoformat(cfg['launch'])).days
     sig = {k: [] for k in ('akku', 'unter', 'heiss', 'vendor', 'squeeze', 'welle')}
+    try:  # goods any vendor sells without limit: their AH price swings mean nothing, so no market signals for them
+        vendor_goods = set(json.load(open(os.path.join(os.path.dirname(HERE), 'vendor_items.json'), encoding='utf-8')))
+    except OSError:
+        vendor_goods = set()
     for r in rows.values():
         p3, q3 = r['p_d3'], r['q_d3']
+        if r['name'] in vendor_goods:
+            if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
+                sig['vendor'].append(r)
+            continue
         if p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20:
             sig['akku'].append(r)
         band = r['w'].get('band')
