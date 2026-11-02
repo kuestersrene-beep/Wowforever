@@ -115,6 +115,11 @@ steht, merkt sich der Bot in `discord-setup/data/fraktion_stimmen.json`.
 Welcher Kanal/welche Nachricht das ist, steht in `site_settings` (`faction_discord_channel_id`/
 `faction_discord_message_id`), genau wie bei den Raidterminen.
 
+`/fraktion erinnern` (nur Offiziere) schickt allen, die die Umfrage ausgefüllt haben, aber noch
+nicht bei der Gildenabstimmung mitgewählt haben, eine kurze Erinnerungs-DM mit Link zur
+Abstimmung – betrifft nur Personen, die bereits Mitglied des Servers sind (siehe `einladung.py`
+zur technischen Einschränkung bei Nicht-Mitgliedern).
+
 ## Noch nicht im Discord (`einladung.py`)
 
 Läuft alle 5 Minuten (teilt sich die Datenbank-Verbindung mit `raid.py`). Der Bot kann

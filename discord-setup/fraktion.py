@@ -23,9 +23,12 @@ import os
 from pathlib import Path
 
 import discord
+from discord import app_commands
 from discord.ext import tasks
 
 import raid
+
+OFFIZIER_ROLLEN = ("Offizier", "Gildenmeister")
 
 GILDEN_APP_KANAL = "🌐│gilden-app"
 OFFIZIERS_KANAL = "🛡️│offiziers-chat"
@@ -250,6 +253,56 @@ async def vor_dem_abgleich():
     await bot.wait_until_ready()
 
 
+# ============================== /fraktion erinnern ==============================
+
+def ist_offizier(member):
+    return member.guild_permissions.administrator or any(r.name in OFFIZIER_ROLLEN for r in member.roles)
+
+
+fraktion_befehle = app_commands.Group(name="fraktion", description="Gildenabstimmung", guild_only=True)
+
+
+@fraktion_befehle.command(name="erinnern", description="Erinnert per DM alle, die noch nicht abgestimmt haben")
+async def fraktion_erinnern(interaction: discord.Interaction):
+    if not ist_offizier(interaction.user):
+        await interaction.response.send_message("Das dürfen nur Offiziere.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True, thinking=True)
+
+    antworten = await raid.db.lesen(
+        "responses", select="user_id,discord_id,display_name,first_name,participation")
+    stimmen = {s["user_id"] for s in await raid.db.lesen("guild_draft_votes", select="user_id")}
+    faellig = [a for a in antworten if a["participation"] != "nein" and a["user_id"] not in stimmen]
+
+    link = f"{SITE_URL}/fraktionen" if SITE_URL else "der Website unter Fraktionen"
+    erreicht, nicht_erreichbar, nicht_im_server = [], [], 0
+    for person in faellig:
+        try:
+            mitglied = await interaction.guild.fetch_member(int(person["discord_id"]))
+        except (discord.NotFound, ValueError):
+            nicht_im_server += 1
+            continue
+        name = person.get("first_name") or mitglied.display_name
+        text = (
+            f"👋 Hey {name}! Kurze Erinnerung von Marin: bei der **Gildenabstimmung** (welche Fraktion "
+            f"wir spielen) hast du noch nicht mitgewählt. Dauert nur eine Minute – schau auf {link} vorbei."
+        )
+        try:
+            await mitglied.send(text)
+            erreicht.append(mitglied)
+        except discord.Forbidden:
+            nicht_erreichbar.append(mitglied)
+
+    teile = [f"📬 {len(erreicht)} Erinnerung(en) verschickt."]
+    if nicht_erreichbar:
+        teile.append(f"⚠️ {len(nicht_erreichbar)} nicht erreichbar (Direktnachrichten deaktiviert): "
+                     + ", ".join(m.mention for m in nicht_erreichbar))
+    if nicht_im_server:
+        teile.append(f"ℹ️ {nicht_im_server} nicht (mehr) im Server.")
+    await interaction.followup.send("\n".join(teile), ephemeral=True,
+                                    allowed_mentions=discord.AllowedMentions.none())
+
+
 # ============================== EINBINDEN (aus bot.py) ==============================
 
 def einrichten(client: discord.Client):
@@ -259,6 +312,9 @@ def einrichten(client: discord.Client):
     SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
     KANAL_ID = os.environ.get("FRAKTION_KANAL_ID", "").strip()
     STIMMEN_KANAL_ID = os.environ.get("FRAKTION_STIMMEN_KANAL_ID", "").strip()
+    if not hasattr(client, "tree"):
+        client.tree = app_commands.CommandTree(client)
+    client.tree.add_command(fraktion_befehle)
 
 
 async def starten(client: discord.Client):
