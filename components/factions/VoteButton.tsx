@@ -22,10 +22,13 @@ export default function VoteButton({ draftId, voted }: { draftId: string; voted:
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
+  // Nach der Stimmabgabe direkt zu den Umfrage-Ergebnissen weiterleiten
+  // (statt nur die aktuelle Seite zu aktualisieren) - "No-Brainer"-Fluss:
+  // Umfrage ausfüllen -> Fraktion wählen -> Ergebnisse ansehen.
   const run = (fn: () => Promise<void>) => {
     startTransition(async () => {
       await fn();
-      router.refresh();
+      router.push("/uebersicht");
     });
   };
 

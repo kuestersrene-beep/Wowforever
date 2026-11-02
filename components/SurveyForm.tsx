@@ -39,7 +39,7 @@ export default function SurveyForm({
     }
     startTransition(async () => {
       await saveResponse(formData);
-      router.push("/uebersicht");
+      router.push("/fraktionen");
     });
   };
 
