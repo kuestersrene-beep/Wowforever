@@ -74,7 +74,7 @@ def demo_data(cfg, snapdir=None):
     snaps = [tsm.parse(open(f, encoding='utf-8').read()) for f in sorted(glob.glob(os.path.join(snapdir, '20*.csv')))[-14:]]
     known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
     snaps = [[r for r in rows if str(r['item_id']) in known] for rows in snaps]  # only items that exist in WoW Forever
-    launch = datetime.fromisoformat(cfg.get('launch', '2026-11-04'))
+    launch = datetime.fromisoformat(cfg.get('launch', '2026-11-05'))
     now = int(launch.timestamp() + 3.5 * 86400)
     shift = now - max(r['t'] for r in snaps[-1])
     con = sqlite3.connect(':memory:')
@@ -316,7 +316,8 @@ def main():
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
               | {str(x['id']) for o in refine for x in o.get('inputs_list', [])})
     payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref,
-                   launch=cfg.get('launch', '2026-11-04'), fee=cfg.get('ah_gebuehr', 0.05),
+                   launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
+                   fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
                    limited=limited, kk=load('kaufkraft.json'), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
                    live=None if share else pack(live_data(cfg), cfg, wanted, fills),
