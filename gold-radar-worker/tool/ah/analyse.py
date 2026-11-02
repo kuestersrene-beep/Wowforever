@@ -157,16 +157,21 @@ def todo_items(rows, crafts, sig, cfg):
     """Today's actions as data (the dashboard draws cards from them): kind, item, the one price that matters
     (limit with its label) and the reason. Kinds: haendler, kaufen, halten, verkaufen, craften."""
     acts = []
+    # one card per item: overheated (sell) beats a squeeze (buy) beats accumulation (hold), so no item gets two
+    # contradicting orders in a row
+    hot = {r['item'] for r in sig['heiss'][:2]}
+    squeeze = [r for r in sig['squeeze'] if r['item'] not in hot][:2]
+    taken = hot | {r['item'] for r in squeeze}
     for r in sorted(sig['vendor'], key=lambda r: -(r['sell'] - r['price']) * (r['qty'] or 1))[:3]:
         acts.append(dict(kind='haendler', id=r['item'], name=r['name'], qty=r['qty'], limit=round(r['sell'] * 0.95),
                          limit_label='Kaufen bis', why=f"Buyout {money(r['price'])} < Händlerpreis {money(r['sell'])}"))
     for r in sorted(sig['unter'], key=lambda r: -r['w']['score'])[:3]:
         acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], limit=round((r['median7'] or r['price']) * 1.05), limit_label='Kaufen bis',
                          why=f"Die Spieler für Levelband {r['w']['band']} kommen erst noch, der Preis ist noch nicht gestiegen" + (f" ({fmt_pct(r['p_d3'])} in 3 Tagen)" if r['p_d3'] is not None else '')))
-    for r in sorted(sig['akku'], key=lambda r: -(r['p_d3'] or 0))[:2]:
+    for r in sorted((r for r in sig['akku'] if r['item'] not in taken), key=lambda r: -(r['p_d3'] or 0))[:2]:
         acts.append(dict(kind='halten', id=r['item'], name=r['name'], limit=round(r['price']), limit_label='Nicht unter',
                          why=f"Preis {fmt_pct(r['p_d3'])}, Menge {fmt_pct(r['q_d3'])} in 3 Tagen: Angebot wird knapp"))
-    for r in sig['squeeze'][:2]:
+    for r in squeeze:
         crate = r['crate']
         acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], qty=r['qty'], limit=round((r['median7'] or r['price']) * 1.25),
                          limit_label='Kaufen bis',
@@ -276,7 +281,7 @@ def main():
                  ('Score', lambda r: r['w'].get('score', ''))]
     wl = sorted((r for r in rows.values() if r['w']), key=lambda r: -r['w']['score'])
     table('Watchlist (Top 30 nach Score)', wl[:30], base_cols)
-    table('Akkumulation: Preis steigt, Menge fällt', sig['akku'], base_cols)
+    table('Einlagern: Preis steigt, Menge fällt', sig['akku'], base_cols)
     table('Unterbewertet: hoher Score, flacher Preis, Spitzennachfrage kommt noch', sig['unter'], base_cols)
     table('Überhitzt: über 2x 7-Tage-Median, Angebot kommt nach', sig['heiss'], base_cols)
     table('Leerkauf droht: pro Tag wird mehr verkauft als im AH liegt', sig['squeeze'], base_cols)
