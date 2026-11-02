@@ -132,8 +132,8 @@ def find_demo(client, region='eu', faction='Horde', flavours=('classicann', 'cla
 
 
 def snapshot(client, target, cids):
-    """(time of Blizzard's dump, {item_id: (min unit buyout, median unit buyout, quantity)}, auction count).
-    Several connected realms (one ruleset) count as one market."""
+    """(time of Blizzard's dump, {item_id: (low unit buyout, median unit buyout, quantity)}, auction count).
+    low = bait-safe lowest price (see below). Several connected realms (one ruleset) count as one market."""
     t = parse_target(target)
     every, stamps = [], []
     for cid in cids:
@@ -158,5 +158,13 @@ def snapshot(client, target, cids):
             if run >= half:
                 median = unit
                 break
-        out[item] = (int(offers[0][0]), int(median), total)
+        # 'lowest price' = the unit at position max(3, 5 % of what is listed): a single bait auction far below the
+        # market can't fake it (with fewer than 3 units listed it is the most expensive of them)
+        k, run, low = min(total, max(3, -(-total * 5 // 100))), 0, offers[-1][0]
+        for unit, q in offers:
+            run += q
+            if run >= k:
+                low = unit
+                break
+        out[item] = (int(low), int(median), total)
     return max(stamps), out, len(every)

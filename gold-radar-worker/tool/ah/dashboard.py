@@ -20,6 +20,13 @@ import analyse, tsm
 from snapshot import SCHEMA
 
 
+try:  # cooldown goods (annahmen.json); the website worker has no tools/ folder and does not need them
+    COOLDOWN = {k: v for k, v in json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')).get('cooldown_ware', {}).items()
+                if not k.startswith('_')}
+except OSError:
+    COOLDOWN = {}
+
+
 def load(name):
     return json.load(open(os.path.join(ROOT, name), encoding='utf-8'))
 
@@ -295,7 +302,7 @@ def main():
         s, inherited = sup_of(iid)
         items.append(dict(id=r['item_id'], name=r['name'], kind=r['kind'], new=r['new'], slvl=r['supply_level'],
                           gate=r['demand_level'], vol=r['volume'], profs=r['profs'], det=detail.get(iid, {}),
-                          sup=s, inh=inherited))
+                          sup=s, inh=inherited, cd=COOLDOWN.get(r['name'])))
     ref = [dict(kind=o['kind'], name=o['name'], id=o['item_id'], skill=o['skill'], req=o['req'], count=o['count'],
                 inputs_list=o.get('inputs_list', []), mass=o['mass_inputs'], why=o['why']) for o in refine]
 
