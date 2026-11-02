@@ -76,6 +76,8 @@ ROLLEN = [
     {"name": "Magier", "farbe": 0x69CCF0, "anzeigen": False, "rechte": 0},
     {"name": "Hexenmeister", "farbe": 0x9482C9, "anzeigen": False, "rechte": 0},
     {"name": "Druide", "farbe": 0xFF7D0A, "anzeigen": False, "rechte": 0},
+    # Ohne Rechte und unsichtbar – nur als Kennzeichen für externe Dienste; jedes Mitglied hat sie
+    {"name": "Beta-Tester", "farbe": 0, "anzeigen": False, "rechte": 0},
 ]
 
 # Wer darf was sehen / schreiben
