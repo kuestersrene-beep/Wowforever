@@ -247,24 +247,29 @@ def build(ruleset, con):
             id='blizzard', name='Blizzard-API (ganzes AH)', t=int(datetime.fromisoformat(bz['dump']).timestamp()),
             items=bz.get('items'), auctions=bz.get('auctions'),
             note='Alle Auktionen des Auktionshauses, stündlich: Tiefstpreis und Menge je Item.'))
-    blizz_demo = None
+    blizz_demo = tsm_demo = None
     if DEMO['con'] is not None:  # demo from Blizzard's own hourly dumps (Classic), if there are any yet
         try:
             blizz_demo = dashboard.live_payload(DEMO['con'], DEMO['label'], CFG, data['ctx'])
             if blizz_demo:
                 blizz_demo['realm'] = DEMO['label'] + ' (Classic)'
-                data['demo'] = blizz_demo
         except Exception as e:
             log.warning('Demo aus den Blizzard-Daten nicht gebaut: %s', e)
-    if TSM_DEMO and not blizz_demo:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
+    if TSM_DEMO:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
         try:
             fills = {tier: [tuple(f) for f in v] for tier, v in data['ctx']['fills'].items()}
-            demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
-                                  CFG, set(data['ctx']['wanted']), fills)
-            if demo:
-                data['demo'] = demo
+            tsm_demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
+                                      CFG, set(data['ctx']['wanted']), fills)
         except Exception as e:
             log.warning('Demo aus dem TSM-Archiv nicht gebaut: %s', e)
+    # Blizzard's Classic realm may be a later expansion with other items: only use it when it prices about as many of
+    # this page's items as the TSM demo does (or when there is no TSM demo)
+    if blizz_demo and (not tsm_demo or len(blizz_demo['rows']) >= 0.6 * len(tsm_demo['rows'])):
+        data['demo'] = blizz_demo
+    elif tsm_demo:
+        if blizz_demo:
+            log.info('Blizzard-Demo %s preist nur %d Items (TSM: %d), nehme TSM', DEMO['label'], len(blizz_demo['rows']), len(tsm_demo['rows']))
+        data['demo'] = tsm_demo
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
