@@ -8,6 +8,7 @@ Both files also contain a demo data set from TradeSkillMaster's public Classic E
 config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
 never part of the evaluation.
 """
+import random
 import base64, glob, json, os, sqlite3, sys, statistics
 from datetime import datetime, date
 
@@ -75,13 +76,32 @@ def demo_data(cfg, snapdir=None):
         for r in rows:
             r['t'] += shift
         tsm.store(con, realm, rows)
+    simulate_quantities(con, realm, snaps)
     if len(snaps) < 3:
         con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
                         [(realm, r['item_id'], r['t'] - 3 * 86400, r['avg_sale'] or r['historical'], None)
                          for r in snaps[-1] if r['avg_sale'] or r['historical']])
     live = analysed(con, realm, cfg, now)
     live['tsm_days'] = len(snaps)
+    live['qty_simulated'] = True
     return live
+
+
+def simulate_quantities(con, realm, snaps):
+    """DEMO ONLY: TSM publishes no AH quantities, which leaves the demo without the quantity chart, squeeze signal and
+    sell-through. So the demo gets plausible, reproducible quantities: about three days of sales listed, fewer when the
+    price is above its long-run value and more when below, with some day-to-day noise. Marked as simulated on the page;
+    never used for real data (the live database never goes through here)."""
+    for rows in snaps:
+        for r in rows:
+            if not r['market']:
+                continue
+            ref = r.get('historical') or r.get('avg_sale') or r['market']
+            rng = random.Random(r['item_id'] * 7919 + r['t'] // 86400)
+            q = max(2.0, (r.get('sold_per_day') or 0) * 3.0) * (ref / r['market']) ** 0.5 * rng.uniform(0.8, 1.25)
+            con.execute('UPDATE scans SET quantity=? WHERE realm=? AND item_id=? AND seen=?',
+                        (int(max(1, min(q, 3000))), realm, r['item_id'], r['t']))
+    con.commit()
 
 
 def flips(live, cfg):
@@ -196,7 +216,7 @@ def pack(live, cfg, wanted, fills):
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
                                   spark=[[p[0], p[1], p[3]] for p in lr['series'][-40:]], tsm=lr.get('tsm'))
     return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
-                days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
+                qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
                              margin=c['margin'], qty=c['qty']) for c in live['crafts'][:40]])
