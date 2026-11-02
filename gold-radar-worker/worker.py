@@ -191,6 +191,15 @@ def parse(raw, ruleset, upload_id):
                   upload_id=upload_id) for r, i, t, m, lo, q, n in p.scans.values()]
     history = [dict(ruleset=ruleset, item_id=i, t=t, realm=r, market=m, quantity=q, upload_id=upload_id)
                for r, i, t, m, q in p.history.values()]
+    # points from the future (wrong PC clock or an edited file) would sit at the end of every price line: drop them
+    cutoff = time.time() + 2 * 3600
+    late = sum(1 for x in scans if x['seen'] > cutoff) + sum(1 for x in history if x['t'] > cutoff)
+    if late:
+        scans = [x for x in scans if x['seen'] <= cutoff]
+        history = [x for x in history if x['t'] <= cutoff]
+        log.warning('Upload %s: %d Messpunkte mit Zeit in der Zukunft verworfen', upload_id, late)
+        if not scans and not history:
+            raise ValueError('alle Zeitstempel liegen in der Zukunft (Uhr des PCs falsch gestellt?)')
     return scans, history, p.sources
 
 

@@ -188,7 +188,8 @@ def todo_items(rows, crafts, sig, cfg):
     for r in sig['heiss'][:2]:
         acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(r['median7'] * 1.5), limit_label='Mindestens',
                          why=f"Preis {money(r['price'])} ist mehr als 2x 7-Tage-Median {money(r['median7'])}, Menge steigt wieder"))
-    for c in crafts[:3]:
+    # the first weeks: no endgame recipes (skill 275+) in the daily list; the full list stays in its own tab
+    for c in [c for c in crafts if (c['learn'] or 0) < 275][:3]:
         acts.append(dict(kind='craften', id=c.get('item_id'), name=c['name'], prof=PROF_DE.get(c['prof'], c['prof']), skill=c['learn'],
                          cost=round(c['cost']), revenue=round(c['revenue']), margin=c['margin'], limit=round(c['revenue'] - c['cost']),
                          limit_label='Gewinn', why=f"Kosten {money(c['cost'])}, Erlös nach Gebühr {money(c['revenue'])} (+{c['margin']:.0%})"))

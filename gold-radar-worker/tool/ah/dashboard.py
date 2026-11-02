@@ -256,7 +256,7 @@ def pack(live, cfg, wanted, fills):
                 qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
-                             margin=c['margin'], qty=c['qty']) for c in live['crafts'][:40]])
+                             margin=c['margin'], qty=c['qty']) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 
 
 def main():
