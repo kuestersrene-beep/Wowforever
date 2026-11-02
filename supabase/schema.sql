@@ -942,7 +942,121 @@ create trigger set_updated_at_guild_draft_votes
   for each row
   execute function public.set_updated_at();
 
+-- ============================================================
+-- Gold-Radar (/gold-radar): Auktionshaus-Tool nur für Mitglieder mit
+-- Discord-Zugangsrolle (GOLD_RADAR_ROLES, Bot-Sync nach discord_members).
+-- Das Protokoll hat bewusst KEINE Policies: lesen/schreiben nur über den
+-- service_role Key; die Auswertung sieht nur GOLD_RADAR_ADMIN_IDS
+-- (app/admin/gold-radar). Die Tool-Datei liegt im privaten Bucket
+-- "gold-radar" unter <ruleset>/dashboard.html, ebenfalls ohne Policies.
+-- ============================================================
+
+create table if not exists public.gold_radar_usage (
+  id bigint generated always as identity primary key,
+  discord_id text not null,
+  display_name text,
+  event text not null check (event in ('open', 'denied')),
+  ruleset text check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  created_at timestamptz not null default now()
+);
+
+alter table public.gold_radar_usage enable row level security;
+
+create index if not exists gold_radar_usage_user_time
+  on public.gold_radar_usage (discord_id, created_at desc);
+
+insert into storage.buckets (id, name, public)
+values ('gold-radar', 'gold-radar', false)
+on conflict (id) do nothing;
+
+-- Gemeinsame AH-Scans: Mitglieder mit Zugangsrolle laden ihre
+-- Tradeskills-Datei (Blackthornes_TS.lua) unter /gold-radar/upload hoch.
+-- Die Rohdatei liegt im Bucket unter uploads/<ruleset>/<id>.lua, der
+-- Dienst gold-radar-worker liest sie ein, schreibt die Preise in die
+-- Tabellen darunter und baut <ruleset>/dashboard.html mit Live-Daten neu.
+-- Jeder Preis-Messpunkt (Auktionshaus, Item, Zeitpunkt) wird einmal
+-- gespeichert; derselbe Scan von zwei Leuten zählt also nur einmal.
+-- Ein Upload lässt sich zurücknehmen (status 'revoke'): der Dienst löscht
+-- dann alle Messpunkte, die er beigetragen hat. Ebenfalls ohne Policies.
+create table if not exists public.gold_radar_uploads (
+  id uuid primary key default gen_random_uuid(),
+  discord_id text not null,
+  display_name text,
+  ruleset text not null check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  file_path text not null,
+  size_bytes integer,
+  status text not null default 'pending'
+    check (status in ('pending', 'done', 'error', 'revoke', 'revoked')),
+  message text,
+  items integer,
+  realms text[],
+  created_at timestamptz not null default now(),
+  processed_at timestamptz
+);
+
+alter table public.gold_radar_uploads enable row level security;
+
+create index if not exists gold_radar_uploads_status
+  on public.gold_radar_uploads (status, created_at);
+create index if not exists gold_radar_uploads_user
+  on public.gold_radar_uploads (discord_id, created_at desc);
+
+-- Aktueller Stand je Item und Scan-Zeitpunkt (Tradeskills "prices")
+create table if not exists public.gold_radar_scans (
+  ruleset text not null,
+  item_id integer not null,
+  seen bigint not null,
+  realm text,
+  market integer,
+  min_price integer,
+  quantity integer,
+  scans integer,
+  upload_id uuid not null references public.gold_radar_uploads (id) on delete cascade,
+  primary key (ruleset, item_id, seen)
+);
+
+-- Verlauf je Item (Tradeskills hält die letzten Messpunkte pro Item)
+create table if not exists public.gold_radar_history (
+  ruleset text not null,
+  item_id integer not null,
+  t bigint not null,
+  realm text,
+  market integer,
+  quantity integer,
+  upload_id uuid not null references public.gold_radar_uploads (id) on delete cascade,
+  primary key (ruleset, item_id, t)
+);
+
+alter table public.gold_radar_scans enable row level security;
+alter table public.gold_radar_history enable row level security;
+
+create index if not exists gold_radar_scans_upload on public.gold_radar_scans (upload_id);
+create index if not exists gold_radar_history_upload on public.gold_radar_history (upload_id);
+
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.
 notify pgrst, 'reload schema';
+
+-- Feedback aus dem Tool (Knopf „Feedback“, Beta-Test): Mitglieder mit
+-- Zugangsrolle schicken Fehler, Ideen, Fragen oder Lob; der Betreiber sieht
+-- und erledigt sie unter /admin/gold-radar. context = kurze Angaben aus dem
+-- Tool (Bereich, Item, Profil, Browser). Ohne Policies (nur Server-Zugriff).
+create table if not exists public.gold_radar_feedback (
+  id uuid primary key default gen_random_uuid(),
+  discord_id text not null,
+  display_name text,
+  ruleset text check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  kind text not null check (kind in ('Fehler', 'Idee', 'Frage', 'Lob')),
+  message text not null check (char_length(message) between 3 and 2000),
+  context jsonb not null default '{}'::jsonb,
+  status text not null default 'neu' check (status in ('neu', 'gesehen', 'erledigt')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.gold_radar_feedback enable row level security;
+
+create index if not exists gold_radar_feedback_time
+  on public.gold_radar_feedback (status, created_at desc);
+create index if not exists gold_radar_feedback_user
+  on public.gold_radar_feedback (discord_id, created_at desc);

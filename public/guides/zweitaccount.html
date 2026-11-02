@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Der Zweitaccount</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a quest log. Narrow reading column, one stepped route view with tabs, coin chips as the recurring subject detail. */
+:root {
+  --bg: #eef0f1;
+  --surface: #ffffff;
+  --ink: #1b2329;
+  --muted: #5a6670;
+  --line: #d4d9dd;
+  --gold: #a87508;
+  --gold-soft: #f6ead0;
+  --silver: #7b8794;
+  --copper: #a65a2a;
+  --horde: #9b2c1f;
+  --ok: #2e7d4f;
+  --display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171b; --surface: #1b2228; --ink: #e7eaec; --muted: #9aa6af; --line: #2c363e;
+    --gold: #e3b341; --gold-soft: #2e2716; --silver: #b4bec7; --copper: #d98b57; --horde: #e2725f; --ok: #5cc28a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171b; --surface: #1b2228; --ink: #e7eaec; --muted: #9aa6af; --line: #2c363e;
+  --gold: #e3b341; --gold-soft: #2e2716; --silver: #b4bec7; --copper: #d98b57; --horde: #e2725f; --ok: #5cc28a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 760px; margin: 0 auto; padding-block: 48px 72px; display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(2.2rem, 7vw, 3.4rem); font-weight: 800; letter-spacing: .01em; }
+h2 { font-size: 1.55rem; font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--gold); }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.eyebrow { font: 600 .78rem/1 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+section { display: grid; gap: 18px; }
+.lead { font-size: 1.2rem; color: var(--muted); max-width: 62ch; }
+
+/* header */
+header { display: grid; gap: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .95rem; align-items: center; }
+.watch { display: inline-flex; gap: 8px; align-items: center; background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; }
+
+/* coins */
+.coin { display: inline-flex; align-items: center; gap: 4px; font: 500 .9rem/1 var(--mono); white-space: nowrap; }
+.coin::after { content: ""; width: .7em; height: .7em; border-radius: 50%; background: currentColor; }
+.coin.g { color: var(--gold); } .coin.s { color: var(--silver); } .coin.c { color: var(--copper); }
+
+/* loop */
+.loop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
+.loop > div { padding: 18px; display: grid; gap: 6px; align-content: start; border-right: 1px solid var(--line); min-width: 0; }
+.loop > div:last-child { border-right: 0; }
+.loop .n { font: 800 1.8rem/1 var(--display); color: var(--gold); }
+.loop p { color: var(--muted); font-size: .95rem; }
+@media (max-width: 600px) { .loop { grid-template-columns: 1fr; } .loop > div { border-right: 0; border-bottom: 1px solid var(--line); } .loop > div:last-child { border-bottom: 0; } }
+
+.insight { background: var(--gold-soft); border-radius: 10px; padding: 18px 20px; display: grid; gap: 6px; }
+.insight strong { font-family: var(--display); font-size: 1.05rem; }
+
+/* tabs + timeline */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tabs button { font: 600 .95rem/1.2 var(--body); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-align: left; }
+.tabs button small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; }
+.tabs button[aria-selected="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.route-intro { color: var(--muted); }
+ol.tl { list-style: none; margin: 0; padding: 0; display: grid; }
+ol.tl li { display: grid; grid-template-columns: 88px 1fr; gap: 16px; position: relative; padding-bottom: 22px; }
+ol.tl li::before { content: ""; position: absolute; left: 87px; top: 10px; bottom: 0; width: 1px; background: var(--line); }
+ol.tl li:last-child::before { display: none; }
+ol.tl .t { font: 500 .85rem/1.4 var(--mono); color: var(--muted); text-align: right; padding-top: 2px; }
+ol.tl .b { display: grid; gap: 4px; padding-left: 16px; position: relative; min-width: 0; }
+ol.tl .b::before { content: ""; position: absolute; left: -5px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+ol.tl .b p { color: var(--muted); font-size: .97rem; }
+.ts { font: 500 .78rem/1 var(--mono); text-decoration: none; padding: 3px 6px; border-radius: 4px; background: var(--gold-soft); color: var(--gold); justify-self: start; }
+a.wh { color: inherit; text-decoration: underline dotted var(--gold); text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+a.wh:hover { color: var(--gold); text-decoration-style: solid; }
+a.wh.raw { font: 500 .75rem/1 var(--mono); color: var(--muted); margin-left: 6px; }
+a.wh .ico { width: 1.15em; height: 1.15em; vertical-align: -.2em; margin-right: .3em; border-radius: 3px; border: 1px solid var(--q, #6b6b6b); }
+
+/* Wowhead-style tooltip: one fixed in-game look in both themes, on purpose */
+:root { --tt-bg: rgba(8, 12, 32, .96); --tt-border: #4a5068; --tt-text: #ffffff; --tt-yellow: #ffd100; }
+#wh-tip { position: fixed; z-index: 50; max-width: 320px; pointer-events: none; background: var(--tt-bg); border: 1px solid var(--tt-border); border-radius: 6px; padding: 10px 12px; color: var(--tt-text); font: 400 .85rem/1.45 var(--body); box-shadow: 0 6px 24px rgba(0,0,0,.45); }
+#wh-tip .hd { display: flex; gap: 10px; align-items: flex-start; }
+#wh-tip .hd img { width: 36px; height: 36px; border-radius: 4px; border: 1px solid var(--tt-border); flex: none; }
+#wh-tip table { border-collapse: collapse; width: 100%; min-width: 0; font-size: inherit; }
+#wh-tip td, #wh-tip th { padding: 0; border: 0; }
+#wh-tip b { font-size: 1rem; }
+#wh-tip .q { color: var(--tt-yellow); } #wh-tip .q0 { color: #9d9d9d; } #wh-tip .q1 { color: #ffffff; } #wh-tip .q2 { color: #1eff00; }
+#wh-tip .q3 { color: #0070dd; } #wh-tip .q4 { color: #a335ee; } #wh-tip .q5 { color: #ff8000; }
+#wh-tip .moneygold, #wh-tip .moneysilver, #wh-tip .moneycopper { font-family: var(--mono); margin-right: 4px; }
+#wh-tip .moneygold::after, #wh-tip .moneysilver::after, #wh-tip .moneycopper::after { content: ""; display: inline-block; width: .65em; height: .65em; border-radius: 50%; margin-left: 2px; }
+#wh-tip .moneygold::after { background: #e8b923; } #wh-tip .moneysilver::after { background: #c0c8d0; } #wh-tip .moneycopper::after { background: #c06a35; }
+#wh-tip .src { margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--tt-border); color: #8f97b0; font-size: .75rem; }
+.note { font-size: .92rem; color: var(--muted); border-left: 2px solid var(--line); padding-left: 12px; }
+@media (max-width: 480px) { ol.tl li { grid-template-columns: 62px 1fr; gap: 10px; } ol.tl li::before { left: 61px; } }
+
+/* table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: .95rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 .75rem/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.item { font-weight: 600; }
+
+/* gold path */
+.path { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.path > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 4px; min-width: 0; }
+.path .amt { font: 800 1.6rem/1.1 var(--display); color: var(--gold); }
+.path .when { font: 500 .78rem/1 var(--mono); color: var(--muted); }
+.path p { font-size: .92rem; color: var(--muted); }
+@media (max-width: 600px) { .path { grid-template-columns: 1fr; } }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cols > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+@media (max-width: 600px) { .cols { grid-template-columns: 1fr; } }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+
+/* checklist */
+.check { display: grid; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.check label { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 6px; cursor: pointer; }
+.check label:hover { background: var(--bg); }
+.check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--ok); flex: none; }
+.check input:checked + span { color: var(--muted); text-decoration: line-through; }
+.progress { font: 500 .85rem/1 var(--mono); color: var(--muted); }
+
+.caveats { border-top: 1px solid var(--line); padding-top: 24px; display: grid; gap: 10px; font-size: .95rem; color: var(--muted); }
+/* cards: independent tips or reasons, no order. Filter chips by category. */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { font: 600 .85rem/1 var(--body); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.filters button[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip { font: 600 .72rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.gain { font: 500 .75rem/1 var(--mono); padding: 4px 8px; border-radius: 999px; background: var(--gold-soft); color: var(--gold); }
+.card p { color: var(--muted); font-size: .95rem; }
+.card .ts { justify-self: start; }
+.card.key { border-color: var(--gold); }
+
+/* verdict: who it fits, who it doesn't */
+.verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.verdict > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.verdict h3::before { content: "\2713  "; color: var(--ok); }
+.verdict .no h3::before { content: "\2715  "; color: var(--horde); }
+@media (max-width: 600px) { .verdict { grid-template-columns: 1fr; } }
+
+/* matrix: options compared on the same features */
+table.matrix th:not(:first-child), table.matrix td:not(:first-child) { text-align: center; }
+table.matrix td.y::before { content: "\25CF"; color: var(--ok); }
+table.matrix td.n::before { content: "\2013"; color: var(--muted); }
+
+/* rules: allowed / forbidden / unclear */
+ul.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+ul.rules li { display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: baseline; }
+.pill { font: 600 .7rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 5px 8px; border-radius: 4px; text-align: center; }
+.pill.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.pill.no { color: var(--horde); background: color-mix(in srgb, var(--horde) 14%, transparent); }
+.pill.info { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+
+/* tiers: rankings */
+.tiers { display: grid; gap: 8px; }
+.tier { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.tier .lv { font: 800 1.5rem/1 var(--display); color: var(--gold); text-align: center; }
+.tier .items { display: flex; flex-wrap: wrap; gap: 6px 14px; min-width: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="eyebrow">Video-Guide · WoW Forever · Zweitaccount</span>
+    <h1>Der Zweitaccount</h1>
+    <p class="lead">Warum Kargoz einen zweiten Account für den größten Zeitvorteil in WoW Forever hält, wofür er ihn einsetzt und wo die Regeln enden.</p>
+    <div class="meta">
+      <a class="watch" href="https://www.youtube.com/watch?v=zbWc_G2iOuE" target="_blank" rel="noopener">▶ Video ansehen</a>
+      <span>Kargoz</span><span>27:49 Min.</span><span>Fokus: Spielzeit besser nutzen</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="eyebrow">Die Idee in drei Schritten</span>
+    <div class="loop">
+      <div><span class="n">1</span><h3>Zweiter Account</h3><p>Auf demselben Battle.net-Konto. Laut Creator ist zwei die sinnvolle Grenze, mehr wird schnell unübersichtlich.</p></div>
+      <div><span class="n">2</span><h3>Leerlauf füllen</h3><p>Während der Main fliegt, angelt oder auf die Gruppe wartet, erledigt der zweite Charakter Handel, Buffs oder Farmen.</p></div>
+      <div><span class="n">3</span><h3>Alles von Hand</h3><p>Per Alt-Tab und /follow wechseln. Software, die einen Tastendruck an mehrere Spiele sendet, ist verboten.</p></div>
+    </div>
+    <div class="insight">
+      <strong>Warum das funktioniert</strong>
+      <p>Laut Creator besteht jede Spielstunde zu etwa 30 % aus Leerlauf: Flugrouten, Schiffe, Angeln, Schmelzen, Warten auf Gruppen. Ein zweiter Account macht aus dieser Zeit aktive Spielzeit.</p>
+      <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1117s" target="_blank" rel="noopener">18:37</a>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Vorab entscheiden</span>
+    <h2>Passt das zu dir?</h2>
+    <div class="verdict">
+      <div>
+        <h3>Passt, wenn …</h3>
+        <ul class="plain">
+          <li>du ohnehin zwei Klassen spielen willst. Dann bringst du laut Creator beide am schnellsten gemeinsam auf 60.</li>
+          <li>du gern mit dem Auktionshaus handelst, dafür aber nicht mit dem Main in der Stadt stehen willst.</li>
+          <li>dich Leerlauf beim Fliegen, Angeln oder Warten stört.</li>
+          <li>dir Effizienz wichtiger ist als ein entspanntes Spielgefühl.</li>
+        </ul>
+      </div>
+      <div class="no">
+        <h3>Passt nicht, wenn …</h3>
+        <ul class="plain">
+          <li>du Hardcore oder Self-Found spielst. Dort kannst du dir laut Creator ohnehin nicht selbst helfen.</li>
+          <li>dir ständiges Alt-Tab den Spaß nimmt. Der Creator selbst findet Leveln mit zwei Accounts weniger unterhaltsam.</li>
+          <li>du zwei Max-Level-Charaktere dauernd gleichzeitig steuern willst. Das hat ihm 2019 den Spaß verdorben.</li>
+          <li>du keine doppelten Abo-Kosten willst. Ein Jahresabo könnte laut ihm günstiger sein, Preise nennt er nicht.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Was der Zweitaccount erledigt</span>
+    <h2>Die Tipps aus dem Video</h2>
+    <div class="filters" role="group" aria-label="Thema filtern">
+      <button data-filter="all" aria-pressed="true">Alle</button>
+      <button data-filter="leveln" aria-pressed="false">Leveln</button>
+      <button data-filter="wirtschaft" aria-pressed="false">Wirtschaft</button>
+      <button data-filter="hilfe" aria-pressed="false">Unterstützung</button>
+    </div>
+    <div class="cards">
+      <article class="card key" data-cat="leveln">
+        <div class="top"><span class="chip">Leveln · Hauptpunkt des Videos</span><span class="gain">Zeit</span></div>
+        <h3>Zwei Charaktere parallel leveln</h3>
+        <p>Beide questen zusammen, der zweite folgt per /follow, jede Taste von Hand. Jede Quest zählt doppelt. Laut Creator der schnellste Weg zu zwei 60ern: Man ist ein bis zwei Tage später auf 60 als die Schnellsten, hat dann aber zwei Max-Level-Charaktere.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1380s" target="_blank" rel="noopener">23:00</a>
+      </article>
+      <article class="card" data-cat="leveln">
+        <div class="top"><span class="chip">Leveln</span><span class="gain">Sicherheit</span></div>
+        <h3>Krieger mit Schamane</h3>
+        <p>Der Schamane heilt und stellt laut Video ab Level 32 Totem des Windzorns. Der Krieger kämpft so fast ohne Todesgefahr. Langsamer als Krieger allein ist das laut Creator höchstens ein wenig.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1502s" target="_blank" rel="noopener">25:02</a>
+      </article>
+      <article class="card" data-cat="hilfe">
+        <div class="top"><span class="chip">Unterstützung</span><span class="gain">Zeit</span></div>
+        <h3>Den Twink hochziehen</h3>
+        <p>Ein hochstufiger Charakter zieht den zweiten durch Dungeons. Die Erfahrung kommt dabei laut Video vor allem aus den Dungeon-Quests. So gibt es früh starke Questbelohnungen wie <a class="wh" href="https://www.wowhead.com/forever/de/item=6975" target="_blank" rel="noopener">Wirbelaxt</a> für Krieger oder <a class="wh" href="https://www.wowhead.com/forever/de/item=6953" target="_blank" rel="noopener">Verigans Faust</a> für Paladine.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=800s" target="_blank" rel="noopener">13:20</a>
+      </article>
+      <article class="card" data-cat="hilfe">
+        <div class="top"><span class="chip">Unterstützung</span><span class="gain">Zeit</span></div>
+        <h3>Der Butler</h3>
+        <p>Buffs, Essen, Portale und Heilung auf Abruf. Der Zweitcharakter muss dafür nicht Max-Level sein. Welche Klasse was beiträgt, steht in der Übersicht unten.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=693s" target="_blank" rel="noopener">11:33</a>
+      </article>
+      <article class="card" data-cat="hilfe">
+        <div class="top"><span class="chip">Unterstützung</span><span class="gain">Sicherheit</span></div>
+        <h3>Duell-Tricks gegen sich selbst</h3>
+        <p>Der Creator hat 2019 seinen Hexenmeister per /duel von seinem eigenen Magier verwandeln lassen, damit er sich hochheilt. Ein Krieger kann per Duell den eigenen Zweitcharakter anstürmen, um schneller voranzukommen.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=734s" target="_blank" rel="noopener">12:14</a>
+      </article>
+      <article class="card" data-cat="hilfe">
+        <div class="top"><span class="chip">Unterstützung</span><span class="gain">Gold</span></div>
+        <h3>Kundschafter und Beschwörer</h3>
+        <p>Der Zweitcharakter beobachtet Weltbosse oder steht als Beschwörer bereit, ohne dass der Main ausloggen muss. Laut Video hat 2019 ein Spieler die Geister von Level-1-Charakteren auf Teufelssaurier-Spawns geparkt und so fast jedes <a class="wh" href="https://www.wowhead.com/forever/de/item=15417" target="_blank" rel="noopener">Teufelssaurierleder</a> bekommen. Genauso lassen sich seltene Kräuterfundorte im Blick behalten, zum Beispiel für <a class="wh" href="https://www.wowhead.com/forever/de/item=13468" target="_blank" rel="noopener">Schwarzer Lotus</a>.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1077s" target="_blank" rel="noopener">17:57</a>
+      </article>
+      <article class="card" data-cat="hilfe">
+        <div class="top"><span class="chip">Unterstützung</span><span class="gain">Flexibilität</span></div>
+        <h3>Beide Fraktionen</h3>
+        <p>Auf einem PvP-Server kann ein Account nur eine Fraktion spielen. Mit zwei Accounts geht beides. Dafür fallen die meisten anderen Vorteile weg.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1031s" target="_blank" rel="noopener">17:11</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Gold</span></div>
+        <h3>Ein Charakter wohnt am Auktionshaus</h3>
+        <p>Auktionen abbrechen, neu einstellen, Schnäppchen suchen: Das erledigt der Zweitcharakter mit eigener Bank, eigenem Inventar und Briefkasten. Verbrauchsgüter schickt er dem Main per Post. Unter anderem Namen fällt der Main nicht als Unterbieter auf.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=475s" target="_blank" rel="noopener">7:55</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Gold</span></div>
+        <h3>Magier als Händler</h3>
+        <p>Ein Magier in der Stadt kann Essen, Wasser und Portale verkaufen. Wer es ganz effizient will, levelt laut Creator zuerst den Magier und danach den Main.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=640s" target="_blank" rel="noopener">10:40</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Zeit</span></div>
+        <h3>Nebenbei angeln</h3>
+        <p>Spielgeräusche im Hintergrund anlassen, die Angel auswerfen und zum anderen Account wechseln. Beim Platschen zurückwechseln und den Fang einholen.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=504s" target="_blank" rel="noopener">8:24</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Gold</span></div>
+        <h3>Kurze Farm-Abschnitte mehrfach</h3>
+        <p>In Düsterbruch Ost stehen direkt am Anfang Kräuter (<a class="wh" href="https://www.wowhead.com/forever/de/item=8846" target="_blank" rel="noopener">Gromsblut</a>, <a class="wh" href="https://www.wowhead.com/forever/de/item=13463" target="_blank" rel="noopener">Traumblatt</a>), dazu Peitscher mit grauen Items und manchmal Bücher. Danach zurücksetzen und von vorn. Ähnlich gehen Pilz-Runs in Maraudon. Laut Video sind 5 Instanzen pro Stunde möglich.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=905s" target="_blank" rel="noopener">15:05</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Zeit</span></div>
+        <h3>Instanz vom Zweitaccount zurücksetzen</h3>
+        <p>Der Main loggt im Dungeon aus. Der Zweitcharakter ist mit ihm in der Gruppe und setzt die Instanz per Rechtsklick zurück. Der Main loggt wieder ein und steht am Eingang einer frischen Instanz.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=954s" target="_blank" rel="noopener">15:54</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Gold</span></div>
+        <h3>Dungeon-Runs verkaufen</h3>
+        <p>Schnelle Dungeons wie Flammenschlund oder das Verlies für niedrigstufige Spieler laufen, die die Quests dort brauchen. Der Creator schlägt etwa <span class="coin g">5</span> pro Person vor.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=997s" target="_blank" rel="noopener">16:37</a>
+      </article>
+      <article class="card" data-cat="wirtschaft">
+        <div class="top"><span class="chip">Wirtschaft</span><span class="gain">Gold</span></div>
+        <h3>Dungeons mit eigenem Heiler</h3>
+        <p>Ein Heiler auf dem Zweitaccount macht Solo-Farmen möglich, etwa <a class="wh" href="https://www.wowhead.com/forever/de/item=20520" target="_blank" rel="noopener">Dunkelrune</a> in Scholomance oder den Sprung-Run in Düsterbruch Ost. Stratholme solo hält der Creator mit starker Waffe für denkbar, das ist aber nur eine Vermutung.</p>
+        <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=1293s" target="_blank" rel="noopener">21:33</a>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Welche Klasse auf den Zweitaccount</span>
+    <h2>Was jede Klasse beiträgt</h2>
+    <div class="tablewrap">
+      <table class="matrix">
+        <thead><tr><th>Klasse</th><th>Essen &amp; Wasser</th><th>Portale</th><th>Buff</th><th>Heilung</th><th>Totem des Windzorns</th><th>Im Video</th></tr></thead>
+        <tbody>
+          <tr><td class="item">Magier</td><td class="y" aria-label="ja"></td><td class="y" aria-label="ja"></td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td><a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=656s" target="_blank" rel="noopener">10:56</a></td></tr>
+          <tr><td class="item">Priester</td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td>Machtwort: Seelenstärke</td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td><a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=697s" target="_blank" rel="noopener">11:37</a></td></tr>
+          <tr><td class="item">Paladin</td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td>Segen der Könige</td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td><a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=712s" target="_blank" rel="noopener">11:52</a></td></tr>
+          <tr><td class="item">Schamane</td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td class="n" aria-label="nein"></td><td class="y" aria-label="ja"></td><td class="y" aria-label="ja"></td><td><a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=755s" target="_blank" rel="noopener">12:35</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Markiert ist nur, was das Video der jeweiligen Klasse zuschreibt. Für Solo-Dungeons empfiehlt der Creator allgemein einen Heiler, als Partner für einen Krieger den Schamanen.</p>
+  </section>
+
+  <section>
+    <span class="eyebrow">Preise aus dem Video</span>
+    <h2>Was sich damit verdienen ließ</h2>
+    <p>Die Zahlen stammen von anderen Servern (Classic 2019 und Era) oder sind Vorschläge des Creators. Für WoW Forever sind sie nur ein grober Anhaltspunkt.</p>
+    <div class="path">
+      <div><span class="when">Vorschlag</span><span class="amt">~5 g</span><p>Pro Person für einen Flammenschlund- oder Verlies-Run</p></div>
+      <div><span class="when">Era</span><span class="amt">20–30 g</span><p>Dunkelrune im Auktionshaus, pro Stück</p></div>
+      <div><span class="when">Classic 2019</span><span class="amt">65–75 g</span><p>Teufelssaurierleder, pro Stück</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow">Regeln</span>
+    <h2>Was erlaubt ist</h2>
+    <ul class="rules">
+      <li><span class="pill ok">Erlaubt</span><span>Mehrere Accounts besitzen und gleichzeitig spielen.</span></li>
+      <li><span class="pill ok">Erlaubt</span><span>Jeden Tastendruck selbst ausführen, per Alt-Tab und /follow.</span></li>
+      <li><span class="pill no">Verboten</span><span>Input-Broadcasting: Software, die einen Tastendruck an mehrere Spiele gleichzeitig sendet. Blizzard hat das laut Video in Classic nachträglich untersagt.</span></li>
+      <li><span class="pill info">Unklar</span><span>Ob die Legacy-Punkte von WoW Forever zwischen Accounts auf demselben Battle.net-Konto geteilt werden. Der Creator hält es für wahrscheinlich, weil es in der Beta so war. Bestätigt ist es nicht.</span></li>
+    </ul>
+    <p class="note">Das ist die Darstellung des Creators. Maßgeblich sind die aktuellen Nutzungsbedingungen von Blizzard.</p>
+    <a class="ts" href="https://www.youtube.com/watch?v=zbWc_G2iOuE&t=411s" target="_blank" rel="noopener">6:51</a>
+  </section>
+
+  <section>
+    <span class="eyebrow">Vor dem Start</span>
+    <h2>Checkliste Zweitaccount</h2>
+    <span class="progress" id="progress">0 von 6 erledigt</span>
+    <div class="check" id="checklist">
+      <label><input type="checkbox" id="c1"><span>Zweiten Account auf demselben Battle.net-Konto anlegen</span></label>
+      <label><input type="checkbox" id="c2"><span>Klasse für den Zweitaccount wählen: Magier, Priester, Paladin oder Schamane</span></label>
+      <label><input type="checkbox" id="c3"><span>Entscheiden: Zweitcharakter als Helfer in der Stadt oder parallel leveln</span></label>
+      <label><input type="checkbox" id="c4"><span>Keine Input-Broadcasting-Software verwenden</span></label>
+      <label><input type="checkbox" id="c5"><span>Spielgeräusche im Hintergrund aktivieren, damit du das Angel-Platschen hörst</span></label>
+      <label><input type="checkbox" id="c6"><span>Zweitcharakter in einer Hauptstadt nahe dem Auktionshaus parken</span></label>
+    </div>
+  </section>
+
+  <footer class="caveats">
+    <span class="eyebrow">Zur Einordnung</span>
+    <p>Das Video ist eine Meinung des Creators, kein Schritt-für-Schritt-Plan. Zeiten und Preise stammen aus seiner Erfahrung auf anderen Servern. Die deutschen Namen von Zaubern und Items stammen aus der Forever-Datenbank von Wowhead. Gepunktet unterstrichene Items zeigen beim Drüberfahren den Wowhead-Tooltip mit englischem Namen (auf dem Handy: einmal tippen für den Tooltip, zweimal für Wowhead). Tooltips und Icons sind Stand 31.10.2026 in die Seite eingebettet. Die Videobeschreibung enthält einen Affiliate-Link zu einem kostenpflichtigen Leveling-Guide.</p>
+    <p>Zusammengefasst aus dem automatischen Transkript des Videos <a href="https://www.youtube.com/watch?v=zbWc_G2iOuE" target="_blank" rel="noopener">„The Most BROKEN Strategy in All of WoW Forever“</a> von Kargoz. Icons und Tooltip-Texte: <a href="https://www.wowhead.com/forever/de" target="_blank" rel="noopener">Wowhead</a>, © Blizzard Entertainment.</p>
+  </footer>
+</main>
+
+<!--WH-DATA--><script id="wh-data" type="application/json">{"6953":{"n":"Verigans Faust","e":"Verigan's Fist","q":3,"t":"<table><tr><td><b class=\"q3\">Verigans Faust<\/b><span class=\"q\"><br>Gegenstandsstufe 31<\/span><br>Wird beim Aufheben gebunden<table width=\"100%\"><tr><td>Zweihändig<\/td><th><span class=\"q1\">Streitkolben<\/span><\/th><\/tr><\/table><table width=\"100%\"><tr>\n    <td><span>65 - 99 Schaden<\/span><\/td>\n    <th>Tempo 3.20<\/th>\n<\/tr><\/table>(25.63 Schaden pro Sekunde)<br><span>+5 Ausdauer<\/span><br><span>+6 Intelligenz<\/span><br><span>+10 Willenskraft<\/span><br>Haltbarkeit 100 / 100<div class=\"wowhead-tooltip-item-classes\">Klassen: <span >Paladin<\/span><\/div><\/td><\/tr><\/table><table><tr><td><span class=\"q2\">Trefferchance: <span >Lässt das Ziel in den Flammen der Großen Schmiede aufgehen und verursacht 39 bis 59 Heiligfeuerschaden. Fügt Feuerelementaren und Erdelementaren 3-mal mehr Schaden zu.<\/span><\/span><br><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">74<\/span> <span class=\"moneycopper\">59<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAAYEBwgFAgP/xAAtEAACAQMCBAYBBAMAAAAAAAABAgMEBREAEgYHIUETFCIxUWEIFiNCcTKRwf/EABgBAQEBAQEAAAAAAAAAAAAAAAQDAgUB/8QAIREAAgIBBAIDAAAAAAAAAAAAAQIAAwQREiEzE4EiMvD/2gAMAwEAAhEDEQA/AMhUEM9yuEVMmZaiqmVFLHJLMcZJ/s62byu/GnlPf+GKG6TVN+rJJ0Cy7rgiBZR0dcImQcjOD2IPfWX+T9Hv4imujLlbbTtMgzjdMxCRj/bE/wBKdXxy944fgu6x1kFfE1NJ6aukMm3xl+V+JB/E9vY9DjXNzMl63ASJpqDKSZ2ueP418Hx8Px0/Li31dNxBEHeKGSreXz20Mxiw3+L7UJUjAJGD7gjHFRBLTzSQVETxSxMVkR1KsrA4IIPUEHtrdvOHia611Da+J+G7p41BVB0gFPJ4bSMKdwIyVbOWlwrDIP8AHOG60px1wmeZfAt35hQpHQXay0zy1kkyKjXSKPaskjbQAZFYsA4GG27c5XOk4bPZU1jHgH3J3KFYKJQVNcK2lQx01bUwITkrHKygn5wD9aNRT9++jSJOTrZc6y3SO1LNtWVdksbAMki/DKeh/wCdsaZrNdKu6mo8v5ajaCISOkYUFxkA7A2ST1yR1wATpMGR07jTlyvoXrKyslE9FTxQxqHaom2ElmIAUYLHvnAPbOpWqu0s02hbXQSyuDrvfrPYLigqFuVnnhEtdZ7iojWoRGBZqeTHpmX0n0gk9wQNP9ZfbTfuTnFkPCFXU4/Tssl2iuDHzUe19yqNxO9MdAV9I3dicFc52mDhvkTYIYp0ra641PhGqWZMCKNG2sqoQVO4EZx12kZPXOcxc7iEkiFfVCORDG6iU4ZT7qfkfWhV4/mG/dxrx6P71LPYF+OkiE9dGvBGDo10oafWZAk0qDqFYqM/GdPvKCmjme5M24MWii3KcEKd5OD26qNGjR8rpMpR9xO7+SPoqbFCAD+1MS20bmwVAyR8AdB7DrjVRdwNGjXmJ0rN5HYZPttDFVQNJIzghsenHwPr70aNGkw8/9k="},"6975":{"n":"Wirbelaxt","e":"Whirlwind Axe","q":3,"t":"<table><tr><td><b class=\"q3\">Wirbelaxt<\/b><span class=\"q\"><br>Gegenstandsstufe 40<\/span><br>Wird beim Aufheben gebunden<table width=\"100%\"><tr><td>Zweihändig<\/td><th><span class=\"q1\">Axt<\/span><\/th><\/tr><\/table><table width=\"100%\"><tr>\n    <td><span>102 - 154 Schaden<\/span><\/td>\n    <th>Tempo 3.60<\/th>\n<\/tr><\/table>(35.56 Schaden pro Sekunde)<br><span>+16 Stärke<\/span><br><span>+15 Ausdauer<\/span><br>Haltbarkeit 100 / 100<div class=\"wowhead-tooltip-item-classes\">Klassen: <span >Krieger<\/span><\/div><\/td><\/tr><\/table><table><tr><td><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneygold\">1<\/span> <span class=\"moneysilver\">65<\/span> <span class=\"moneycopper\">41<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGwAAAgIDAQAAAAAAAAAAAAAAAAYHCAMEBQn/xAAvEAACAQMDAwMCBAcAAAAAAAABAgMEBREAITEGBxITImFBUQgUI4EVFzJSYnHB/8QAFwEBAQEBAAAAAAAAAAAAAAAAAAIBA//EABsRAQADAAMBAAAAAAAAAAAAAAABERICE1Fh/9oADAMBAAIRAxEAPwCsPbDo+r6+60gs61sdLE+ZqurnkAEcY3ZvcR5OeAM7k/71O/dPtn0bY+l7xInRNPRTxSQUdoq4rjO7z5TyeeRCfHKgH2jYtnfGNRR2W7O9Q9zGnq6SqpLdZ6WYRVNZO3kQxGfFIx7mbG++F+dWL7w9KNY+3HT1FQmoqaKxSxxu0pzI0JiaL1GxsACRn7A6CBOoO1lotNpiDX2f+KyqsaQMEKNKUBYnB8kjBJXJySRxzrjfy6o6mNIrb1PE9c0CyGnq6J4VWQEiRDICyqBthmwD/jjT3drxDCbnDdIfWqsPLM64Hr1MsqeIzt7EUkgZxnf4KHf1utVDVx0cRinmiPrpGy5eJSMhidzg8Y32P01lhLFTcLc8lLDWzRBHIYQVB8Cw2JBU4PHI0a0Scbf80a0OvZrr+49vusYbrSSyfkpsQXCAHaWAnfb+5f6lPII+Tq9tA1NdbJ6lVL+bpZo92JyJ4nXP7gq2P315uDbfVr/wzdwDce3NZZK6o9SusEf6AJ3elbZB8hXPj8Bl0C33ZsNPZb0stvpqiWlikKNCZWnSBGXZeM43x7icbaj2kr6KhnqYryzQVkNL4UgeMhJ1yShyd1J2GW2I31PtFJGymqWoinLN+pJE4YFtywyNs/XGqwdyKe6nqy5XGvSV0qalmScr7WB4APGw2x9Mam4ul4nOjGvS9huccdXMa2CZkAlFOylWYct7uCeTjb7aNIdJd7lRwiGCqkSMHIX7aNKn01HjUqVEc8ka5wrkDPwdbFsr663PLJQ1c1M8sLwyGNipaNtmU/B0aNUh1Ojb/dLBd4ZbbUtGskirLEd45ASBhl4PPPI1l69vNbcbzPSzsqwUszpFGgwvO7H7scDfRo1NRp0jlPXMfXMtlFFU07SOzghse3H2Hx86NGjVOb//2Q=="},"8846":{"n":"Gromsblut","e":"Gromsblood","q":1,"t":"<table><tr><td><b class=\"q1\">Gromsblut<\/b><span class=\"q whtt-extra whtt-ilvl\"><br>Gegenstandsstufe 50<\/span><\/td><\/tr><\/table><table><tr><td><span class=\"toycolor\">Handwerksmaterial<\/span><br><div class=\"whtt-extra whtt-maxstack\">Maximaler Stapel: 20<\/div><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">2<\/span> <span class=\"moneycopper\">50<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGgAAAgMBAQAAAAAAAAAAAAAAAAYDBQcECP/EAC4QAAIBAgUDAwMDBQAAAAAAAAECAwQRAAUSITEGE0EUUWEiMnEHFRYzQlKhsf/EABgBAQEBAQEAAAAAAAAAAAAAAAUGBAID/8QAKxEAAQMDAgQEBwAAAAAAAAAAAQIDEQAEMRIhBWGBwRMyQaEUUYKR0eHx/9oADAMBAAIRAxEAPwDx8FkeZmkZmctdixuST5JxZegnlDvFG8kcSgyuB9KX4ueBfx74ly7L5np2qTDKYVbS0gQ6Qx3sTa1/jGtda9Ny11Dk1P07RCKhEKSLRpIBu6KRJvbWdmDMSWvfgEDBlzeIaUNRiaorXh5LRUcUi9NdB5rnsEcyQimo2l7fq5I2Pcc7aEA3dvgceThnzboLpDIqPVm+Y5hJUICXAYIi+Bcqp8+Bc+Njh56VqYui6alyyai/da2nDvmBWoMa0ynURTJJ/aA7XkbbV9l7A3RP1k6kos+bXRVFPGC8RalSRW0aUK2XSNOkEk2HF+MDC5uLp8JQshHL+HtVU3YWVraKedaCjpkScnYDaeuJMZpVm/jNPKy5bnHUlHTsdQSMKwJ4v9y+w5F9uTgxQZkj0gpu6P60AmWxv9JJtf52wYdS0qNln7/qpVxxkKMoSOh/NP3VKVMj5bl2WLKmXpSJTQ06ElHkBOtyBsXdrMSd9x4AxoFPVyZRT0qB71cFOiJa10Krp17jxY2+bHxhOp60UkMVRErIEXw9jKx4APj8+2GGeKnNP6urzGCSplHcbQ3ANttI8cDe3GJu+C341DHvRllxppaQw75R5iMk59cEHYnkYpW6+jzSv9JleXUs0lHIDUSaF+lpbkXduAFX/I2FyfJwo9e5ZR9OtR5fDUrWVhi7tVUIWEauSR2kUgXC23c/cSbWA31CnrOw7NHIBE0bIS1tOk2Jvfxtz+MY/wBbmdxls9S+t5aQuWBuGJkfcHyOdx84T4StRAbIgD3NIvaFWfjBepXaY3549I+VU1TXSz9oSuWEUYjTxZRwP94McWDDwSBQpfcUZJrUaueQxUq7ALCpAA8nn/gxxZ9NI+VUZLEdxpNYGwaxFr/jBgxgcQmUmKP4EkfFD6j13qjz+lFJDEI5pmV11FWba9vbFLWVc9RS0sMrXSnQpH7hSSbYMGNjYGkVtbcWtqVHI71NldBDVU7SSM4IfT9JHsPj5wYMGPWuK//Z"},"13463":{"n":"Traumblatt","e":"Dreamfoil","q":1,"t":"<table><tr><td><b class=\"q1\">Traumblatt<\/b><span class=\"q whtt-extra whtt-ilvl\"><br>Gegenstandsstufe 54<\/span><\/td><\/tr><\/table><table><tr><td><span class=\"toycolor\">Handwerksmaterial<\/span><br><div class=\"whtt-extra whtt-maxstack\">Maximaler Stapel: 20<\/div><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">1<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGwAAAQUBAQAAAAAAAAAAAAAAAAMEBgcIBQn/xAAsEAACAQMDAwQBAwUAAAAAAAABAgMEBREABiESE0EHIjFRYRQVJFJicYGR/8QAGAEBAQEBAQAAAAAAAAAAAAAABQQDAgb/xAAkEQABAwQBAwUAAAAAAAAAAAABAAIDBBEhMRIFUfAyQWFxwf/aAAwDAQACEQMRAD8AyAIJZ4nqXkDEv7upssxPn7Oun+zJEtO8szuGTM4SJswMSelSTwSQM8eDpza7LPOOtUPSCAfvn6HnVzWn0Zq5pK+3ve0krIjB2qeLJWWRldzGxJwHCIxHjnGfnV0dN3RktZkhpVQ2LZlyu1NLUU8LdHYneDC5MzxBSYwP6iGGPskDU5udhoNqbRjpam3I9wp2V6mQqSe/0kYj8H5K/WVzqxLHbXtNka0yhbcluPU1b3egpOshBC4PJLso6h4jONRP1b3BDSGotcEEc886ALJBIVVIiMAZUkkkckZ88nxpMULKeMyybtgLUyERgu91S9bf7pNWzTxVU9MJGz0RSsijAAHwR4AGfxo00rY4VqGEIcIMYDnnRoJwJJJKpa4WWwds7Fsto2RQVVfBC1ZaXiulS0Jy0pfq7cHPOcrHx/dnSlXJeZNk2m7WtqmlcV0ULTLF76mtYlHkVcZKhAwH+zqS3uOktFbPuW+1EcBp6BKg0xf2ComcrAOnPu7aYx/jOnlzo7Ju+3W6Cmrq2qtlrgxbbda1PeeTp9000gwseR8AngZ8nXpIuMVnOFx5522uIunsiGd+ZUVeyip3FUU1Rt56+3UkfbJp6oEwxjJ6ZJCCvWxyxCe4k4yMaoP1SusNTuuWvp44lpFfFLEkaxlI14VWC+R9/PGr23Juis9PdrmF6mqkHQTQ2+Jv4kRfOWlkx1St88cD7zrLG5rnHU4xh5CS0j4wcnx9Y1hW1HO5J1pHTuM84a03A2uDWN3Kl5D8sSedGm7yEsdGgyblJBpAsvQD0ss9q9TLhVbi3dQQVlR2qZVgAIgQdpW4Tn4JOM5xpf1Ani29eZtu7foaW00S08szfpFMbuyrnkg+fOMH86NGmg4umDTqwwrpAODj9/qyR6j7uv12rDT11bJLTQydSQs7MmcfPuJJ/wC6ra4yM87sQBk5wBgDRo1BWesj5QlGBtL2q3w1dO0kjSAhyvtI+h+Pzo0aNH3SK//Z"},"13468":{"n":"Schwarzer Lotus","e":"Black Lotus","q":2,"t":"<table><tr><td><b class=\"q2\">Schwarzer Lotus<\/b><span class=\"q whtt-extra whtt-ilvl\"><br>Gegenstandsstufe 60<\/span><\/td><\/tr><\/table><table><tr><td><span class=\"toycolor\">Handwerksmaterial<\/span><br><div class=\"whtt-extra whtt-maxstack\">Maximaler Stapel: 20<\/div><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">10<\/span><\/div><div class=\"whtt-extra whtt-droppedby\">Geplündert von: Mushgog<\/div><div class=\"whtt-extra whtt-dropchance\">Dropchance: 1.41%<\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGQAAAwEBAQAAAAAAAAAAAAAAAAYHCAUD/8QAMBAAAQQBAwIFAwEJAAAAAAAAAQIDBBEFAAYhEjEHEyJBURQygXEIFiNCUmFigqH/xAAXAQADAQAAAAAAAAAAAAAAAAADBAUC/8QAKhEAAgIBAgMGBwAAAAAAAAAAAQIAAxEEIQUxcRITFEGBoSIjMlFSYeH/2gAMAwEAAhEDEQA/AM7eIK07fQjasJZcXH61ZCSoKC5MhZIKiDyAEUAD/UT3J0hlpxXNE6vg8LcxP2rEyUrrW5OX9XJWUG1LVzRPyQQQkduv5PC5I/cTDS3mI2DezstsqBTIkgRm19X2/wAMnzK+3gqs8gitPVhGJJMm0apHJx5czJ9gdo7izkYysTipM1oSm4lMoKlKdWCQlKRyrgWa7cXVjVTyu1pe22EYg45qO3B9M3KqJbbT2C/WvjlV8o6iQa50vy95ZjHPiXj2sZikpDiWY8BpQQkLIK0i1fbwAT7ke9XrhZ3xBzWXFZKPClkXSnUuKIv/AHr/AJolTpSxK7+kZ7Zs+nlPTcGexByrqYrmTlMIAQ2tmQphvpSKASmiaoDlXJNk6NKj2TmLXaHEsJ9kMpCEj8DRrB1RJ5e39hQk01+0zuNzHZOXhMW+bdUmAyWXFAUn1vLSlJoEqWGwTZALna9RvH4mTLdahY6Mt6S5ZATwltFUpZP8qa4v2F+5GqHuna8/Pb0+mcaRPkssNtMIjLKm3XX3FrHSSPUAgCyRRsfIuxYPw3j7bwzeKmORw+435+RnKUEAAc9HUrshJNAHuef0k38Qq0iVVE5ZtlHmducj2Oy14rXOBymYNzbRyEbqLLTspDYSlx9DZ6ASOB/iOOB3oE/OknIQ3I7hQ6goUO4I1tqXldowcLjNv47FSJsdySpKJxWhtmXKohfrUeyb6er8CtSreDeEajvvLYhOwVvi2osVMpkvkkJJdX0hSqscFQFH+9VdPXaABZtN6W29CBbjGPeZs8pZNpQo/oNGtRbV8NczkcOmVh94Y+BCUtSW21BCOqjRVTaSALBHNE1dUQSaP3Vf5RzxSy9+CWPhZSKzuiXGbVkpMGK4pYHCVKaQD0g9uEjSO3uDL7y8TpeCmzFwMfFxqnC1jwGi8VNrvrWbV2TXpKSApVEWdGjULhtSWcRuZxkqq4/XT7TNY+Aesi3j3LkY7cLO14Dqo+Gx7KvooiT6I4cPU4E3z6lGzf4ocaVtnwxmZcSFPlSnGEkdCPNNIuh6b7cfGjRqtaxwekRuPyiZ1fEuBA23n2oGPiJW2uKh1SnnFqUVEqHsofA0aNGplTsUG8JQAa16T//Z"},"15417":{"n":"Teufelssaurierleder","e":"Devilsaur Leather","q":1,"t":"<table><tr><td><b class=\"q1\">Teufelssaurierleder<\/b><span class=\"q whtt-extra whtt-ilvl\"><br>Gegenstandsstufe 50<\/span><\/td><\/tr><\/table><table><tr><td><span class=\"toycolor\">Handwerksmaterial<\/span><br><div class=\"whtt-extra whtt-maxstack\">Maximaler Stapel: 20<\/div><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">5<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGwAAAgIDAQAAAAAAAAAAAAAAAAYFBwEECAL/xAAuEAABAwMDAgQEBwAAAAAAAAABAgMEAAURBhIhMVETIkFhB3Gx8BYjJDJSgaH/xAAZAQACAwEAAAAAAAAAAAAAAAACBAABBQP/xAAhEQACAQQBBQEAAAAAAAAAAAAAAQIDESExQQQSEzOBwf/aAAwDAQACEQMRAD8A5903o253aUjZHkO+KoqLpQSCOu7d7n6092r4ZrjKZmS5DPhA8o2nJB9Dn1+lR2gtXzbNp9wNvKdQwvYhsHgc5Gefn2qaR8Q5kpouOMMqxxhRxz34z3/ykK9ardx4WAYKOzU1Dpa0iaqQi3q3g8ubiAruSBx9ml+VbFpVhsJSgftAHWmdzWLDoS3Ph4B4UppZ5564Nb0KHb768hm1yWPGPRtS9p98Z4NK90uQ7LgrCfBUZKv1ctrHGGny2D74HrRT7ctLPomuILRUQcEpGRRXRVZIoUrZDlu25K0NrcSfMruSe9enIrjaB+WUpHAGMVePwH0vZZtqbl3MeE2lO9SnVAbD1BJyDkD2FSOv7NoRtTyYdziuuuK8yy4FZPYYHH371JJ5aLUcHOKs1hK1oOUqUO+D1q0PwfaJ0Z5xmWyJCE+UIPClZHHt680hXWBEhXLY7ISfBWpLiUn+PX6VIJyykFCDckkL0m7To8l1tqU6hO7oDRUBd5YcnOLScAnPHzorajSp2V0TyyeblyWu/wBykafaR4oabLSVlDYwCpQ5J9T/AHULMlvhZy4V4APmOaKKwp7Beja07cZSZbWxezeOduR1qu9SzJKLhLaDpwHVjJ60UU70O5FS9f1fpDQYiJaFuOOOBQWRwR2HtRRRTwB//9k="},"20520":{"n":"Dunkelrune","e":"Dark Rune","q":2,"t":"<table><tr><td><b class=\"q2\">Dunkelrune<\/b><span class=\"q whtt-extra whtt-ilvl\"><br>Gegenstandsstufe 55<\/span><\/td><\/tr><\/table><table><tr><td><span class=\"q2\">Benutzen: <span >Stellt 900 bis 1500 Manapunkt(e) wieder her, wobei 600 bis 1000 Punkt(e) Leben verbraucht wird.<\/span> (2 Min Abklingzeit)<\/span><br><span class=\"toycolor\">Handwerksmaterial<\/span><br><div class=\"whtt-extra whtt-maxstack\">Maximaler Stapel: 20<\/div><div class=\"whtt-sellprice\">Verkaufspreis: <span class=\"moneysilver\">20<\/span><\/div><\/td><\/tr><\/table>","i":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAkACQDASIAAhEBAxEB/8QAGgAAAwADAQAAAAAAAAAAAAAAAAMEAQIFCP/EACYQAAIBBAIBBAIDAAAAAAAAAAECAwAEESESMUETUWGxIpEFgeH/xAAZAQACAwEAAAAAAAAAAAAAAAADBwABBAL/xAAmEQABBAECBgIDAAAAAAAAAAABAAIEEQMhMQUSE0FRkRRhIkJx/9oADAMBAAIRAxEAPwDyLbW89xcvHG5CqxA3gACuglvaxoOUjsTkFsk4+cDePk1m2eO3hdnkVGLFskEjvr7NbiWREPpWrTvjkyeDyP48sdmmRwmBCjRml7Q55aCSRzVeooCzt77bIdElaRW8JjjYoF9QZChuJ+cVLe2MiRNLDJIVHYLbHwasuWmckSwxPCg5mWIcQMaIz751/lNDqibP4kjEfE54nf1nfv8A1W7Lw+BL5sTmAdrrlN+fBF+CQdhsVDY1XCtY/UjLOORzjJoqqRDDPLGucBzRSnmYXx878R/UkeijtcKCvgfEZwVyTgApyLgdjHv13qlTy8b+V3zGskKgZfgOSgaz480n+NuULS20knphnJDg9b+qtSN0Doyp6a7jjdQynPY7zk+47ppxT86Ficx2lD7otBFEaGqJ271VlBDqNKFmiW0lijC83HFFScydnZx40O6quHU8Q65dIkRQVDEOPrx+6aOAZglpHbhWUMQArbGfJ1isTTLFAskoCyhemxliPJ+Oj8mtEeH0cbgXiqF/iQ2gSe9G7N7DYADRR7lFe7vJuJ6bGqKTbuJA7lu3PmilVxSUM83LlGznE+yiNGg0So7dGCyFmDNvRqgTTRrwErlR4O6KKHHmyY7j0shb/DSsgELZLmZpGbnhsD8gN/up7pC7kPI587NFFGzcUmZxy5criPsqg0KRnaFiiHXzRRRWal1ZX//Z"}}</script><!--/WH-DATA-->
+<script>
+(function () {
+  // Namespace per page so several guides on one website keep separate state
+  var NS = 'guide:' + location.pathname + ':';
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    try { localStorage.setItem(NS + 'route', tab.id); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { select(t); }); });
+  try { var saved = document.getElementById(localStorage.getItem(NS + 'route')); if (saved) select(saved); } catch (e) {}
+
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#checklist input'));
+  var progress = document.getElementById('progress');
+  function update() {
+    var done = boxes.filter(function (b) { return b.checked; }).length;
+    progress.textContent = done + ' von ' + boxes.length + ' erledigt';
+  }
+  boxes.forEach(function (b) {
+    try { b.checked = localStorage.getItem(NS + b.id) === '1'; } catch (e) {}
+    b.addEventListener('change', function () {
+      try { localStorage.setItem(NS + b.id, b.checked ? '1' : '0'); } catch (e) {}
+      update();
+    });
+  });
+  update();
+
+  // Card filter: buttons with data-filter, cards with data-cat ("all" shows everything)
+  var fbtns = Array.prototype.slice.call(document.querySelectorAll('.filters button'));
+  fbtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var cat = b.getAttribute('data-filter');
+      b.parentNode.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      // only the cards in the filter's own section
+      Array.prototype.slice.call(b.closest('section').querySelectorAll('.cards .card')).forEach(function (c) {
+        c.hidden = cat !== 'all' && c.getAttribute('data-cat') !== cat;
+      });
+    });
+  });
+
+  // Wowhead tooltips + icons, embedded from the Wowhead Forever tooltip API
+  var wh = {};
+  try { wh = JSON.parse(document.getElementById('wh-data').textContent); } catch (e) {}
+  var QUALITY = ['#9d9d9d', '#9aa0a6', '#1eff00', '#0070dd', '#a335ee', '#ff8000'];
+  var tip = document.createElement('div');
+  tip.id = 'wh-tip'; tip.hidden = true; tip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tip);
+
+  function idOf(a) { var m = /item=(\d+)/.exec(a.href); return m && wh[m[1]] ? m[1] : null; }
+  function show(a, x, y) {
+    var d = wh[idOf(a)];
+    tip.innerHTML = '<div class="hd"><img alt="" src="' + d.i + '"><div>' + d.t + '</div></div><div class="src">' + (d.e && d.e !== d.n ? 'Englisch: ' + d.e + '<br>' : '') + 'Wowhead Forever · Klick öffnet die Seite</div>';
+    tip.hidden = false;
+    place(a, x, y);
+  }
+  function place(a, x, y) {
+    var w = tip.offsetWidth, h = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+    if (x == null) { var r = a.getBoundingClientRect(); x = r.left; y = r.bottom; }
+    var left = Math.min(x + 14, vw - w - 8), top = y + 18;
+    if (top + h > vh - 8) top = Math.max(8, y - h - 12);
+    tip.style.left = Math.max(8, left) + 'px'; tip.style.top = top + 'px';
+  }
+  function hide() { tip.hidden = true; }
+
+  var armed = null;
+  Array.prototype.slice.call(document.querySelectorAll('a.wh')).forEach(function (a) {
+    var id = idOf(a);
+    if (!id) return;
+    a.style.setProperty('--q', QUALITY[wh[id].q] || QUALITY[1]);
+    if (!a.classList.contains('raw')) {
+      var img = document.createElement('img');
+      img.className = 'ico'; img.alt = ''; img.src = wh[id].i;
+      a.insertBefore(img, a.firstChild);
+    }
+    a.addEventListener('mouseenter', function (e) { show(a, e.clientX, e.clientY); });
+    a.addEventListener('mousemove', function (e) { if (!tip.hidden) place(a, e.clientX, e.clientY); });
+    a.addEventListener('mouseleave', hide);
+    a.addEventListener('focus', function () { show(a); });
+    a.addEventListener('blur', hide);
+    // Touch: first tap shows the tooltip, second tap opens Wowhead
+    a.addEventListener('pointerup', function (e) { a._touch = e.pointerType === 'touch'; });
+    a.addEventListener('click', function (e) {
+      if (!a._touch) return;
+      if (armed !== a) { e.preventDefault(); armed = a; show(a); }
+      else { armed = null; hide(); }
+    });
+  });
+  document.addEventListener('pointerdown', function (e) { if (!e.target.closest || !e.target.closest('a.wh')) { armed = null; hide(); } });
+  window.addEventListener('scroll', function () { if (!armed) hide(); }, { passive: true });
+})();
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { formatPending } from "@/lib/i18n/format";
 import { getDiscordId, isAdmin } from "@/lib/admin";
+import { hasGoldRadarAccess } from "@/lib/goldRadar";
 import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
@@ -20,6 +21,7 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const admin = user ? (await isAdmin(getDiscordId(user))) : false;
+  const goldRadar = user ? await hasGoldRadarAccess(getDiscordId(user)) : false;
 
   // Für Admins: wie viele Gildennamen-Vorschläge auf Freigabe warten.
   let pendingGuildNames = 0;
@@ -62,7 +64,7 @@ export default async function HomePage() {
 
       {/* Ankündigung: finale Entscheidung für Horde auf einem PvP-Reich. */}
       {show.decision && (
-        <section className="panel relative overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center">
+        <section className="panel relative mx-auto w-full max-w-2xl overflow-hidden border-horde/60 bg-gradient-to-br from-horde-dark/60 via-panel/90 to-panel/90 p-6 text-center sm:px-10">
           <span className="inline-block rounded-full border border-horde px-3 py-0.5 text-xs font-semibold uppercase tracking-widest text-red-300">
             {dict.home.decisionTag}
           </span>
@@ -175,6 +177,20 @@ export default async function HomePage() {
               >
                 {dict.nav.toDownloads}
               </Link>
+              <Link
+                href="/guides"
+                className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.nav.toGuides}
+              </Link>
+              {goldRadar && (
+                <Link
+                  href="/gold-radar"
+                  className="rounded-lg border border-gold/30 px-4 py-2 font-medium text-parchment transition hover:bg-gold/10"
+                >
+                  {dict.nav.toGoldRadar}
+                </Link>
+              )}
               {admin && (
                 <Link
                   href="/admin"

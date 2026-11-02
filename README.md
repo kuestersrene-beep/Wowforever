@@ -341,6 +341,59 @@ Notfall-Zugang, falls der Bot einmal nicht läuft.
 
 ---
 
+## 9. Blackwater Terminal (Auktionshaus-Tool, nur mit Discord-Rolle)
+
+`/gold-radar` zeigt Blackwater Terminal (früher „Gold-Radar“) aus dem Projekt *WowForever-Gold* (eine einzelne HTML-Datei)
+nur Mitgliedern mit einer bestimmten Discord-Rolle.
+
+1. **Rolle anlegen:** im Discord eine Rolle `Gold-Radar` erstellen und den Leuten geben, die das
+   Tool nutzen dürfen. Der Gilden-Bot (`discord-setup/rollensync.py`) meldet sie alle 2 Minuten
+   in `discord_members` – Bot also neu starten, damit er die Rolle mitschickt. Anderer Rollenname:
+   `GOLD_RADAR_ROLES` (Website) und `ZUGANGSROLLEN` (Bot-`.env`) gleich setzen.
+   **Beta-Test:** Zugang geben standardmäßig die Rollen `Gold-Radar` **und** `Beta-Tester`. Für die
+   Testphase eine Rolle `Beta-Tester` anlegen und vergeben; nach dem Test einfach entziehen.
+   Feedback aus dem Tool (Knopf „Feedback“) landet in `gold_radar_feedback` und unter
+   `/admin/gold-radar`; mit `GOLD_RADAR_FEEDBACK_WEBHOOK` zusätzlich in einem Discord-Kanal.
+2. **Schema:** `supabase/schema.sql` erneut einspielen (legt `gold_radar_usage` und den privaten
+   Storage-Bucket `gold-radar` an, beide ohne Policies → nur serverseitig erreichbar).
+3. **Umgebung:** `GOLD_RADAR_ADMIN_IDS` = deine Discord-ID. Nur diese ID(s) sehen unter
+   `/admin/gold-radar`, wer das Tool wann benutzt hat, und dürfen neue Daten hochladen –
+   Offiziere/Admins ausdrücklich nicht. Du selbst hast immer Zugang zum Tool.
+4. **Daten hochladen:** lokal `python ah/dashboard.py --teilen` → `dashboard-teilen.html` unter
+   `/admin/gold-radar` hochladen (Ordner z. B. `pvp-eu-horde`). Die Datei enthält das
+   Nachfrage-Modell und die Beta-Demo, aber keine eigenen Scans.
+   nginx muss dafür Uploads über 1 MB erlauben: `client_max_body_size 10m;` im
+   `server`-Block (siehe `deploy/nginx-wowforever.conf.example`), danach `sudo nginx -t && sudo systemctl reload nginx`.
+
+5. **Gemeinsame Scans:** Mitglieder mit der Rolle laden unter `/gold-radar/upload` die
+   SavedVariables-Datei ihres AH-Addons hoch: `AuctionDB.lua` (AuctionDB, WoW-Forever-Ausgabe; am
+   besten), `Auctionator.lua`, `aux-addon.lua` oder `Blackthornes_TS.lua` (Tradeskills). Der Dienst
+   `gold-radar-worker` (eigener Container in `docker-compose.yml`, nutzt dieselbe `.env`) liest sie
+   jede Minute ein, speichert jeden Preis-Messpunkt einmal in `gold_radar_scans`/`gold_radar_history`
+   und baut `<ruleset>/dashboard.html` mit Live-Daten aus der hochgeladenen Vorlage neu. Unter
+   `/admin/gold-radar` siehst du alle Uploads und kannst einen zurücknehmen (entfernt seine Preise).
+   Auktionshäuser für Uploads: `GOLD_RADAR_RULESETS` (Standard `GOLD_RADAR_RULESET`).
+   Einmalig nach dem Pull: Schema einspielen, dann `docker compose up -d --build`. Log:
+   `docker compose logs -f gold-radar-worker`.
+   TradeSkillMaster-Daten (tradeskillmaster.com/public-data): Der Dienst prüft einmal am Tag, ob TSM
+   WoW-Forever-Daten anbietet, und nutzt sie dann automatisch alle 6 Stunden (Marktwert und Verkäufe pro
+   Tag). Den Stand zeigt `/admin/gold-radar` unter „Tool-Daten“. Außerdem archiviert der Dienst täglich die
+   TSM-Classic-EU-Daten für den Demo-Knopf (`GOLD_RADAR_TSM_DEMO`) und baut die Demo daraus, mit wachsendem Verlauf. Fest einstellen lässt es sich mit
+   `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>`.
+   **Blizzard-API:** Mit `BLIZZARD_CLIENT_ID`/`BLIZZARD_CLIENT_SECRET` (develop.battle.net) liest der Dienst
+   stündlich das ganze Auktionshaus. Forever hat keine Realms, nur Rulesets: `pvp-eu-horde` liest von selbst alle
+   PvP-Realms EU, Horde (`forever:eu:pvp:Horde`), sobald Blizzard sie freigibt; `GOLD_RADAR_BLIZZARD` nur zum
+   Überschreiben. Der Demo-Knopf nimmt Classic (Standard Spineshatter; liefert die API dessen AH nicht, sucht der
+   Dienst selbst ein Classic-AH; fest setzen mit `GOLD_RADAR_BLIZZARD_DEMO`). Die Stände bleiben auf dem Server (letzte 10 Tage).
+   Prüfen: `docker compose exec gold-radar-worker python blizzard_probe.py`.
+   Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
+   *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.
+
+Protokolliert werden nur Discord-ID, Anzeigename, Zeitpunkt, Ruleset und ob der Zugang abgelehnt
+wurde (wiederholte Aufrufe innerhalb von 15 Minuten zählen einmal). Alte Einträge lassen sich auf
+der Admin-Seite löschen. Für späteres Teilen von Daten ist pro Auktionshaus ein Ordner im Bucket
+vorgesehen (`<ruleset>/…`), Aufruf mit `/gold-radar/app?r=<ruleset>`.
+
 ## Projektstruktur
 
 ```
