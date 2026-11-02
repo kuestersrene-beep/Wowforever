@@ -96,7 +96,7 @@ def analyse(con, realm, cfg, now):
         # where our own readings can't measure sell-through (daily add-on data), TSM's sold per day stands in
         r['tsm'] = tsm.get(item)
         r['tsm_sold'] = r['tsm']['sold'] if r['tsm'] else None
-        if r['gone_per_day'] is None and r['tsm_sold'] is not None:
+        if r['tsm_sold'] is not None and (r['gone_per_day'] is None or cfg.get('tsm_abverkauf_vorrang')):
             r['gone_per_day'] = r['tsm_sold']
         rows[item] = r
 
@@ -118,10 +118,13 @@ def analyse(con, realm, cfg, now):
         if any(c is None for c in costs):
             continue
         cost = sum(c * n for c, (_, n) in zip(costs, rc['reagents'])) / rc['count']
-        revenue = prod['price'] * (1 - fee)
+        avg_sale = (prod['tsm'] or {}).get('avg_sale')
+        price = min(p for p in (prod['price'], prod['median7'], avg_sale) if p)   # one fantasy listing is no revenue
+        revenue = price * (1 - fee)
         if cost > 0 and (revenue - cost) / cost >= cfg['min_craft_marge']:
             crafts.append(dict(prof=rc['prof'], item_id=rc['item_id'], name=prod['name'], cost=cost, revenue=revenue,
-                               margin=(revenue - cost) / cost, profit=revenue - cost, qty=prod['qty'], learn=rc['learn']))
+                               margin=(revenue - cost) / cost, profit=revenue - cost, qty=prod['qty'], learn=rc['learn'],
+                               sold=prod['gone_per_day'], capped=price < prod['price']))
     crafts.sort(key=lambda c: -c['profit'])
 
     days = (date.fromtimestamp(now) - date.fromisoformat(cfg['launch'])).days
@@ -130,8 +133,11 @@ def analyse(con, realm, cfg, now):
         vendor_goods = set(json.load(open(os.path.join(os.path.dirname(HERE), 'vendor_items.json'), encoding='utf-8')))
     except OSError:
         vendor_goods = set()
+    first_aid = {rc['item_id'] for rc in recipes if rc['prof'] == 'first-aid'}
     for r in rows.values():
         p3, q3 = r['p_d3'], r['q_d3']
+        if r['item'] in first_aid:   # bandages: nearly everyone makes their own
+            continue
         if r['name'] in vendor_goods:
             if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
                 sig['vendor'].append(r)
@@ -141,7 +147,7 @@ def analyse(con, realm, cfg, now):
         band = r['w'].get('band')
         if r['w'].get('score', 0) >= 40 and band in BAND_PEAK_DAYS:
             start = BAND_PEAK_DAYS[band][0]
-            if start - days >= 3 and (p3 is None or p3 < 0.05):
+            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05):
                 sig['unter'].append(r)
         if r['median7'] and r['price'] > 2 * r['median7'] and (r['q_d1'] or 0) > 0:
             sig['heiss'].append(r)

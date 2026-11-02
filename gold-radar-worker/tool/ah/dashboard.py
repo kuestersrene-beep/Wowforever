@@ -86,7 +86,8 @@ def demo_data(cfg, snapdir=None):
         tsm.store(con, realm, rows)
     simulate_history(con, realm, snaps)
     simulate_quantities(con, realm, snaps)
-    live = analysed(con, realm, cfg, now)
+    # the demo's quantities are simulated: sell-through comes from TSM's real sales, not from their noise
+    live = analysed(con, realm, dict(cfg, tsm_abverkauf_vorrang=True), now)
     live['tsm_days'] = len(snaps)
     live['qty_simulated'] = True
     return live
@@ -263,7 +264,7 @@ def pack(live, cfg, wanted, fills):
                 qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
-                             margin=c['margin'], qty=c['qty']) for c in live['crafts'][:250]])  # the page filters by own profession and skill
+                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 
 
 def main():
