@@ -14,7 +14,8 @@ import {
   type FeedbackRow,
   type UploadRow,
 } from "@/lib/goldRadar";
-import { pruneUsage, revokeUpload, setFeedbackStatus, uploadDashboard } from "./actions";
+import { pruneUsage, revokeUpload, setFeedbackStatus } from "./actions";
+import DashboardUpload from "./DashboardUpload";
 
 interface UsageRow {
   discord_id: string;
@@ -366,21 +367,10 @@ export default async function GoldRadarAdminPage() {
           ))}
           {files.length === 0 && <li className="text-slate-500">Noch nichts hochgeladen.</li>}
         </ul>
-        <form action={uploadDashboard} className="flex flex-wrap items-center gap-2 text-sm">
-          <input
-            name="ruleset"
-            defaultValue={defaultRuleset()}
-            pattern="[a-z0-9-]{1,40}"
-            className="w-40 rounded border border-gold/30 bg-ink px-2 py-1"
-          />
-          <input name="file" type="file" accept=".html,text/html" required className="text-slate-300" />
-          <button className="rounded-lg border border-gold/60 bg-gradient-to-b from-gold to-gold-dark px-4 py-1 font-medium text-ink hover:brightness-110">
-            Hochladen
-          </button>
-        </form>
+        <DashboardUpload defaultRuleset={defaultRuleset()} />
         <p className="text-xs text-slate-500">
           Hochladen: <code>dashboard-teilen.html</code> aus <code>python ah/dashboard.py --teilen</code>{" "}
-          (enthält das Nachfrage-Modell und die Beta-Demo). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
+          (enthält das Modell und die Demo, keine Preise). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
           <code>pvp-eu-horde</code>. Die Datei wird als Vorlage gespeichert; gold-radar-worker setzt die
           gemeinsamen Scans der Mitglieder ein und baut die Seite innerhalb weniger Minuten neu.
         </p>
