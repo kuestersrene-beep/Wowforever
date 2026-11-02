@@ -232,6 +232,12 @@ def sources_of(con, realm):
     return out
 
 
+def de_names():
+    """German item names (tools/de_names.py fetches them); the page shows these and keeps English for the search."""
+    p = os.path.join(HERE, 'data', 'names_de.json')
+    return json.load(open(p, encoding='utf-8')) if os.path.exists(p) else {}
+
+
 def thin(series):
     """Price history for the page's chart without bloating it: every point of the last 48 hours (hourly Blizzard
     dumps), then the last point per 6 hours up to 7 days, then one per day up to 30 days. So the 7- and 30-day views
@@ -321,7 +327,7 @@ def main():
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
-                   limited=limited, kk=load('kaufkraft.json'), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
+                   limited=limited, kk=load('kaufkraft.json'), de=de_names(), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
                    live=None if share else pack(live_data(cfg), cfg, wanted, fills),
                    demo=pack(demo_data(cfg), cfg, wanted, fills),
                    # what live_payload() needs to add live data to this page later (website worker)
