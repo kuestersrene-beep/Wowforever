@@ -30,7 +30,7 @@ SPIELROLLEN = {"tank": "🛡️ Tank", "heiler": "💚 Heiler", "dd": "⚔️ Sc
 RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Gast")
 # Zugangsrollen für Website-Module, landen ebenfalls in discord_members.ranks
 # (Website: GOLD_RADAR_ROLES in lib/goldRadar.ts). Weitere per .env, kommagetrennt.
-ZUGANGSROLLEN = tuple(r.strip() for r in os.getenv("ZUGANGSROLLEN", "Gold-Radar").split(",") if r.strip())
+ZUGANGSROLLEN = tuple(r.strip() for r in os.getenv("ZUGANGSROLLEN", "Gold-Radar,Beta-Tester").split(",") if r.strip())
 
 log = logging.getLogger("gildenbot.rollensync")
 bot: discord.Client | None = None

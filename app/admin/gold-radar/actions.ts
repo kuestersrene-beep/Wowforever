@@ -82,6 +82,22 @@ export async function revokeUpload(formData: FormData) {
   revalidatePath("/admin/gold-radar");
 }
 
+// Setzt den Status einer Feedback-Meldung (neu, gesehen, erledigt).
+export async function setFeedbackStatus(formData: FormData) {
+  await requireOwner();
+
+  const id = String(formData.get("id") ?? "");
+  const status = String(formData.get("status") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id) || !["neu", "gesehen", "erledigt"].includes(status)) {
+    throw new Error("Ungültige Angaben.");
+  }
+  const { error } = await createAdminClient().from("gold_radar_feedback").update({ status }).eq("id", id);
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+  revalidatePath("/admin/gold-radar");
+}
+
 // Löscht Protokolleinträge, die älter als die angegebene Anzahl Tage sind.
 export async function pruneUsage(formData: FormData) {
   await requireOwner();

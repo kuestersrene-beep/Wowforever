@@ -6,13 +6,15 @@ import { discordUserUrl } from "@/lib/discordUrl";
 import {
   DASHBOARD_FILE,
   GOLD_RADAR_BUCKET,
+  FEEDBACK_STATUS_LABEL,
   UPLOAD_STATUS_LABEL,
   defaultRuleset,
   getAccessRoles,
   isGoldRadarOwner,
+  type FeedbackRow,
   type UploadRow,
 } from "@/lib/goldRadar";
-import { pruneUsage, revokeUpload, uploadDashboard } from "./actions";
+import { pruneUsage, revokeUpload, setFeedbackStatus, uploadDashboard } from "./actions";
 
 interface UsageRow {
   discord_id: string;
@@ -42,7 +44,7 @@ export default async function GoldRadarAdminPage() {
   }
 
   const db = createAdminClient();
-  const [{ data: usage, error }, { data: folders }, { data: uploads }] = await Promise.all([
+  const [{ data: usage, error }, { data: folders }, { data: uploads }, { data: feedback }] = await Promise.all([
     db
       .from("gold_radar_usage")
       .select("discord_id, display_name, event, ruleset, created_at")
@@ -56,7 +58,14 @@ export default async function GoldRadarAdminPage() {
       .order("created_at", { ascending: false })
       .limit(100)
       .returns<UploadRow[]>(),
+    db
+      .from("gold_radar_feedback")
+      .select("id, discord_id, display_name, ruleset, kind, message, context, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .returns<FeedbackRow[]>(),
   ]);
+  const openFeedback = (feedback ?? []).filter((f) => f.status !== "erledigt").length;
 
   const rows = usage ?? [];
   const people = new Map<
@@ -192,6 +201,60 @@ export default async function GoldRadarAdminPage() {
           <span className="text-slate-400">Tage</span>
           <button className="rounded border border-horde/60 px-3 py-1 text-horde hover:bg-horde/10">löschen</button>
         </form>
+      </section>
+
+      <section className="panel flex flex-col gap-3 p-5">
+        <h2 className="font-heading text-lg text-gold-light">
+          Feedback aus dem Tool ({openFeedback} offen, {(feedback ?? []).length} gesamt)
+        </h2>
+        <p className="text-xs text-slate-500">
+          Kommt über den Knopf &bdquo;Feedback&ldquo; im Tool. Bereich, Item, Profil und Browser schickt das Tool
+          automatisch mit. Mit <code>GOLD_RADAR_FEEDBACK_WEBHOOK</code> in der <code>.env</code> geht zusätzlich eine
+          kurze Meldung in einen Discord-Kanal.
+        </p>
+        <div className="flex flex-col gap-2">
+          {(feedback ?? []).map((f) => (
+            <div
+              key={f.id}
+              className={`rounded border px-3 py-2 text-sm ${f.status === "erledigt" ? "border-gold/10 opacity-60" : "border-gold/30"}`}
+            >
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <span
+                  className={`rounded px-1.5 py-0.5 font-semibold ${
+                    f.kind === "Fehler" ? "bg-red-500/15 text-red-300" : f.kind === "Lob" ? "bg-green-500/15 text-green-300" : "bg-gold/10 text-gold-light"
+                  }`}
+                >
+                  {f.kind}
+                </span>
+                <span>{fmt(f.created_at)}</span>
+                <a href={discordUserUrl(f.discord_id)} target="_blank" rel="noopener" className="hover:underline">
+                  {f.display_name ?? f.discord_id}
+                </a>
+                <span>{FEEDBACK_STATUS_LABEL[f.status] ?? f.status}</span>
+                <span className="ml-auto flex gap-1">
+                  {["gesehen", "erledigt", "neu"]
+                    .filter((s) => s !== f.status)
+                    .map((s) => (
+                      <form key={s} action={setFeedbackStatus}>
+                        <input type="hidden" name="id" value={f.id} />
+                        <input type="hidden" name="status" value={s} />
+                        <button className="rounded border border-gold/30 px-2 py-0.5 text-xs hover:bg-gold/10">{s}</button>
+                      </form>
+                    ))}
+                </span>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-slate-200">{f.message}</p>
+              {f.context && Object.keys(f.context).length > 0 && (
+                <div className="mt-1 text-xs text-slate-500">
+                  {Object.entries(f.context)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(" · ")}
+                </div>
+              )}
+            </div>
+          ))}
+          {(feedback ?? []).length === 0 && <p className="text-slate-500">Noch kein Feedback.</p>}
+        </div>
       </section>
 
       <section className="panel flex flex-col gap-3 p-5">

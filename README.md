@@ -350,6 +350,10 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
    Tool nutzen dürfen. Der Gilden-Bot (`discord-setup/rollensync.py`) meldet sie alle 2 Minuten
    in `discord_members` – Bot also neu starten, damit er die Rolle mitschickt. Anderer Rollenname:
    `GOLD_RADAR_ROLES` (Website) und `ZUGANGSROLLEN` (Bot-`.env`) gleich setzen.
+   **Beta-Test:** Zugang geben standardmäßig die Rollen `Gold-Radar` **und** `Beta-Tester`. Für die
+   Testphase eine Rolle `Beta-Tester` anlegen und vergeben; nach dem Test einfach entziehen.
+   Feedback aus dem Tool (Knopf „Feedback“) landet in `gold_radar_feedback` und unter
+   `/admin/gold-radar`; mit `GOLD_RADAR_FEEDBACK_WEBHOOK` zusätzlich in einem Discord-Kanal.
 2. **Schema:** `supabase/schema.sql` erneut einspielen (legt `gold_radar_usage` und den privaten
    Storage-Bucket `gold-radar` an, beide ohne Policies → nur serverseitig erreichbar).
 3. **Umgebung:** `GOLD_RADAR_ADMIN_IDS` = deine Discord-ID. Nur diese ID(s) sehen unter

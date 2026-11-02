@@ -1037,3 +1037,26 @@ create index if not exists gold_radar_history_upload on public.gold_radar_histor
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.
 notify pgrst, 'reload schema';
+
+-- Feedback aus dem Tool (Knopf „Feedback“, Beta-Test): Mitglieder mit
+-- Zugangsrolle schicken Fehler, Ideen, Fragen oder Lob; der Betreiber sieht
+-- und erledigt sie unter /admin/gold-radar. context = kurze Angaben aus dem
+-- Tool (Bereich, Item, Profil, Browser). Ohne Policies (nur Server-Zugriff).
+create table if not exists public.gold_radar_feedback (
+  id uuid primary key default gen_random_uuid(),
+  discord_id text not null,
+  display_name text,
+  ruleset text check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  kind text not null check (kind in ('Fehler', 'Idee', 'Frage', 'Lob')),
+  message text not null check (char_length(message) between 3 and 2000),
+  context jsonb not null default '{}'::jsonb,
+  status text not null default 'neu' check (status in ('neu', 'gesehen', 'erledigt')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.gold_radar_feedback enable row level security;
+
+create index if not exists gold_radar_feedback_time
+  on public.gold_radar_feedback (status, created_at desc);
+create index if not exists gold_radar_feedback_user
+  on public.gold_radar_feedback (discord_id, created_at desc);

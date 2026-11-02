@@ -97,10 +97,28 @@ export const UPLOAD_STATUS_LABEL: Record<UploadStatus, string> = {
 // Discord-Rollen, die Zugang zum Tool geben. Der Gilden-Bot meldet sie
 // (wie die Ränge) in die Tabelle discord_members (discord-setup/rollensync.py).
 export function getAccessRoles(): string[] {
-  return (process.env.GOLD_RADAR_ROLES || "Gold-Radar")
+  return (process.env.GOLD_RADAR_ROLES || "Gold-Radar,Beta-Tester")
     .split(",")
     .map((r) => r.trim())
     .filter(Boolean);
+}
+
+// Feedback aus dem Tool (app/gold-radar/feedback, Admin-Seite)
+export const FEEDBACK_KINDS = ["Fehler", "Idee", "Frage", "Lob"];
+export const FEEDBACK_MAX_CHARS = 2000;
+export const FEEDBACK_PER_DAY = 20;
+export const FEEDBACK_STATUS_LABEL: Record<string, string> = { neu: "neu", gesehen: "gesehen", erledigt: "erledigt" };
+
+export interface FeedbackRow {
+  id: string;
+  discord_id: string;
+  display_name: string | null;
+  ruleset: string | null;
+  kind: string;
+  message: string;
+  context: Record<string, string> | null;
+  status: string;
+  created_at: string;
 }
 
 // Wer sehen darf, wer das Tool benutzt, und neue Daten hochladen darf.
