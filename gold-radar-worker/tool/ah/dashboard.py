@@ -278,11 +278,12 @@ def main():
     limited = load('limited_recipes.json')
 
     # crafted intermediates (bolts, cured hides, dyes ...) inherit the supply ratio of their main input
-    recipe_of = {}
-    for v in prof['profs'].values():
+    recipe_of, maker_of = {}, {}
+    for pkey, v in prof['profs'].items():
         for r in v['recipes']:
             if r.get('id') and r.get('reagents'):
                 recipe_of.setdefault(str(r['id']), r)
+                maker_of.setdefault(str(r['id']), pkey)   # who makes it: decides who can get it, not who finds the input
 
     def sup_of(iid, depth=0):
         if iid in supply:
@@ -303,7 +304,8 @@ def main():
         s, inherited = sup_of(iid)
         items.append(dict(id=r['item_id'], name=r['name'], kind=r['kind'], new=r['new'], slvl=r['supply_level'],
                           gate=r['demand_level'], vol=r['volume'], profs=r['profs'], det=detail.get(iid, {}),
-                          sup=s, inh=inherited, cd=COOLDOWN.get(r['name'])))
+                          sup=s, inh=inherited, cd=COOLDOWN.get(r['name']),
+                          maker=maker_of.get(iid) if inherited else None))
     ref = [dict(kind=o['kind'], name=o['name'], id=o['item_id'], skill=o['skill'], req=o['req'], count=o['count'],
                 inputs_list=o.get('inputs_list', []), mass=o['mass_inputs'], why=o['why']) for o in refine]
 
