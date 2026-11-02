@@ -57,6 +57,7 @@ BLIZZ_DEMO_SET = bool(os.environ.get('GOLD_RADAR_BLIZZARD_DEMO'))  # set by hand
 BLIZZ_DEMO = os.environ.get('GOLD_RADAR_BLIZZARD_DEMO', 'classicann:eu:Spineshatter:Horde') if BLIZZ else ''
 BLIZZ_MINUTES = float(os.environ.get('BLIZZARD_MINUTES', '60'))
 BLIZZ_KEEP_DAYS = float(os.environ.get('BLIZZARD_KEEP_DAYS', '10'))
+BLIZZ_STATUS = {}  # per ruleset/demo: last result of the hourly Blizzard import (also read when pages are built)
 DEMO = {'con': None, 'target': BLIZZ_DEMO,
         'label': 'Blizzard ' + ' '.join(BLIZZ_DEMO.split(':')[2:]) if BLIZZ_DEMO else ''}
 BATCH = 500
@@ -240,6 +241,12 @@ def build(ruleset, con):
         log.warning('%s: Vorlage ohne ctx – neu erzeugen und hochladen', ruleset)
         return
     live = dashboard.live_payload(con, ruleset, CFG, data['ctx'])
+    bz = BLIZZ_STATUS.get(ruleset)
+    if live and bz and bz.get('ok'):  # the page tells where the numbers come from
+        live.setdefault('sources', []).insert(0, dict(
+            id='blizzard', name='Blizzard-API (ganzes AH)', t=int(datetime.fromisoformat(bz['dump']).timestamp()),
+            items=bz.get('items'), auctions=bz.get('auctions'),
+            note='Alle Auktionen des Auktionshauses, stündlich: Tiefstpreis und Menge je Item.'))
     blizz_demo = None
     if DEMO['con'] is not None:  # demo from Blizzard's own hourly dumps (Classic), if there are any yet
         try:
@@ -289,7 +296,7 @@ def main():
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
     demo_next = 0.0
-    blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, {}
+    blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, BLIZZ_STATUS
     if BLIZZ_DEMO:
         DEMO['con'] = blizz_db('demo')
     arch = {r: blizz_db(r) for r in BLIZZ_TARGETS if r in RULESETS}

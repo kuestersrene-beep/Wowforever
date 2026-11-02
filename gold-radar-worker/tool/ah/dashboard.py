@@ -160,7 +160,29 @@ def live_payload(con, realm, cfg, ctx):
     if not now:
         return None
     fills = {tier: [tuple(f) for f in v] for tier, v in ctx['fills'].items()}
-    return pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills)
+    out = pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills)
+    if out:
+        out['sources'] = sources_of(con, realm)
+    return out
+
+
+def sources_of(con, realm):
+    """What the live prices come from and how old: own/member scans (Tradeskills, AuctionDB, Auctionator, aux) and
+    TradeSkillMaster public data. The website's worker adds the Blizzard API entry."""
+    out = []
+    n, items, last = con.execute('SELECT COUNT(DISTINCT seen), COUNT(DISTINCT item_id), MAX(seen) FROM scans WHERE realm=?', (realm,)).fetchone()
+    hist = con.execute('SELECT MAX(t) FROM history WHERE realm=?', (realm,)).fetchone()[0]
+    if last or hist:
+        out.append(dict(id='scans', name='Scans (Addon-Dateien)', t=max(last or 0, hist or 0), items=items, points=n,
+                        note='Tiefstpreis und Menge aus Auktionshaus-Addons (AuctionDB, Auctionator, aux, Tradeskills).'))
+    try:
+        d, titems, t = con.execute('SELECT COUNT(DISTINCT t), COUNT(DISTINCT item_id), MAX(t) FROM tsm WHERE realm=?', (realm,)).fetchone()
+    except Exception:
+        t = None
+    if t:
+        out.append(dict(id='tsm', name='TradeSkillMaster', t=t, items=titems, points=d,
+                        note='Öffentliche Marktdaten, ein Stand pro Tag: Marktwert, Verkäufe pro Tag, keine Mengen im AH.'))
+    return out
 
 
 def pack(live, cfg, wanted, fills):
@@ -243,6 +265,8 @@ def main():
         tpl = tpl.replace('/*__BANNER__*/', 'data:image/webp;base64,' + base64.b64encode(open(banner, 'rb').read()).decode())
     out = os.path.join(ROOT, 'dashboard-teilen.html' if share else 'dashboard.html')
     # the markers let the website's worker swap in DATA with live data from the members' scans
+    if payload.get('live') and os.path.exists(os.path.join(HERE, 'ah.db')):  # where the local live numbers come from
+        payload['live']['sources'] = sources_of(sqlite3.connect(os.path.join(HERE, 'ah.db')), payload['live']['realm'])
     data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False) + '/*__DATA_END__*/'
     open(out, 'w', encoding='utf-8').write(tpl.replace('/*__DATA__*/null', data))
     print(out)
