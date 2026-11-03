@@ -43,12 +43,29 @@ export default async function AdminFraktionenPage() {
 
   const responseByUser = new Map((responses ?? []).map((r) => [r.user_id, r]));
 
+  // Wer nur abgestimmt, aber die Umfrage nie ausgefüllt hat, steht nicht in
+  // "responses" - dann den Discord-Namen aus dem Login-Konto nehmen statt
+  // der nackten user_id.
+  const loginNames = new Map(
+    await Promise.all(
+      (votes ?? [])
+        .filter((v) => !responseByUser.has(v.user_id))
+        .map(async (v) => {
+          const { data: authUser } = await adminSupabase.auth.admin.getUserById(v.user_id);
+          const meta = authUser.user?.user_metadata ?? {};
+          const name: string | undefined =
+            meta.custom_claims?.global_name || meta.full_name || meta.name || meta.user_name;
+          return [v.user_id, name] as const;
+        }),
+    ),
+  );
+
   const voteRows: GuildDraftVoteAdminRow[] = (votes ?? []).map((v) => {
     const r = responseByUser.get(v.user_id);
     return {
       user_id: v.user_id,
       draft_id: v.draft_id,
-      display_name: r?.display_name ?? v.user_id,
+      display_name: r?.display_name ?? loginNames.get(v.user_id) ?? v.user_id,
       first_name: r?.first_name ?? null,
     };
   });
