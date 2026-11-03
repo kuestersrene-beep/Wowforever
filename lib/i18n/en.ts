@@ -1,6 +1,12 @@
 import type { Dictionary } from "./types";
 
 export const en: Dictionary = {
+  errorPage: {
+    title: "Something went wrong",
+    text: "Your input was probably not saved. Reload the page and try again – that usually fixes it (e.g. after a website update).",
+    reload: "Reload page",
+    home: "Go to start page",
+  },
   nav: {
     back: "← Back",
     toSurvey: "Go to survey",

@@ -1,6 +1,12 @@
 import type { Dictionary } from "./types";
 
 export const de: Dictionary = {
+  errorPage: {
+    title: "Da ist etwas schiefgelaufen",
+    text: "Deine Eingabe wurde vermutlich nicht gespeichert. Lade die Seite neu und versuch es noch einmal – meist hilft das schon (z. B. nach einem Update der Website).",
+    reload: "Seite neu laden",
+    home: "Zur Startseite",
+  },
   nav: {
     back: "← Zurück",
     toSurvey: "Zur Umfrage",

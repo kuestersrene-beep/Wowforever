@@ -19,6 +19,12 @@ export type Locale = "de" | "en";
 // etc.) werden über Platzhalter-Templates + separate reine
 // Formatierungsfunktionen in lib/i18n/format.ts gelöst.
 export interface Dictionary {
+  errorPage: {
+    title: string;
+    text: string;
+    reload: string;
+    home: string;
+  };
   nav: {
     back: string;
     toSurvey: string;
