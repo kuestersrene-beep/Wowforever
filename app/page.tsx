@@ -6,7 +6,7 @@ import { hasGoldRadarAccess } from "@/lib/goldRadar";
 import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import { GUIDES } from "@/lib/guides";
-import { GUILD_CREST_LARGE, GUILD_NAME, GUILD_SCENE } from "@/lib/guild";
+import { GUILD_BANNER, GUILD_NAME, GUILD_SCENE } from "@/lib/guild";
 import { ROLES, WOW_PROFESSIONS } from "@/lib/constants";
 import RichText from "@/components/RichText";
 import QuickPollCard from "@/components/quickpoll/QuickPollCard";
@@ -135,9 +135,9 @@ export default async function HomePage() {
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={GUILD_CREST_LARGE}
-            alt={`Wappen von ${GUILD_NAME}`}
-            className="h-auto w-full max-w-[340px] flex-[1_1_260px] object-contain"
+            src={GUILD_BANNER}
+            alt={`Banner von ${GUILD_NAME}`}
+            className="mx-auto h-auto max-h-[520px] w-auto max-w-full object-contain sm:max-h-[560px]"
           />
         </div>
       </section>

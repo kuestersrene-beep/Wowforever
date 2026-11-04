@@ -49,11 +49,13 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
           <span className="font-heading text-xl font-bold tracking-[0.08em]">{GUILD_NAME.toUpperCase()}</span>
         </Link>
 
-        <div className="min-w-0 flex-[1_1_480px]">
+        {/* Auf schmalen Bildschirmen rutscht die Navigation in eine eigene
+            Zeile, Login/Profil bleiben oben rechts in der Ecke. */}
+        <div className="order-last w-full min-w-0 lg:order-none lg:w-auto lg:flex-1">
           <NavLinks items={items} label={t.mainNav} />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="ml-auto flex items-center gap-2">
           {invite && !user && (
             <a
               href={invite}
@@ -83,7 +85,7 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
               <LogoutButton />
             </div>
           ) : (
-            <LoginButton compact />
+            <LoginButton compact label={t.login} />
           )}
           <LanguageSwitcher />
         </div>

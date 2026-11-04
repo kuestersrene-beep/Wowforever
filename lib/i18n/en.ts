@@ -11,7 +11,7 @@ export const en: Dictionary = {
     admin: "Admin",
     apply: "Apply",
     joinDiscord: "Join Discord",
-    login: "Log in with Discord",
+    login: "Log in",
     logout: "Log out",
     openMenu: "Open menu",
     mainNav: "Main navigation",
