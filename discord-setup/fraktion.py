@@ -102,6 +102,11 @@ def fraktion_embed(entwuerfe, stimmen):
             teile.append(f"*{aktiv['tagline']}*")
         if aktiv.get("summary"):
             teile.append(aktiv["summary"])
+        # Knappes Ergebnis (höchstens 20 Prozentpunkte Abstand) bekommt einen erklärenden Satz
+        werte = sorted((stimmen.get(e["id"], 0) for e in entwuerfe), reverse=True)
+        if gesamt and len(werte) > 1 and (werte[0] - werte[1]) / gesamt <= 0.2:
+            teile.append("Es war ein knappes Rennen – deshalb haben wir die Abstimmung bis zum Launch laufen "
+                         "lassen, damit wirklich jeder mitentscheiden konnte. Hier ist das Ergebnis:")
         embed = discord.Embed(
             title=f"🏆 Entscheidung gefallen: {aktiv['name']}",
             description="\n\n".join(teile) or None,
