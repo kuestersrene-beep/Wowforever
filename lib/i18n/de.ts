@@ -20,7 +20,7 @@ export const de: Dictionary = {
     kicker: "Horde · PvP-EU · WoW Forever",
     summary: "Ein Kult, der Shadra, die Königin des Giftes, verehrt.",
     recruitLead: "Wir rekrutieren!",
-    recruitText: "Du spielst Horde auf WoW Forever (PvP-EU)? Sprich uns im Spiel an oder komm auf unseren Discord. Wer mit uns raiden möchte, bewirbt sich dort für den Raidkader.",
+    recruitText: "Du spielst Horde in World of Warcraft Forever (PvP-EU)? Sprich uns im Spiel an oder komm auf unseren Discord. Wer mit uns raiden möchte, bewirbt sich dort für den Raidkader.",
     quote: "„The threads guide you.“",
     joinDiscord: "Discord beitreten",
     apply: "Für den Raid bewerben",

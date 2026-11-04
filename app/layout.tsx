@@ -37,7 +37,7 @@ const inter = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${GUILD_NAME} · WoW Forever`,
-    description: `${GUILD_NAME} – Horde-Gilde auf World of Warcraft Forever (PvP-EU)`,
+    description: `${GUILD_NAME} – Horde-Gilde in World of Warcraft Forever (PvP-EU)`,
     icons: { icon: GUILD_CREST, apple: GUILD_CREST },
   };
 }

@@ -193,7 +193,7 @@ def infotexte(gilde, k, r):
         "willkommen": {
             "title": f"⚔️ Willkommen bei {gilde}!",
             "description": (
-                f"Schön, dass du da bist! Wir sind **{gilde}**, eine Horde-Gilde auf **World of Warcraft Forever** "
+                f"Schön, dass du da bist! Wir sind **{gilde}**, eine Horde-Gilde in **World of Warcraft Forever** "
                 "(PvP-EU).\n\n"
                 "**In die Gilde** – Du bist im Spiel schon bei uns oder möchtest dazu? Sprich einfach einen von uns "
                 f"im Spiel an. Hier im Discord gibt dir ein {rolle('Offizier')} dann den Rang {rolle('Mitglied')}, "
