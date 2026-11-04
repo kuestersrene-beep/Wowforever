@@ -6,7 +6,7 @@ import type { Dictionary } from "@/lib/i18n/types";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import NavLinks, { type NavItem } from "@/components/NavLinks";
-import { GUILD_CREST, GUILD_NAME } from "@/lib/guild";
+import { GUILD_LOGO, GUILD_NAME } from "@/lib/guild";
 
 // Seitenkopf auf jeder Seite: Wappen, Hauptnavigation, Discord und Profil.
 // Bereiche, die einen Login (oder eine Rolle) brauchen, erscheinen erst,
@@ -45,7 +45,7 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
       <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:gap-x-6 sm:px-6">
         <Link href="/" className="flex items-center gap-3 text-parchment">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={GUILD_CREST} alt="" className="h-10 w-9 object-contain sm:h-12 sm:w-11" />
+          <img src={GUILD_LOGO} alt="" className="h-10 w-10 object-contain sm:h-12 sm:w-12" />
           <span className="font-heading text-base font-bold tracking-[0.08em] sm:text-xl">{GUILD_NAME.toUpperCase()}</span>
         </Link>
 

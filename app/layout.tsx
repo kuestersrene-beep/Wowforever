@@ -8,7 +8,7 @@ import { BrandingProvider } from "@/lib/branding";
 import { getSiteSettings } from "@/lib/siteSettings";
 import SiteHeader from "@/components/SiteHeader";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { GUILD_CREST, GUILD_NAME } from "@/lib/guild";
+import { GUILD_APPLE_ICON, GUILD_ICON, GUILD_NAME } from "@/lib/guild";
 
 // Lokal statt next/font/google: next/font/google lädt die Dateien zur
 // Build-Zeit von Google herunter - schlägt der Docker-Build-Container
@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${GUILD_NAME} · WoW Forever`,
     description: `${GUILD_NAME} – Horde-Gilde in World of Warcraft Forever (PvP-EU)`,
-    icons: { icon: GUILD_CREST, apple: GUILD_CREST },
+    icons: { icon: [{ url: GUILD_ICON, type: "image/png" }, { url: "/favicon.ico", sizes: "48x48" }], apple: GUILD_APPLE_ICON },
   };
 }
 
