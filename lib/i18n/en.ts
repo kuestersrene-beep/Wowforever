@@ -92,6 +92,7 @@ export const en: Dictionary = {
   },
   login: {
     withDiscord: "Sign in with Discord",
+    failed: "Sign-in didn't work. Please try again – ideally right here in this browser, not via a link from the Discord app.",
   },
   logout: {
     label: "Log out",

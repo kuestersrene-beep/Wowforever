@@ -19,7 +19,12 @@ const DAY_MS = 864e5;
 // Startseite in zwei Fassungen: Gäste sehen, wer wir sind und wie man zu uns
 // kommt; Mitglieder ihre Gildenhalle (Termine, Abstimmungen, Tools). Details
 // wie Rollen-, Berufe- und Zeitenübersicht stehen nur einmal, auf /uebersicht.
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const loginFailed = (await searchParams).error === "login_fehlgeschlagen";
   const supabase = await createClient();
   const {
     data: { user },
@@ -51,6 +56,11 @@ export default async function HomePage() {
 
   return (
     <main className="flex flex-col gap-8">
+      {loginFailed && !user && (
+        <p role="alert" className="panel border-amber-soft/60 p-4 text-amber-soft">
+          {dict.login.failed}
+        </p>
+      )}
       {/* Kopfbereich randlos über die ganze Fensterbreite */}
       <section className="relative -mt-8 left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b border-line">
         {/* eslint-disable-next-line @next/next/no-img-element */}

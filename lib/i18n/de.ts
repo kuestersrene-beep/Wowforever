@@ -92,6 +92,7 @@ export const de: Dictionary = {
   },
   login: {
     withDiscord: "Mit Discord anmelden",
+    failed: "Die Anmeldung hat nicht geklappt. Bitte versuch es noch einmal – am besten direkt in diesem Browser und nicht über einen Link aus der Discord-App.",
   },
   logout: {
     label: "Abmelden",

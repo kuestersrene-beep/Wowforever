@@ -33,6 +33,12 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${redirectBase}${next}`);
     }
+    // Grund im Server-Log (docker compose logs app), z. B. fehlender PKCE-Cookie,
+    // wenn der Rücksprung in einem anderen Browser landet als der Login-Start
+    console.error("Login fehlgeschlagen:", error.message);
+  } else {
+    // Ohne Code: Discord/Supabase schicken den Grund als error_description mit
+    console.error("Login fehlgeschlagen ohne Code:", searchParams.get("error_description") ?? searchParams.get("error"));
   }
 
   return NextResponse.redirect(`${redirectBase}/?error=login_fehlgeschlagen`);

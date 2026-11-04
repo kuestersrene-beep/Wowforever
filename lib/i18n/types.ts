@@ -99,6 +99,7 @@ export interface Dictionary {
   };
   login: {
     withDiscord: string;
+    failed: string;
   };
   logout: {
     label: string;
