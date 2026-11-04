@@ -42,7 +42,7 @@ KLASSEN = ["Krieger", "Paladin", "Jäger", "Schurke", "Priester", "Schamane", "M
 ROLLEN = {"tank": ("🛡️", "Tank", "Tanks"), "heiler": ("💚", "Heiler", "Heiler"), "dd": ("⚔️", "DD", "DDs")}
 STATUS = {"dabei": "Dabei", "vorlaeufig": "Vorläufig", "abgemeldet": "Abgemeldet"}
 
-AKZENTFARBE = 0xC9A227
+AKZENTFARBE = 0x8BE04E
 FARBE_GESCHLOSSEN = 0x5D6470
 FARBE_ABGESAGT = 0xA11F2B
 

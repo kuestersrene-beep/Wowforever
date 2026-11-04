@@ -8,6 +8,7 @@ Aufruf:
 Das Skript ist wiederholbar: Vorhandene Rollen/Kanäle mit gleichem Namen werden übersprungen.
 Token und optional GUILD_ID stehen in der Datei .env neben diesem Skript.
 """
+import base64
 import json
 import sys
 import time
@@ -17,8 +18,10 @@ from pathlib import Path
 
 # ============================== KONFIGURATION ==============================
 
-GILDENNAME = ""          # leer lassen = Servername bleibt wie er ist
-AKZENTFARBE = 0xC9A227   # Farbe der Info-Boxen (Gold)
+GILDENNAME = "Black Cocoon"   # leer lassen = Servername bleibt wie er ist
+# Server-Icon (leer lassen = Icon bleibt): Pfad relativ zu diesem Skript
+SERVER_ICON = "../public/images/factions/black-cocoon-icon-1024.png"
+AKZENTFARBE = 0x8BE04E   # Farbe der Info-Boxen (Giftgrün wie die Website)
 
 # Berechtigungs-Bits laut Discord-API
 P = {
@@ -481,8 +484,11 @@ def main():
         einstellungen["afk_channel_id"] = afk_id
     if GILDENNAME:
         einstellungen["name"] = GILDENNAME
+    icon = Path(__file__).parent / SERVER_ICON if SERVER_ICON else None
+    if icon and icon.exists():
+        einstellungen["icon"] = "data:image/png;base64," + base64.b64encode(icon.read_bytes()).decode()
     api("PATCH", f"/guilds/{gid}", einstellungen)
-    print("\nServer-Einstellungen: Verifizierung, Benachrichtigungen, Inhaltsfilter, AFK-Kanal gesetzt.")
+    print("\nServer-Einstellungen: Name, Icon, Verifizierung, Benachrichtigungen, Inhaltsfilter, AFK-Kanal gesetzt.")
 
     # Infotexte posten bzw. die eigene, bereits gepostete Nachricht aktualisieren
     texte = infotexte(gilde, kanal_ids, rollen_ids)

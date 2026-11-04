@@ -55,7 +55,7 @@ QUELLEN = [
 INTERVALL_MINUTEN = 10
 ERSTSTART_POSTS = 3       # so viele aktuelle Posts beim allerersten Start, damit der Kanal nicht leer ist
 BLIZZARD_BLAU = 0x00AEFF
-AKZENTFARBE = 0xC9A227
+AKZENTFARBE = 0x8BE04E
 
 HIER = Path(__file__).resolve().parent
 DATEN = Path(os.environ.get("DATEN_ORDNER", HIER / "data"))

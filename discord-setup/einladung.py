@@ -22,7 +22,7 @@ import modlog
 import raid
 
 INTERVALL_SEKUNDEN = 300
-AKZENTFARBE = 0xC9A227
+AKZENTFARBE = 0x8BE04E
 
 log = logging.getLogger("gildenbot.einladung")
 bot: discord.Client | None = None
