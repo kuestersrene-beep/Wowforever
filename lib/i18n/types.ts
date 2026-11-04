@@ -50,8 +50,9 @@ export interface Dictionary {
     tileLaunchDay: string; // Platzhalter: {day}
     tileNextEvent: string;
     tileNoEvent: string;
-    tileWanted: string;
-    tileWantedHint: string; // Platzhalter: {count}, {total}
+    recruitTileLabel: string;
+    recruitTileValue: string;
+    recruitTileHint: string;
     eventsTitle: string;
     eventsAll: string;
     eventsEmpty: string;

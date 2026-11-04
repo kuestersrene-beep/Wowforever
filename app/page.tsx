@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { fillTemplate, formatEventDate } from "@/lib/i18n/format";
 import { getDiscordId } from "@/lib/admin";
 import { hasGoldRadarAccess } from "@/lib/goldRadar";
@@ -7,13 +7,12 @@ import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import { GUIDES } from "@/lib/guides";
 import { GUILD_BANNER, GUILD_NAME, GUILD_SCENE } from "@/lib/guild";
-import { ROLES } from "@/lib/constants";
 import RichText from "@/components/RichText";
 import QuickPollCard from "@/components/quickpoll/QuickPollCard";
 import { loadQuickPolls } from "@/lib/quickPolls";
 import CountdownBanner from "@/components/CountdownBanner";
 import type { Dictionary } from "@/lib/i18n/types";
-import type { GuildEvent, Role } from "@/lib/types";
+import type { GuildEvent } from "@/lib/types";
 
 const DAY_MS = 864e5;
 
@@ -33,19 +32,6 @@ export default async function HomePage() {
     isSectionVisible("home.show.privacy"),
   ]);
 
-  // Welche Rolle am dünnsten besetzt ist - nur eine Summe aus der Umfrage,
-  // deshalb auch für Gäste ("Heiler gesucht"). Gelesen mit service_role, weil
-  // die Antworten per RLS nur für Eingeloggte sichtbar sind.
-  const { data: answers } = await createAdminClient()
-    .from("responses")
-    .select("role")
-    .neq("participation", "nein");
-  const roleCounts = Object.fromEntries(
-    ROLES.map((r) => [r, (answers ?? []).filter((a) => a.role === r).length]),
-  ) as Record<Role, number>;
-  const withRole = ROLES.reduce((sum, r) => sum + roleCounts[r], 0);
-  const wanted = [...ROLES].sort((a, b) => roleCounts[a] - roleCounts[b])[0];
-
   const launchIso = process.env.NEXT_PUBLIC_LAUNCH_DATE;
   const launch = launchIso ? new Date(launchIso).getTime() : null;
   const beforeLaunch = launch !== null && Date.now() < launch;
@@ -58,15 +44,10 @@ export default async function HomePage() {
   const invite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
   const applyUrl = process.env.NEXT_PUBLIC_DISCORD_APPLY_URL || invite;
 
-  const wantedTile =
-    withRole > 0 ? (
-      <Tile
-        label={t.tileWanted}
-        value={dict.labels.role[wanted]}
-        hint={fillTemplate(t.tileWantedHint, { count: roleCounts[wanted], total: withRole })}
-        warn
-      />
-    ) : null;
+  // Wen wir gerade suchen: freier Text aus dem Admin-Bereich ("Texte
+  // bearbeiten"), damit die Suche ohne Update eingeschränkt werden kann,
+  // z. B. später nur noch Heiler für die Raid-Roster.
+  const wantedTile = <Tile label={t.recruitTileLabel} value={t.recruitTileValue} hint={t.recruitTileHint} warn />;
 
   return (
     <main className="flex flex-col gap-8">
