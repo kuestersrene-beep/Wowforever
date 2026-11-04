@@ -146,7 +146,7 @@ def stimmen_embed(entwuerfe, stimmen):
     aktiv = next((e for e in entwuerfe if e.get("active")), None)
     embed = discord.Embed(
         title=f"📊 Endergebnis – gewählt: {aktiv['name']}" if aktiv else "📊 Gildenentwurf – Stimmenstand",
-        description=f"🔒 Nur für Offiziere sichtbar · bisher **{mehrzahl(gesamt)}**",
+        description=f"🔒 Nur für Offiziere sichtbar · {'insgesamt' if aktiv else 'bisher'} **{mehrzahl(gesamt)}**",
         color=FARBE_AKTIV if aktiv else FARBE_STIMMEN,
         timestamp=discord.utils.utcnow(),
     )
