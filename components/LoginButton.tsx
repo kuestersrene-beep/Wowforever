@@ -11,7 +11,8 @@ export default function LoginButton({ compact = false, label }: { compact?: bool
     await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Nach dem Login zurück auf die aktuelle Seite
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
         scopes: "identify",
       },
     });

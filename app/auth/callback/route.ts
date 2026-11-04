@@ -7,7 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/umfrage";
+  // Zurück dorthin, wo der Login gestartet wurde (siehe LoginButton), sonst
+  // in die Gildenhalle. Nur eigene Pfade - "//andere-seite.de" oder volle
+  // Adressen würden sonst auf fremde Seiten weiterleiten.
+  const requested = searchParams.get("next") ?? "/";
+  const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
 
   // Hinter einem Reverse-Proxy (nginx) baut Next.js die eigene Adresse
   // manchmal falsch aus der internen Bind-Adresse zusammen, statt aus der
