@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getAvatarUrl, getDiscordId, getDisplayName, isAdmin } from "@/lib/admin";
 import { hasGoldRadarAccess } from "@/lib/goldRadar";
 import type { Dictionary } from "@/lib/i18n/types";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LoginButton from "@/components/LoginButton";
 import LogoutButton from "@/components/LogoutButton";
 import NavLinks, { type NavItem } from "@/components/NavLinks";
@@ -43,11 +42,11 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
 
   return (
     <header className="border-b border-line bg-ink/95">
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-8 gap-y-3 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:gap-x-8 sm:px-6">
         <Link href="/" className="flex items-center gap-3 text-parchment">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={GUILD_CREST} alt="" className="h-12 w-11 object-contain" />
-          <span className="font-heading text-xl font-bold tracking-[0.08em]">{GUILD_NAME.toUpperCase()}</span>
+          <img src={GUILD_CREST} alt="" className="h-10 w-9 object-contain sm:h-12 sm:w-11" />
+          <span className="font-heading text-base font-bold tracking-[0.08em] sm:text-xl">{GUILD_NAME.toUpperCase()}</span>
         </Link>
 
         {/* Auf schmalen Bildschirmen rutscht die Navigation in eine eigene
@@ -71,7 +70,8 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
             <div className="flex items-center gap-2">
               <Link
                 href="/charaktere"
-                className="flex items-center gap-2 rounded-full border border-line bg-panel py-1 pl-1 pr-3 text-sm text-parchment"
+                aria-label={name}
+                className="flex items-center gap-2 rounded-full border border-line bg-panel py-1 pl-1 pr-1 text-sm sm:pr-3 text-parchment"
               >
                 {avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -81,14 +81,13 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
                     {name.slice(0, 1).toUpperCase()}
                   </span>
                 )}
-                <span className="max-w-[10rem] truncate">{name}</span>
+                <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
               </Link>
               <LogoutButton />
             </div>
           ) : (
             <LoginButton compact label={t.login} />
           )}
-          <LanguageSwitcher />
         </div>
       </div>
     </header>

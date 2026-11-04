@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
-import { EmptyState } from "./FactionChart";
+import { EmptyState } from "./EmptyState";
 
 function countClasses(responses: ParticipantSummary[], dict: Dictionary) {
   const counts = new Map<string, number>();

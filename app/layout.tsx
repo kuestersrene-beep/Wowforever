@@ -7,6 +7,7 @@ import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
 import { getSiteSettings } from "@/lib/siteSettings";
 import SiteHeader from "@/components/SiteHeader";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { GUILD_CREST, GUILD_NAME } from "@/lib/guild";
 
 // Lokal statt next/font/google: next/font/google lädt die Dateien zur
@@ -62,8 +63,9 @@ export default async function RootLayout({
             <SiteHeader dict={dict} />
             <div className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-6">{children}</div>
             <footer className="border-t border-line">
-              <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-4 px-4 py-7 text-sm text-muted sm:px-6">
+              <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-4 px-4 py-7 text-sm text-muted sm:px-6">
                 <span>{GUILD_NAME} · Kult der Shadra · WoW Forever, PvP-EU, Horde</span>
+                <LanguageSwitcher />
               </div>
             </footer>
           </BrandingProvider>

@@ -61,10 +61,10 @@ export default async function HomePage() {
           className="absolute inset-0 h-full w-full object-cover opacity-35"
           style={{ objectPosition: "50% 92%" }}
         />
-        <div className="relative mx-auto flex max-w-[1280px] flex-wrap items-center gap-10 px-4 py-16 sm:px-6 sm:py-20">
+        <div className="relative mx-auto flex max-w-[1280px] flex-wrap items-center gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-20">
           <div className="flex min-w-0 flex-[999_1_520px] flex-col gap-4">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-gold">{t.kicker}</p>
-            <h1 className="font-heading text-5xl font-bold leading-tight tracking-wide sm:text-7xl">{GUILD_NAME}</h1>
+            <h1 className="font-heading text-4xl font-bold leading-tight tracking-wide sm:text-7xl">{GUILD_NAME}</h1>
             <p className="max-w-xl text-xl text-parchment/90">{t.summary}</p>
             {/* Der Rekrutierungsaufruf richtet sich an Gäste */}
             {!user && (
@@ -107,7 +107,7 @@ export default async function HomePage() {
           <img
             src={GUILD_BANNER}
             alt={`Banner von ${GUILD_NAME}`}
-            className="mx-auto h-auto max-h-[520px] w-auto max-w-full object-contain sm:max-h-[560px]"
+            className="mx-auto hidden h-auto max-h-[560px] w-auto max-w-full object-contain sm:block"
           />
         </div>
       </section>

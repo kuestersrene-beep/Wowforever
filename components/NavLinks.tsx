@@ -16,7 +16,11 @@ export default function NavLinks({ items, label }: { items: NavItem[]; label: st
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
-    <nav aria-label={label} className="flex flex-wrap gap-x-6 gap-y-1">
+    // Auf dem Handy eine waagrecht wischbare Leiste statt mehrerer umbrechender Zeilen
+    <nav
+      aria-label={label}
+      className="-mx-4 flex gap-x-5 overflow-x-auto whitespace-nowrap px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:flex-wrap lg:gap-x-6 [&::-webkit-scrollbar]:hidden"
+    >
       {items.map((item) => (
         <Link
           key={item.href}

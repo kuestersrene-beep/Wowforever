@@ -113,7 +113,7 @@ export const de: Dictionary = {
     availabilityButton: "Verfügbarkeit eintragen",
     privacyTitle: "Datenschutz",
     privacyText:
-      "Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein Avatar-Bild und deine Antworten aus dieser Umfrage. Diese Daten werden ausschließlich für diese private Freundes-Umfrage genutzt. Du kannst deine Antwort jederzeit ändern oder auf der Umfrageseite vollständig löschen.",
+      "Wir speichern nur deine Discord-User-ID, deinen Anzeigenamen, dein Avatar-Bild und was du selbst einträgst (Charaktere, Berufe, Verfügbarkeit, Anmeldungen). Die Daten nutzen wir ausschließlich innerhalb der Gilde. Du kannst deine Angaben jederzeit ändern oder löschen.",
     countdownLabels: {
       days: "Tage",
       hours: "Std",
@@ -179,7 +179,7 @@ export const de: Dictionary = {
   },
   availability: {
     title: "Deine Verfügbarkeit",
-    hint: "Wähle grob, an welchen Wochentagen und Tagesabschnitten du Zeit hast – vor allem in den ersten ein bis zwei Wochen nach dem Start. Hilft uns, Spielgruppen zu finden, die zeitlich zusammenpassen.",
+    hint: "Wähle grob, an welchen Wochentagen und Tagesabschnitten du meistens Zeit hast. So finden wir Gruppen und Raid-Termine, die zeitlich zusammenpassen.",
     backHint:
       "Du kannst das jederzeit anpassen, z. B. wenn sich dein Schichtplan ändert.",
     noSlotsHint: "Keine Zeitfenster ausgewählt – das ist auch völlig ok.",

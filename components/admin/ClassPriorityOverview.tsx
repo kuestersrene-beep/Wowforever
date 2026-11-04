@@ -1,7 +1,7 @@
 import type { ParticipantSummary } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/types";
 import { formatClassConflict, formatPrio } from "@/lib/i18n/format";
-import { EmptyState } from "./FactionChart";
+import { EmptyState } from "./EmptyState";
 
 interface ClassPick {
   name: string;

@@ -8,11 +8,8 @@ import { formatLoadError, formatPending } from "@/lib/i18n/format";
 import { isGoldRadarOwner } from "@/lib/goldRadar";
 import type { AdminResponseRow, SurveyResponse } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
-import FactionChart from "@/components/admin/FactionChart";
-import PlaystyleChart from "@/components/admin/PlaystyleChart";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
-import InsightBanner from "@/components/admin/InsightBanner";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ParticipantsTable from "@/components/admin/ParticipantsTable";
 import CsvExportButton from "@/components/admin/CsvExportButton";
@@ -142,13 +139,7 @@ export default async function AdminPage() {
 
       <h2 className="heading-ornate -mb-4 text-xl">Umfrage-Auswertung</h2>
       <StatTiles responses={responses} dict={dict} />
-      <InsightBanner responses={responses} dict={dict} />
       <RoleNeedBanner responses={responses} dict={dict} />
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <FactionChart responses={responses} dict={dict} />
-        <PlaystyleChart responses={responses} dict={dict} />
-      </div>
 
       <ClassRoleCharts responses={responses} dict={dict} />
       <ClassPriorityOverview responses={responses} dict={dict} />

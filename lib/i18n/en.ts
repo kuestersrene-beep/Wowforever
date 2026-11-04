@@ -113,7 +113,7 @@ export const en: Dictionary = {
     availabilityButton: "Enter availability",
     privacyTitle: "Privacy",
     privacyText:
-      "We only store your Discord user ID, display name, avatar image, and your survey answers. This data is used exclusively for this private survey among friends. You can change your answer at any time, or delete it completely on the survey page.",
+      "We only store your Discord user ID, display name, avatar image and what you enter yourself (characters, professions, availability, sign-ups). The data is used only within the guild. You can change or delete your details at any time.",
     countdownLabels: {
       days: "Days",
       hours: "Hrs",
@@ -179,7 +179,7 @@ export const en: Dictionary = {
   },
   availability: {
     title: "Your availability",
-    hint: "Roughly pick which weekdays and times of day you have time – especially during the first one to two weeks after launch. Helps us find groups whose schedules line up.",
+    hint: "Roughly pick which weekdays and times of day you usually have time. Helps us find groups and raid times that line up.",
     backHint: "You can adjust this anytime, e.g. if your shift schedule changes.",
     noSlotsHint: "No time slots selected - that's fine too.",
     save: "Save availability",
