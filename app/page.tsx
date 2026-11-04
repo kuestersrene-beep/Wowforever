@@ -117,7 +117,7 @@ export default async function HomePage() {
               </div>
             )}
             {countdown && beforeLaunch && (
-              <div className="mt-4 max-w-md">
+              <div className="mt-3">
                 <CountdownBanner />
               </div>
             )}

@@ -43,7 +43,6 @@ export const CONTENT_GROUPS: ContentGroup[] = [
       { key: "home.decisionTag", kind: "text", label: "Ankündigung: Plakette" },
       { key: "home.decisionTitle", kind: "text", label: "Ankündigung: Überschrift" },
       { key: "home.decisionText", kind: "rich", label: "Ankündigung: Text" },
-      { key: "home.countdownToday", kind: "text", label: "Countdown: Text am Starttag" },
       { key: "home.callTitle", kind: "text", label: "Aufruf: Überschrift" },
       { key: "home.callText", kind: "rich", label: "Aufruf: Text" },
       { key: "home.professionsTitle", kind: "text", label: "Karte Berufe: Überschrift" },

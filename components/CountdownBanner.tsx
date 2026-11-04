@@ -23,8 +23,8 @@ function getRemaining(target: number): Remaining {
   };
 }
 
-// Eigenständig gebauter Live-Countdown (Tage/Std/Min/Sek, in Horde-Farben
-// passend zum Ankündigungs-Panel der Startseite, mit eigenem Timer-Logo) - kein Blizzard-Asset. Liest NEXT_PUBLIC_LAUNCH_DATE
+// Eigenständig gebauter Live-Countdown (Tage/Std/Min/Sek, kompakt in den
+// Gildenfarben, mit eigenem Timer-Logo) - kein Blizzard-Asset. Liest NEXT_PUBLIC_LAUNCH_DATE
 // selbst aus (als NEXT_PUBLIC_-Variable ohnehin im Client-Bundle
 // vorhanden), rendert nichts, falls die Variable nicht gesetzt ist.
 export default function CountdownBanner() {
@@ -44,15 +44,9 @@ export default function CountdownBanner() {
     return () => clearInterval(id);
   }, [target]);
 
-  if (!target || !remaining) return null;
-
-  if (remaining.done) {
-    return (
-      <p className="mx-auto max-w-md rounded-xl border border-horde/60 bg-ink/50 p-4 text-center font-heading text-red-200">
-        {dict.home.countdownToday}
-      </p>
-    );
-  }
+  // Ab dem Start verschwindet der Countdown ganz (auch auf einer Seite, die
+  // schon vor Mitternacht offen war)
+  if (!target || !remaining || remaining.done) return null;
 
   const units = [
     { value: remaining.days, label: dict.home.countdownLabels.days },
@@ -62,20 +56,20 @@ export default function CountdownBanner() {
   ];
 
   return (
-    <div className="mx-auto flex max-w-md items-center justify-center gap-4 rounded-xl border border-horde/60 bg-gradient-to-b from-ink/70 to-horde-dark/60 p-4 shadow-inner shadow-black/50">
-      <Emblem className="h-[4.5rem] w-[4.5rem] shrink-0" variant="timer" />
-      <div className="flex items-center gap-2 sm:gap-3">
+    <div className="inline-flex items-center gap-3 rounded-lg border border-gold-dark/70 bg-ink/70 px-3 py-2">
+      <Emblem className="h-10 w-10 shrink-0" variant="timer" />
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {units.map((u, i) => (
-          <div key={u.label} className="flex items-center gap-2 sm:gap-3">
-            <div className="text-center">
-              <p className="font-heading text-xl text-parchment sm:text-2xl">
+          <div key={u.label} className="flex items-center gap-1.5 sm:gap-2">
+            <div className="min-w-[2.25rem] text-center">
+              <p className="font-heading text-lg leading-none text-gold">
                 {String(u.value).padStart(2, "0")}
               </p>
-              <p className="text-[10px] uppercase tracking-wide text-red-300">
+              <p className="mt-1 text-[10px] uppercase tracking-wide text-muted">
                 {u.label}
               </p>
             </div>
-            {i < units.length - 1 && <span className="text-horde">:</span>}
+            {i < units.length - 1 && <span className="-mt-3 text-gold-dark">:</span>}
           </div>
         ))}
       </div>
