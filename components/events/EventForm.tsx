@@ -69,9 +69,9 @@ export default function EventForm({
     <form
       ref={formRef}
       action={handleSubmit}
-      className="panel flex flex-col gap-3 border-horde/40 p-4"
+      className="panel flex flex-col gap-3 border-gold-dark p-4"
     >
-      <h2 className="font-heading text-sm text-horde">
+      <h2 className="font-heading text-sm text-gold-light">
         {event ? dict.events.admin.editTitle : dict.events.admin.createTitle}
       </h2>
       {event && <input type="hidden" name="event_id" value={event.id} />}

@@ -22,7 +22,8 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
     : [false, false];
 
   const t = dict.menu;
-  // Gäste sehen nur die Gildenhalle; alles andere ist für Mitglieder.
+  // Gäste sehen nur die Gildenhalle; alles andere ist für Mitglieder. "Admin" sitzt rechts beim
+  // Profil, damit die Navigation auch mit allen Punkten in eine Zeile passt.
   const items: NavItem[] = [
     { href: "/", label: t.home },
     ...(user
@@ -32,7 +33,6 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
           { href: "/uebersicht", label: t.professions },
           ...(goldRadar ? [{ href: "/gold-radar", label: t.goldRadar }] : []),
           { href: "/guides", label: t.guides },
-          ...(admin ? [{ href: "/admin", label: t.admin }] : []),
         ]
       : []),
   ];
@@ -42,7 +42,7 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
 
   return (
     <header className="border-b border-line bg-ink/95">
-      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:gap-x-8 sm:px-6">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:gap-x-6 sm:px-6">
         <Link href="/" className="flex items-center gap-3 text-parchment">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={GUILD_CREST} alt="" className="h-10 w-9 object-contain sm:h-12 sm:w-11" />
@@ -63,15 +63,23 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
               rel="noopener"
               className="rounded-lg border border-gold-dark px-4 py-2.5 font-medium text-parchment transition hover:bg-gold/10"
             >
-              {t.apply}
+              {t.joinDiscord}
             </a>
           )}
           {user ? (
             <div className="flex items-center gap-2">
+              {admin && (
+                <Link
+                  href="/admin"
+                  className="rounded-md border border-amber-soft/50 px-3 py-1.5 text-sm text-amber-soft transition hover:bg-amber-soft/10"
+                >
+                  {t.admin}
+                </Link>
+              )}
               <Link
                 href="/charaktere"
                 aria-label={name}
-                className="flex items-center gap-2 rounded-full border border-line bg-panel py-1 pl-1 pr-1 text-sm sm:pr-3 text-parchment"
+                className="flex items-center gap-2 rounded-full border border-line bg-panel py-1 pl-1 pr-1 text-sm text-parchment xl:pr-3"
               >
                 {avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -81,7 +89,7 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
                     {name.slice(0, 1).toUpperCase()}
                   </span>
                 )}
-                <span className="hidden max-w-[10rem] truncate sm:inline">{name}</span>
+                <span className="hidden max-w-[9rem] truncate xl:inline">{name}</span>
               </Link>
               <LogoutButton />
             </div>

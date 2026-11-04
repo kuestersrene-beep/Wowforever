@@ -82,6 +82,32 @@ export async function saveResponse(formData: FormData) {
     throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
   }
 
+  // Wer noch keinen Charakter hat, bekommt aus Klasse und Rolle der Umfrage
+  // einen Main, mit dem Discord-Namen als vorläufigem Charakternamen. Unter
+  // /charaktere lässt er sich ändern (siehe auch supabase/schema.sql).
+  const firstClass = (payload.classes as string[] | null)?.[0];
+  if (participation !== "nein" && firstClass && payload.role) {
+    const { count } = await supabase
+      .from("characters")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (!count) {
+      const name = getDisplayName(user).trim().slice(0, 24);
+      await supabase.from("characters").insert({
+        user_id: user.id,
+        discord_id: getDiscordId(user),
+        display_name: getDisplayName(user),
+        avatar_url: getAvatarUrl(user),
+        name: name.length >= 2 ? name : "Unbenannt",
+        class: firstClass,
+        role: payload.role,
+        is_main: true,
+        auto_created: true,
+      });
+      revalidatePath("/charaktere");
+    }
+  }
+
   const displayName = getDisplayName(user);
   await notifyDiscord({
     name: firstName ? `${displayName} (${firstName})` : displayName,

@@ -214,6 +214,12 @@ export interface Dictionary {
     roleLabel: string;
     mainLabel: string;
     mainBadge: string;
+    autoBadge: string;
+    autoHint: string;
+    firstNameShown: string; // Platzhalter: {name}
+    firstNameHidden: string; // Platzhalter: {name}
+    firstNameShow: string;
+    firstNameHide: string;
     addTitle: string;
     editTitle: string;
     prefillHint: string;

@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
-import { formatCharacterCount } from "@/lib/i18n/format";
+import { fillTemplate, formatCharacterCount } from "@/lib/i18n/format";
+import { setShowFirstName } from "./actions";
 import { ROLES, WOW_CLASSES } from "@/lib/constants";
 import CharacterManager from "@/components/CharacterManager";
 import type { Character, Role } from "@/lib/types";
@@ -29,6 +30,20 @@ export default async function CharakterePage() {
 
   const all = rows ?? [];
   const mine = all.filter((c) => c.user_id === user.id);
+
+  // Vornamen für das Roster - die View liefert ihn nur, wenn die Person ihn freigegeben hat
+  const { data: overview } = await supabase
+    .from("participants_overview")
+    .select("discord_id, first_name")
+    .returns<{ discord_id: string; first_name: string | null }[]>();
+  const firstNames = new Map((overview ?? []).filter((p) => p.first_name).map((p) => [p.discord_id, p.first_name!]));
+
+  // Eigene Einstellung zum Vornamen (nur wenn einer in der Umfrage steht)
+  const { data: own } = await supabase
+    .from("responses")
+    .select("first_name, show_first_name")
+    .eq("user_id", user.id)
+    .maybeSingle<{ first_name: string | null; show_first_name: boolean }>();
 
   // Vorausfüllen aus der Umfrage (1. Klassenwahl + Rolle), solange noch
   // kein eigener Charakter existiert.
@@ -60,6 +75,25 @@ export default async function CharakterePage() {
           {dict.characters.mine}
         </h2>
         <CharacterManager characters={mine} prefill={prefill} />
+        {own?.first_name && (
+          <form
+            action={setShowFirstName}
+            className="panel flex flex-wrap items-center justify-between gap-3 p-3 text-sm"
+          >
+            <input type="hidden" name="show" value={own.show_first_name ? "false" : "true"} />
+            <span className="text-parchment/90">
+              {fillTemplate(own.show_first_name ? dict.characters.firstNameShown : dict.characters.firstNameHidden, {
+                name: own.first_name,
+              })}
+            </span>
+            <button
+              type="submit"
+              className="rounded-md border border-gold-dark px-3 py-1.5 text-gold-light transition hover:bg-gold/10"
+            >
+              {own.show_first_name ? dict.characters.firstNameHide : dict.characters.firstNameShow}
+            </button>
+          </form>
+        )}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -98,6 +132,7 @@ export default async function CharakterePage() {
                         )}
                         <span className="ml-auto truncate text-xs text-slate-500">
                           {c.display_name}
+                          {firstNames.has(c.discord_id) ? ` (${firstNames.get(c.discord_id)})` : ""}
                         </span>
                       </li>
                     ))}

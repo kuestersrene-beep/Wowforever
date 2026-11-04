@@ -66,6 +66,14 @@ export default function CharacterManager({
                 {dict.labels.class[c.class] ?? c.class} ·{" "}
                 {dict.labels.role[c.role]}
               </p>
+              {c.auto_created && (
+                <p className="mt-1 text-xs text-amber-soft">
+                  <span className="mr-1 rounded border border-amber-soft/50 px-1 text-[10px] uppercase">
+                    {dict.characters.autoBadge}
+                  </span>
+                  {dict.characters.autoHint}
+                </p>
+              )}
             </div>
             <button
               type="button"

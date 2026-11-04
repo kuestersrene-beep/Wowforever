@@ -37,7 +37,7 @@ export default function EventAdminActions({
   };
 
   return (
-    <section className="panel flex flex-wrap items-center gap-3 border-horde/40 p-4">
+    <section className="panel flex flex-wrap items-center gap-3 border-gold-dark p-4">
       <button
         type="button"
         onClick={handlePost}

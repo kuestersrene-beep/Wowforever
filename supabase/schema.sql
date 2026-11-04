@@ -40,6 +40,8 @@ alter table public.responses add column if not exists first_name text;
 -- übernommen, danach wird die alte Spalte entfernt.
 alter table public.responses add column if not exists classes text[];
 alter table public.responses add column if not exists professions text[];
+-- Ob der Vorname für andere sichtbar ist (Roster, Übersicht). Jede Person stellt das selbst ein.
+alter table public.responses add column if not exists show_first_name boolean not null default true;
 
 -- Muss VOR dem Drop von "class" passieren, weil die View unten sonst
 -- noch von der alten Spalte abhängt und Postgres das Löschen verweigert
@@ -154,7 +156,7 @@ create view public.participants_overview as
     r.user_id,
     r.discord_id,
     r.display_name,
-    r.first_name,
+    case when r.show_first_name then r.first_name end as first_name,
     r.avatar_url,
     r.participation,
     r.faction,
@@ -290,6 +292,10 @@ create unique index if not exists characters_one_main_per_user
   on public.characters (user_id) where is_main;
 
 alter table public.characters enable row level security;
+
+-- Automatisch aus der Umfrage angelegt (siehe unten und app/umfrage/actions.ts), bis die Person
+-- den Charakter selbst einmal speichert - dann ist der Name geprüft.
+alter table public.characters add column if not exists auto_created boolean not null default false;
 
 drop policy if exists "select all characters" on public.characters;
 create policy "select all characters"
@@ -1036,6 +1042,26 @@ create index if not exists gold_radar_history_upload on public.gold_radar_histor
 -- Nach Schema-Änderungen muss PostgREST seinen Schema-Cache neu laden,
 -- sonst meldet die App "Could not find the table ... in the schema
 -- cache" für neue Tabellen/Views.
+-- ============================================================
+-- Charaktere automatisch anlegen: Wer im Discord ist und die Umfrage mit
+-- Klasse und Rolle ausgefüllt hat, aber noch keinen Charakter hat, bekommt
+-- einen Main mit dem Discord-Namen als vorläufigem Charakternamen. Jede
+-- Person kann ihn danach unter /charaktere ändern. Wiederholbar: legt nur
+-- für Leute ohne Charakter etwas an. Neue Umfrage-Antworten legen den
+-- Charakter direkt beim Speichern an (app/umfrage/actions.ts).
+-- ============================================================
+
+insert into public.characters (user_id, discord_id, display_name, avatar_url, name, class, role, is_main, auto_created)
+select r.user_id, r.discord_id, r.display_name, r.avatar_url,
+       left(case when char_length(r.display_name) >= 2 then r.display_name else 'Unbenannt' end, 24),
+       r.classes[1], r.role, true, true
+from public.responses r
+join public.discord_members m on m.discord_id = r.discord_id
+where r.participation <> 'nein'
+  and r.role is not null
+  and r.classes[1] is not null
+  and not exists (select 1 from public.characters c where c.user_id = r.user_id);
+
 notify pgrst, 'reload schema';
 
 -- Feedback aus dem Tool (Knopf „Feedback“, Beta-Test): Mitglieder mit

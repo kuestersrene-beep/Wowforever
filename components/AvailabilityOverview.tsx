@@ -121,8 +121,8 @@ export default function AvailabilityOverview({
                           }}
                           className="flex h-8 w-full items-center justify-center rounded-lg border border-gold/20 text-xs font-medium transition disabled:cursor-default"
                           style={{
-                            backgroundColor: `rgba(212, 175, 55, ${opacity})`,
-                            color: opacity > 0.5 ? "#1a1310" : "#e9d9ad",
+                            backgroundColor: `rgba(139, 224, 78, ${opacity})`,
+                            color: opacity > 0.5 ? "#0a0c09" : "#e9e6da",
                           }}
                         >
                           {count > 0 ? count : ""}

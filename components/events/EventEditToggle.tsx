@@ -19,7 +19,7 @@ export default function EventEditToggle({ event }: { event: GuildEvent }) {
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="self-start rounded-lg border border-horde/60 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-horde/10"
+      className="self-start rounded-lg border border-gold-dark px-4 py-2 text-sm font-medium text-gold-light transition hover:bg-gold/10"
     >
       ✎ {dict.events.admin.edit}
     </button>

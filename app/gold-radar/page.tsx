@@ -45,7 +45,7 @@ export default async function GoldRadarPage() {
         <h1 className="heading-ornate text-2xl">Blackwater Terminal</h1>
         <div className="flex gap-4 text-sm">
           {isGoldRadarOwner(discordId) && (
-            <Link href="/admin/gold-radar" className="text-horde hover:underline">
+            <Link href="/admin/gold-radar" className="text-amber-soft hover:underline">
               Nutzung &amp; Daten
             </Link>
           )}

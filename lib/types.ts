@@ -102,6 +102,8 @@ export interface Character {
   role: Role;
   level: number;
   is_main: boolean;
+  // Automatisch aus der Umfrage angelegt, Name noch nicht von der Person bestätigt
+  auto_created?: boolean;
   created_at: string;
   updated_at: string;
 }

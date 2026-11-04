@@ -56,6 +56,8 @@ export async function saveCharacter(formData: FormData) {
     class: charClass,
     role: role as Role,
     is_main: isMain,
+    // Einmal selbst gespeichert = Name geprüft, auch bei automatisch angelegten Charakteren
+    auto_created: false,
   };
 
   const { error } = id
@@ -94,4 +96,28 @@ export async function deleteCharacter(id: string) {
   }
 
   revalidateAll();
+}
+
+// Ob der eigene Vorname (aus der Umfrage) für andere im Roster sichtbar ist
+export async function setShowFirstName(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const { error } = await supabase
+    .from("responses")
+    .update({ show_first_name: formData.get("show") === "true" })
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(`Speichern fehlgeschlagen: ${error.message}`);
+  }
+
+  revalidateAll();
+  revalidatePath("/uebersicht");
 }

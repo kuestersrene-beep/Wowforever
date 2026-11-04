@@ -30,8 +30,8 @@ export default function GuildNameAdminQueue({
   const buttonClass = "rounded border px-2 py-0.5 text-xs transition disabled:opacity-50";
 
   return (
-    <section className="panel flex flex-col gap-3 border-horde/40 p-4">
-      <h2 className="font-heading text-base text-red-300">
+    <section className="panel flex flex-col gap-3 border-gold-dark p-4">
+      <h2 className="font-heading text-base text-gold-light">
         {dict.guildName.admin.queueTitle} ({pending.length})
       </h2>
       <p className="text-xs text-slate-400">{dict.guildName.admin.queueHint}</p>

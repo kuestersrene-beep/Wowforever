@@ -8,14 +8,14 @@ import { useEffect, useRef } from "react";
 // Panel-Look. Die Guide-Dateien selbst bleiben unverändert.
 const EMBED_CSS = `
 :root[data-embed][data-theme] {
-  --bg: rgba(15, 12, 10, .55);
-  --surface: rgba(26, 20, 15, .8);
-  --ink: #e8dfc9;
-  --muted: #94a3b8;
-  --line: rgba(201, 168, 106, .25);
-  --gold: #e4cf9a;
-  --gold-soft: rgba(201, 168, 106, .14);
-  --horde: #e2725f;
+  --bg: rgba(10, 12, 9, .6);
+  --surface: rgba(18, 22, 15, .9);
+  --ink: #e9e6da;
+  --muted: #a4ac98;
+  --line: rgba(139, 224, 78, .22);
+  --gold: #a6e86f;
+  --gold-soft: rgba(139, 224, 78, .12);
+  --horde: #f2b66b;
   --display: var(--app-heading, "Cinzel"), Georgia, serif;
   --body: var(--app-body, "Inter"), "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
@@ -23,10 +23,10 @@ const EMBED_CSS = `
 :root[data-embed], :root[data-embed] body { background: transparent; }
 :root[data-embed] body { padding-left: 0; padding-right: 0; }
 :root[data-embed] main { padding-block: 8px 48px; }
-:root[data-embed] h1, :root[data-embed] h2 { color: #e4cf9a; letter-spacing: .02em; }
+:root[data-embed] h1, :root[data-embed] h2 { color: #e9e6da; letter-spacing: .02em; }
 :root[data-embed] .watch {
-  background: linear-gradient(#c9a86a, #8a6f3f); color: #0f0c0a;
-  border: 1px solid rgba(201, 168, 106, .6);
+  background: #8be04e; color: #0a0c09;
+  border: 1px solid #4f8a2a;
 }
 `;
 
