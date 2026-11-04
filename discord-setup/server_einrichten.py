@@ -61,6 +61,8 @@ ROLLEN = [
     {"name": "Raider", "farbe": 0x3498DB, "anzeigen": True, "rechte": perms("INVITE")},
     {"name": "Mitglied", "farbe": 0x2ECC71, "anzeigen": True, "rechte": perms("INVITE")},
     {"name": "Trial", "farbe": 0x95A5A6, "anzeigen": True, "rechte": 0},
+    # Neu in der Gilde (im Spiel eingeladen), Probezeit bis zur Beförderung zum Mitglied
+    {"name": "Hatchling", "farbe": 0xA6D67E, "anzeigen": True, "rechte": 0},
     {"name": "Gast", "farbe": 0x607D8B, "anzeigen": True, "rechte": 0},
     # Spielrollen
     {"name": "🛡️ Tank", "farbe": 0, "anzeigen": False, "rechte": 0},
@@ -83,8 +85,8 @@ ROLLEN = [
 # Wer darf was sehen / schreiben
 GRUPPEN = {
     "alle": None,
-    "gast": ["Gast", "Trial", "Mitglied", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
-    "mitglied": ["Trial", "Mitglied", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
+    "gast": ["Gast", "Hatchling", "Trial", "Mitglied", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
+    "mitglied": ["Hatchling", "Trial", "Mitglied", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
     "raid": ["Raidleiter", "Offizier", "Gildenmeister"],
     "offizier": ["Offizier", "Gildenmeister"],
     # Class-Leader sehen ihren Kanal im Offiziersbereich, sonst nichts davon
@@ -196,8 +198,9 @@ def infotexte(gilde, k, r):
                 f"Schön, dass du da bist! Wir sind **{gilde}**, eine Horde-Gilde in **World of Warcraft Forever** "
                 "(PvP-EU).\n\n"
                 "**In die Gilde** – Du bist im Spiel schon bei uns oder möchtest dazu? Sprich einfach einen von uns "
-                f"im Spiel an. Hier im Discord gibt dir ein {rolle('Offizier')} dann den Rang {rolle('Mitglied')}, "
-                "und der Rest des Servers öffnet sich. Eine Bewerbung brauchst du dafür nicht.\n\n"
+                f"im Spiel an. Hier im Discord gibt dir ein {rolle('Offizier')} dann den Rang {rolle('Hatchling')} "
+                "(Neuzugang), und der Rest des Servers öffnet sich. Eine Bewerbung brauchst du dafür nicht. "
+                f"Nach etwa zwei Wochen wirst du {rolle('Mitglied')}.\n\n"
                 f"**In den Raid** – Für unseren Raidkader bewirbst du dich in {kanal('📨│bewerbung-starten')}. "
                 f"Wie das abläuft, steht in {kanal('📋│bewerbung-info')}.\n\n"
                 f"Lies bitte auch kurz die {kanal('📜│regeln')}. Dauert es zu lange? "
@@ -232,6 +235,7 @@ def infotexte(gilde, k, r):
                 f"{rolle('Raider')} – Fester Bestandteil des Raidkaders\n"
                 f"{rolle('Trial')} – Raid-Probezeit nach erfolgreicher Bewerbung\n"
                 f"{rolle('Mitglied')} – In der Gilde, aber (noch) nicht im Raidkader\n"
+                f"{rolle('Hatchling')} – Neu in der Gilde, Probezeit von etwa zwei Wochen\n"
                 f"{rolle('Gast')} – Freunde und Besucher der Gilde\n\n"
                 "**Vom Mitglied zum Raider**\n"
                 f"Wer mit uns raiden möchte, bewirbt sich in {kanal('📨│bewerbung-starten')}. Nach einem kurzen "

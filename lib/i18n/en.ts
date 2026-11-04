@@ -27,7 +27,7 @@ export const en: Dictionary = {
     joinTitle: "How to join",
     joinSteps: [
       "Guild: just talk to one of us in game – no application needed.",
-      "Join our Discord. An officer gives you the member rank, then you can see the whole server.",
+      "Join our Discord. An officer gives you the Hatchling rank (newcomer), then you can see the whole server. After about two weeks you become a member.",
       "Want to raid with us? Apply in the Discord channel bewerbung-starten. After a short chat you start as a trial in the raid team.",
     ],
     mineDownloads: "Downloads & addons",

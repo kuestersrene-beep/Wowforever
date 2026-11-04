@@ -14,6 +14,7 @@ jedes Mitglieds landen in der Tabelle discord_members. Die Website macht daraus 
 Läuft alle INTERVALL_MINUTEN, nutzt die Datenbank-Verbindung aus raid.py (SUPABASE_* in .env).
 """
 import logging
+from datetime import datetime, timedelta
 import os
 
 import discord
@@ -23,11 +24,15 @@ import raid
 
 INTERVALL_MINUTEN = 2
 GRUND = "Rollen-Sync mit der Gilden-Website"
+# Nach so vielen Tagen als Hatchling erinnert der Bot die Offiziere an die Beförderung
+PROBEZEIT_TAGE = int(os.getenv("HATCHLING_TAGE", "14"))
+OFFIZIERS_KANAL = "🛡️│offiziers-chat"
 
 # Rollennamen wie in server_einrichten.py
 KLASSEN = raid.KLASSEN
 SPIELROLLEN = {"tank": "🛡️ Tank", "heiler": "💚 Heiler", "dd": "⚔️ Schaden"}
-RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Gast")
+RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Hatchling",
+          "Gast")
 GILDENRAENGE = tuple(r for r in RAENGE if r != "Gast")
 # Zugangsrollen für Website-Module, landen ebenfalls in discord_members.ranks
 # (Website: GOLD_RADAR_ROLES in lib/goldRadar.ts). Weitere per .env, kommagetrennt.
@@ -104,6 +109,44 @@ async def raenge_speichern(guild):
     await raid.db.einfuegen("discord_members", zeilen, konflikt="discord_id")
     ids = ",".join(f'"{z["discord_id"]}"' for z in zeilen)
     await raid.db.loeschen("discord_members", discord_id=f"not.in.({ids})")
+    await rang_seit_pflegen(zeilen)
+
+
+async def rang_seit_pflegen(zeilen):
+    """Merkt sich in discord_rank_since, seit wann jemand welchen Rang hat (auf INTERVALL_MINUTEN genau)."""
+    soll = {(z["discord_id"], r) for z in zeilen for r in z["ranks"] if r in RAENGE}
+    ist = {(z["discord_id"], z["rank"]) for z in await raid.db.lesen("discord_rank_since", select="discord_id,rank")}
+    neu = [{"discord_id": d, "rank": r} for d, r in soll - ist]
+    if neu:
+        await raid.db.einfuegen("discord_rank_since", neu, konflikt="discord_id,rank")
+    for d, r in ist - soll:
+        await raid.db.loeschen("discord_rank_since", discord_id=f"eq.{d}", rank=f"eq.{r}")
+
+
+async def hatchlings_erinnern(guild):
+    """Erinnert die Offiziere einmal pro Person, wenn jemand PROBEZEIT_TAGE lang Hatchling ist."""
+    # Ohne "+00:00" (das "+" würde in der Adresse zum Leerzeichen)
+    grenze = (discord.utils.utcnow() - timedelta(days=PROBEZEIT_TAGE)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    faellig = await raid.db.lesen("discord_rank_since", select="discord_id,since", rank="eq.Hatchling",
+                                  reminded="eq.false", since=f"lte.{grenze}")
+    kanal = discord.utils.get(guild.text_channels, name=OFFIZIERS_KANAL)
+    if not faellig or not kanal:
+        return
+    zeilen = []
+    for f in faellig:
+        seit = datetime.fromisoformat(f["since"].replace("Z", "+00:00"))
+        zeilen.append(f"• <@{f['discord_id']}> – Hatchling seit {discord.utils.format_dt(seit, 'D')} "
+                      f"({(discord.utils.utcnow() - seit).days} Tage)")
+    embed = discord.Embed(
+        title="🐣 Bereit zur Beförderung?",
+        description=(f"Diese Neuzugänge sind seit mindestens {PROBEZEIT_TAGE} Tagen Hatchling. "
+                     "Passt es? Dann bitte zum **Mitglied** befördern.\n\n" + "\n".join(zeilen))[:4000],
+        color=0xA6D67E,
+    )
+    await kanal.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+    for f in faellig:
+        await raid.db.aendern("discord_rank_since", {"reminded": True},
+                              discord_id=f"eq.{f['discord_id']}", rank="eq.Hatchling")
 
 
 @tasks.loop(minutes=INTERVALL_MINUTEN)
@@ -123,6 +166,10 @@ async def abgleichen():
         await raenge_speichern(guild)
     except Exception:
         log.exception("Ränge an die Website melden fehlgeschlagen – ist supabase/schema.sql eingespielt?")
+    try:
+        await hatchlings_erinnern(guild)
+    except Exception:
+        log.exception("Hatchling-Erinnerung fehlgeschlagen")
 
 
 async def starten(client: discord.Client):

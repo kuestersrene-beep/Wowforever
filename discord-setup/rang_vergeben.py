@@ -14,7 +14,8 @@ import time
 
 import server_einrichten as s
 
-RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Gast")
+RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Hatchling",
+          "Gast")
 
 
 def main():

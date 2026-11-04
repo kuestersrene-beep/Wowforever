@@ -1062,6 +1062,25 @@ where r.participation <> 'nein'
   and r.classes[1] is not null
   and not exists (select 1 from public.characters c where c.user_id = r.user_id);
 
+-- ============================================================
+-- Seit wann jemand einen Rang hat (vom Gilden-Bot gepflegt, siehe
+-- discord-setup/rollensync.py): Rang neu -> Zeile mit since = jetzt, Rang
+-- weg -> Zeile gelöscht. Damit sieht die Gildenleitung z. B., wie lange
+-- jemand schon Hatchling ist; "reminded" merkt sich, ob der Bot die
+-- Offiziere schon an die Beförderung erinnert hat. Nur service_role.
+-- ============================================================
+
+create table if not exists public.discord_rank_since (
+  discord_id text not null,
+  rank text not null,
+  since timestamptz not null default now(),
+  reminded boolean not null default false,
+  primary key (discord_id, rank)
+);
+
+alter table public.discord_rank_since enable row level security;
+-- Keine Policies: nur Bot und Admin-Bereich (service_role).
+
 notify pgrst, 'reload schema';
 
 -- Feedback aus dem Tool (Knopf „Feedback“, Beta-Test): Mitglieder mit

@@ -27,7 +27,7 @@ export const de: Dictionary = {
     joinTitle: "So kommst du zu uns",
     joinSteps: [
       "In die Gilde: Sprich einen von uns im Spiel an – eine Bewerbung brauchst du dafür nicht.",
-      "Tritt unserem Discord bei. Ein Offizier gibt dir den Rang Mitglied, dann siehst du den ganzen Server.",
+      "Tritt unserem Discord bei. Ein Offizier gibt dir den Rang Hatchling (Neuzugang), dann siehst du den ganzen Server. Nach etwa zwei Wochen wirst du Mitglied.",
       "Du willst mit uns raiden? Bewirb dich im Discord in bewerbung-starten. Nach einem kurzen Gespräch startest du als Trial im Raidkader.",
     ],
     mineDownloads: "Downloads & Addons",

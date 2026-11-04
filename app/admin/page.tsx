@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
-import { formatLoadError, formatPending } from "@/lib/i18n/format";
+import { formatEventDate, formatLoadError, formatPending } from "@/lib/i18n/format";
 import { isGoldRadarOwner } from "@/lib/goldRadar";
 import type { AdminResponseRow, SurveyResponse } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
@@ -19,6 +19,10 @@ import QuickPollManager from "@/components/admin/QuickPollManager";
 import { loadQuickPolls } from "@/lib/quickPolls";
 import { getSiteSettings } from "@/lib/siteSettings";
 import type { DownloadItem } from "@/lib/types";
+
+// Ab so vielen Tagen als Hatchling steht jemand als "bereit zur Beförderung" da (wie im Bot:
+// HATCHLING_TAGE in discord-setup/rollensync.py)
+const HATCHLING_DAYS = 14;
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -77,6 +81,25 @@ export default async function AdminPage() {
     .select("id", { count: "exact", head: true })
     .eq("status", "offen");
 
+  // Probezeiten: seit wann jemand Hatchling (Gilde) bzw. Trial (Raid) ist. Pflegt der
+  // Gilden-Bot (discord-setup/rollensync.py) in discord_rank_since.
+  const [{ data: rankRows }, { data: memberRows }] = await Promise.all([
+    adminSupabase
+      .from("discord_rank_since")
+      .select("discord_id, rank, since")
+      .in("rank", ["Hatchling", "Trial"])
+      .order("since", { ascending: true })
+      .returns<{ discord_id: string; rank: string; since: string }[]>(),
+    adminSupabase.from("discord_members").select("discord_id, display_name").returns<{ discord_id: string; display_name: string }[]>(),
+  ]);
+  const memberNames = new Map((memberRows ?? []).map((m) => [m.discord_id, m.display_name]));
+  const probation = (rankRows ?? []).map((r) => ({
+    ...r,
+    name: memberNames.get(r.discord_id) ?? r.discord_id,
+    days: Math.floor((Date.now() - new Date(r.since).getTime()) / 864e5),
+  }));
+  const dueCount = probation.filter((p) => p.rank === "Hatchling" && p.days >= HATCHLING_DAYS).length;
+
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -112,6 +135,12 @@ export default async function AdminPage() {
                 },
               ]
             : []),
+          {
+            href: "#probezeiten",
+            title: "Neuzugänge & Probezeiten",
+            hint: "Wie lange jemand schon Hatchling oder Trial ist",
+            badge: dueCount ? `${dueCount} bereit zur Beförderung` : null,
+          },
           { href: "#kurzabstimmungen", title: dict.quickPoll.admin.title, hint: "Abstimmungen auf der Startseite" },
           { href: "#downloads", title: dict.downloads.title, hint: "Addons und Dateien für Mitglieder" },
           { href: "#logo", title: dict.admin.logo.title, hint: "Logo und Bild für den Countdown" },
@@ -151,6 +180,46 @@ export default async function AdminPage() {
         <CsvExportButton responses={responses} dict={dict} />
       </div>
       <ParticipantsTable responses={responses} dict={dict} locale={locale} />
+
+      <h2 id="probezeiten" className="scroll-mt-6 font-heading text-lg text-gold-light">
+        Neuzugänge &amp; Probezeiten
+      </h2>
+      <p className="-mt-6 text-sm text-muted">
+        Hatchling = neu in der Gilde, nach {HATCHLING_DAYS} Tagen erinnert der Bot im Offiziers-Chat an die
+        Beförderung zum Mitglied. Trial = Raid-Probezeit nach der Bewerbung. Erfasst seit dem Start des Bots.
+      </p>
+      {probation.length === 0 ? (
+        <p className="panel p-4 text-sm text-muted">Gerade ist niemand in der Probezeit.</p>
+      ) : (
+        <div className="panel overflow-x-auto p-2">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase text-muted">
+              <tr>
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Rang</th>
+                <th className="px-3 py-2">seit</th>
+                <th className="px-3 py-2 text-right">Tage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {probation.map((p) => {
+                const due = p.rank === "Hatchling" && p.days >= HATCHLING_DAYS;
+                return (
+                  <tr key={`${p.discord_id}-${p.rank}`} className="border-t border-line">
+                    <td className="px-3 py-2 text-parchment">{p.name}</td>
+                    <td className="px-3 py-2">{p.rank}</td>
+                    <td className="px-3 py-2 text-muted">{formatEventDate(locale, p.since)}</td>
+                    <td className={`px-3 py-2 text-right font-semibold ${due ? "text-amber-soft" : ""}`}>
+                      {p.days}
+                      {due && <span className="ml-2 text-xs font-normal">→ Mitglied?</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h2 id="downloads" className="scroll-mt-6 font-heading text-lg text-gold-light">
         {dict.downloads.title}
