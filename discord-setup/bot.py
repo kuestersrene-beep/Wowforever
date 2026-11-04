@@ -42,6 +42,7 @@ INTERN_KANAL = "📂│bewerbungen-intern"
 TICKET_KATEGORIE = "📨 TICKETS"
 OFFIZIER_ROLLEN = ("Offizier", "Gildenmeister")
 TRIAL_ROLLE = "Trial"
+PANEL_TITEL = "📝 Raid-Bewerbung starten"
 
 # Blue-Tracker der Blizzard-Foren; übernommen wird, was in den Forever-Kategorien steht
 # oder "Forever" im Titel hat.
@@ -210,13 +211,11 @@ async def panel_sicherstellen():
     if not kanal:
         log.warning("Kanal %s nicht gefunden", START_KANAL)
         return
-    async for nachricht in kanal.history(limit=20):
-        if nachricht.author == bot.user and nachricht.components:
-            return
     embed = discord.Embed(
-        title="📝 Bewerbung starten",
+        title=PANEL_TITEL,
         description=(
-            f"Du möchtest Teil von **{bot.guild.name}** werden? Klick auf den Button unten.\n\n"
+            "Du möchtest **mit uns raiden**? Klick auf den Button unten.\n"
+            "(In die Gilde kommst du auch ohne Bewerbung – sprich einfach einen von uns im Spiel an.)\n\n"
             "**So läuft's ab:**\n"
             "**1.** Du füllst ein kurzes Formular aus.\n"
             "**2.** Es entsteht ein privater Kanal, den nur du und unsere Offiziere sehen.\n"
@@ -225,6 +224,13 @@ async def panel_sicherstellen():
         ),
         color=AKZENTFARBE,
     )
+    # Vorhandenes Panel weiterverwenden und nur den Text auffrischen, falls er sich geändert hat
+    async for nachricht in kanal.history(limit=20):
+        if nachricht.author == bot.user and nachricht.components:
+            alt = nachricht.embeds[0] if nachricht.embeds else None
+            if not alt or alt.title != embed.title or alt.description != embed.description:
+                await nachricht.edit(embed=embed, view=StartAnsicht())
+            return
     await kanal.send(embed=embed, view=StartAnsicht())
 
 
@@ -243,7 +249,7 @@ class StartAnsicht(discord.ui.View):
         await interaction.response.send_modal(BewerbungsFormular())
 
 
-class BewerbungsFormular(discord.ui.Modal, title="Bewerbung"):
+class BewerbungsFormular(discord.ui.Modal, title="Raid-Bewerbung"):
     charakter = discord.ui.TextInput(label="Charaktername & Klasse / Skillung", max_length=100)
     rolle = discord.ui.TextInput(label="Rolle (Tank / Heiler / Schaden)", max_length=50)
     erfahrung = discord.ui.TextInput(label="Spielerfahrung", style=discord.TextStyle.paragraph, max_length=1000)
@@ -273,7 +279,7 @@ class BewerbungsFormular(discord.ui.Modal, title="Bewerbung"):
         kanal = await guild.create_text_channel(f"bewerbung-{name}"[:90], category=kategorie, overwrites=rechte,
                                                 topic=f"Bewerbung von {user} · ID {user.id}")
 
-        embed = discord.Embed(title=f"📝 Bewerbung von {user.display_name}", color=AKZENTFARBE,
+        embed = discord.Embed(title=f"📝 Raid-Bewerbung von {user.display_name}", color=AKZENTFARBE,
                               timestamp=discord.utils.utcnow())
         embed.set_thumbnail(url=user.display_avatar.url)
         for feld in (self.charakter, self.rolle, self.erfahrung, self.zeit, self.ueber_dich):
@@ -286,7 +292,7 @@ class BewerbungsFormular(discord.ui.Modal, title="Bewerbung"):
 
         intern = text_kanal(INTERN_KANAL)
         if intern:
-            await intern.send(f"📨 Neue Bewerbung von {user.mention}: {kanal.mention}")
+            await intern.send(f"📨 Neue Raid-Bewerbung von {user.mention}: {kanal.mention}")
         await interaction.followup.send(f"Deine Bewerbung ist eingegangen: {kanal.mention}", ephemeral=True)
 
 
@@ -309,11 +315,11 @@ class TicketAnsicht(discord.ui.View):
             return
         await mitglied.add_roles(trial, reason=f"Bewerbung angenommen von {interaction.user}")
         await interaction.response.send_message(
-            f"🎉 Willkommen in der Gilde, {mitglied.mention}! Du bist jetzt {trial.mention} – "
-            "der Rest des Servers ist für dich freigeschaltet.")
+            f"🎉 Willkommen im Raidkader, {mitglied.mention}! Du bist jetzt {trial.mention} – "
+            "damit siehst du die Raid-Kanäle. Nach der Probezeit wirst du Raider.")
         intern = text_kanal(INTERN_KANAL)
         if intern:
-            await intern.send(f"✅ {mitglied.mention} wurde von {interaction.user.mention} als Trial aufgenommen.")
+            await intern.send(f"✅ {mitglied.mention} wurde von {interaction.user.mention} als Trial in den Raidkader aufgenommen.")
 
     @discord.ui.button(label="Schließen", emoji="🔒", style=discord.ButtonStyle.secondary, custom_id="ticket:schliessen")
     async def schliessen(self, interaction: discord.Interaction, _button):

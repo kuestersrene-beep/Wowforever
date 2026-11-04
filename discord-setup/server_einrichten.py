@@ -121,8 +121,8 @@ STRUKTUR = [
         {"name": "📰│patchnotes", "thema": "Updates und Änderungen am Spiel.", "sicht": "alle"},
     ]},
     {"name": "📝 BEWERBUNG", "sicht": "alle", "kanaele": [
-        {"name": "📋│bewerbung-info", "thema": "So bewirbst du dich bei uns.", "schreiben": "offizier", "text": "bewerbung"},
-        {"name": "📨│bewerbung-starten", "thema": "Klick auf den Button, um deine Bewerbung zu starten.", "schreiben": "offizier"},
+        {"name": "📋│bewerbung-info", "thema": "So bewirbst du dich für unseren Raidkader.", "schreiben": "offizier", "text": "bewerbung"},
+        {"name": "📨│bewerbung-starten", "thema": "Raid-Bewerbung: Klick auf den Button, um sie zu starten.", "schreiben": "offizier"},
     ]},
     {"name": "💬 COMMUNITY", "sicht": "gast", "kanaele": [
         {"name": "💬│allgemein", "thema": "Quatschen über alles rund um die Gilde."},
@@ -193,13 +193,15 @@ def infotexte(gilde, k, r):
         "willkommen": {
             "title": f"⚔️ Willkommen bei {gilde}!",
             "description": (
-                "Schön, dass du da bist! Wir sind eine Gemeinschaft von Freunden, die in **World of Warcraft Forever** "
-                "gemeinsam Azeroth erobern – mit Spaß, Zusammenhalt und gemeinsamen Zielen.\n\n"
-                "**So geht's los:**\n"
-                f"**1.** Lies dir die {kanal('📜│regeln')} durch.\n"
-                f"**2.** Ein {rolle('Offizier')} gibt dir in Kürze deine Rolle – dann öffnet sich der Rest des Servers.\n\n"
-                f"Du kennst uns noch nicht und möchtest mitspielen? Alles zur Bewerbung findest du in {kanal('📋│bewerbung-info')}.\n"
-                "Dauert es zu lange? Schreib einfach einem Offizier eine Direktnachricht."
+                f"Schön, dass du da bist! Wir sind **{gilde}**, eine Horde-Gilde auf **World of Warcraft Forever** "
+                "(PvP-EU).\n\n"
+                "**In die Gilde** – Du bist im Spiel schon bei uns oder möchtest dazu? Sprich einfach einen von uns "
+                f"im Spiel an. Hier im Discord gibt dir ein {rolle('Offizier')} dann den Rang {rolle('Mitglied')}, "
+                "und der Rest des Servers öffnet sich. Eine Bewerbung brauchst du dafür nicht.\n\n"
+                f"**In den Raid** – Für unseren Raidkader bewirbst du dich in {kanal('📨│bewerbung-starten')}. "
+                f"Wie das abläuft, steht in {kanal('📋│bewerbung-info')}.\n\n"
+                f"Lies bitte auch kurz die {kanal('📜│regeln')}. Dauert es zu lange? "
+                "Schreib einfach einem Offizier eine Direktnachricht."
             ),
         },
         "regeln": {
@@ -228,9 +230,12 @@ def infotexte(gilde, k, r):
                 f"{rolle('Raidleiter')} – Planung und Leitung der Raids\n"
                 f"{rolle('Class-Leader')} – Ansprechpartner für eine Klasse\n"
                 f"{rolle('Raider')} – Fester Bestandteil des Raidkaders\n"
-                f"{rolle('Mitglied')} – Vollwertiges Gildenmitglied\n"
-                f"{rolle('Trial')} – Probemitglied in der Kennenlernphase\n"
+                f"{rolle('Trial')} – Raid-Probezeit nach erfolgreicher Bewerbung\n"
+                f"{rolle('Mitglied')} – In der Gilde, aber (noch) nicht im Raidkader\n"
                 f"{rolle('Gast')} – Freunde und Besucher der Gilde\n\n"
+                "**Vom Mitglied zum Raider**\n"
+                f"Wer mit uns raiden möchte, bewirbt sich in {kanal('📨│bewerbung-starten')}. Nach einem kurzen "
+                f"Gespräch startest du als {rolle('Trial')}, nach der Probezeit wirst du {rolle('Raider')}.\n\n"
                 "**Spielrolle & Klasse**\n"
                 "Teile einem Offizier deine Klasse und Rolle (Tank, Heiler, Schaden) mit – "
                 "du bekommst dann die passenden Rollen. So sehen alle auf einen Blick, wer was spielt.\n"
@@ -239,18 +244,19 @@ def infotexte(gilde, k, r):
             ),
         },
         "bewerbung": {
-            "title": "📋 Bewerbung",
+            "title": "📋 Bewerbung für den Raidkader",
             "description": (
-                f"Du möchtest Teil von **{gilde}** werden? Klick in {kanal('📨│bewerbung-starten')} auf "
-                "**Bewerbung starten** und füll das kurze Formular aus. Wir fragen nach:\n\n"
+                "**In die Gilde kommst du ohne Bewerbung** – sprich einfach einen von uns im Spiel an.\n\n"
+                f"Die Bewerbung ist für alle, die **mit uns raiden** möchten. Klick in {kanal('📨│bewerbung-starten')} "
+                "auf **Bewerbung starten** und füll das kurze Formular aus. Wir fragen nach:\n\n"
                 "• Charaktername, Klasse und Skillung\n"
                 "• Rolle (Tank / Heiler / Schaden)\n"
                 "• Spielerfahrung\n"
                 "• Wann du Zeit hast\n"
                 "• Ein paar Worte über dich\n\n"
                 "Danach bekommst du einen **privaten Kanal**, den nur du und unsere Offiziere sehen. "
-                "Gerne auch zu einem kurzen Gespräch in **🎙️ Bewerbungsgespräch**. "
-                f"Nach der Aufnahme startest du als {rolle('Trial')}."
+                "Gerne auch zu einem kurzen Gespräch in **🍺 Taverne**. "
+                f"Nach der Aufnahme startest du als {rolle('Trial')} im Raidkader."
             ),
         },
     }
