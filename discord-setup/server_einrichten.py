@@ -92,7 +92,13 @@ GRUPPEN = {
     # Spielrollen-Kanäle: nur mit der jeweiligen Rolle sichtbar
     "tank": ["🛡️ Tank"],
     "heiler": ["💚 Heiler"],
+    # Raid-Kanäle: Raidkader, Trials zum Reinschnuppern und die Leitung (ohne einfache Mitglieder)
+    "raidkader": ["Trial", "Raider", "Raidleiter", "Offizier", "Gildenmeister"],
+    "gildenmeister": ["Gildenmeister"],
 }
+
+# Kanäle ohne Kategorie, die bleiben und nie aufgeräumt werden (von Hand bzw. für externe Dienste angelegt)
+AUSSERHALB = {"📈│blackwater-terminal"}
 
 # Ein Kanal pro Klasse, nur mit der gleichnamigen Klassenrolle sichtbar (Rollen siehe ROLLEN)
 KLASSEN_KANAELE = [
@@ -105,29 +111,26 @@ for _klasse, _ in KLASSEN_KANAELE:
 
 # sicht = wer die Kategorie sieht; schreiben = nur diese Gruppe darf schreiben (sonst alle Sichtbaren)
 STRUKTUR = [
-    # Neue Leute ohne Rolle sehen nur willkommen, regeln und die Bewerbung, alles andere erst ab Gast
+    # Neue Leute ohne Rang sehen: willkommen, regeln, ankündigungen, patchnotes, die Bewerbung und die
+    # Taverne (für Bewerbungsgespräche). Alles andere erst ab Gast bzw. Trial.
     {"name": "📜 INFORMATION", "sicht": "gast", "schreiben": "offizier", "kanaele": [
         {"name": "👋│willkommen", "thema": "Herzlich willkommen! Lies dich hier kurz ein.", "text": "willkommen", "sicht": "alle"},
         {"name": "📜│regeln", "thema": "Die Regeln unserer Gemeinschaft – bitte lesen.", "text": "regeln", "sicht": "alle"},
-        {"name": "📢│ankündigungen", "thema": "Wichtige Neuigkeiten der Gildenleitung."},
+        {"name": "📢│ankündigungen", "thema": "Wichtige Neuigkeiten der Gildenleitung.", "sicht": "alle"},
         {"name": "🎭│rollen", "thema": "Ränge und Rollen im Überblick.", "text": "rollen"},
-        {"name": "📰│patchnotes", "thema": "Updates und Änderungen am Spiel."},
+        {"name": "📰│patchnotes", "thema": "Updates und Änderungen am Spiel.", "sicht": "alle"},
     ]},
     {"name": "📝 BEWERBUNG", "sicht": "alle", "kanaele": [
         {"name": "📋│bewerbung-info", "thema": "So bewirbst du dich bei uns.", "schreiben": "offizier", "text": "bewerbung"},
         {"name": "📨│bewerbung-starten", "thema": "Klick auf den Button, um deine Bewerbung zu starten.", "schreiben": "offizier"},
-        {"name": "🎙️ Bewerbungsgespräch", "typ": "voice"},
     ]},
     {"name": "💬 COMMUNITY", "sicht": "gast", "kanaele": [
         {"name": "💬│allgemein", "thema": "Quatschen über alles rund um die Gilde."},
-        {"name": "🎲│offtopic", "thema": "Alles, was nichts mit WoW zu tun hat."},
-        {"name": "📸│screenshots", "thema": "Eure besten Momente in Azeroth."},
         {"name": "😂│memes", "thema": "Humor erwünscht – im Rahmen der Regeln."},
         {"name": "🔗│links-und-guides", "thema": "Nützliche Seiten, Addons und Guides."},
     ]},
     {"name": "⚔️ GILDE", "sicht": "mitglied", "kanaele": [
         {"name": "📌│gilden-infos", "thema": "Feste Infos: Raidzeiten, Bank, Ansprechpartner.", "schreiben": "offizier"},
-        {"name": "🌐│gilden-app", "thema": "Automatische Posts aus unserer Gilden-App: Umfragen, Termine, Aufstellungen, Fraktionsentscheidung.", "schreiben": "offizier"},
         {"name": "📅│raid-ankündigungen", "thema": "Wichtige Infos der Raidleitung.", "schreiben": "raid"},
         {"name": "🗓️│raid-planung", "thema": "Raidtermine mit Anmeldung per Button und Absprachen rund um Raids."},
         {"name": "🤝│gruppensuche", "thema": "Mitspieler für Dungeons, Quests und mehr finden."},
@@ -139,7 +142,7 @@ STRUKTUR = [
         {"name": "⚔️ Schlachtfeld 2", "typ": "voice"},
         {"name": "🔥 World-PvP", "typ": "voice"},
     ]},
-    {"name": "🐉 RAID", "sicht": "mitglied", "kanaele": [
+    {"name": "🐉 RAID", "sicht": "raidkader", "kanaele": [
         {"name": "🐉 Raid 1", "typ": "voice"},
         {"name": "🐉 Raid 2", "typ": "voice"},
         {"name": "🎤 Raidleitung", "typ": "voice", "sicht": "raid"},
@@ -156,11 +159,9 @@ STRUKTUR = [
         for klasse, kanal in KLASSEN_KANAELE
     ]},
     {"name": "🔊 SPRACHKANÄLE", "sicht": "gast", "kanaele": [
-        {"name": "🍺 Taverne", "typ": "voice"},
-        {"name": "🎮 Zocken", "typ": "voice"},
+        {"name": "🍺 Taverne", "typ": "voice", "sicht": "alle"},
         {"name": "🗡️ Dungeon 1", "typ": "voice", "limit": 5},
         {"name": "🗡️ Dungeon 2", "typ": "voice", "limit": 5},
-        {"name": "🗡️ Dungeon 3", "typ": "voice", "limit": 5},
         {"name": "💤 AFK", "typ": "voice", "afk": True},
     ]},
     {"name": "🛡️ OFFIZIERE", "sicht": "offizier", "kanaele": [
@@ -169,7 +170,8 @@ STRUKTUR = [
         {"name": "📈│raid-auswertung", "thema": "Logs, Teilnahme, Verbesserungen."},
         {"name": "🎓│class-leader", "thema": "Absprachen der Class-Leader mit der Gildenleitung.",
          "sicht": "classleader"},
-        {"name": "🧾│mod-log", "thema": "Automatisches Protokoll des Bots: Beitritte, Rollen, Änderungen."},
+        {"name": "🧾│mod-log", "thema": "Automatisches Protokoll des Bots: Beitritte, Rollen, Änderungen.",
+         "sicht": "gildenmeister"},
         {"name": "🛡️ Offiziersrat", "typ": "voice"},
     ]},
     # Hier legt bot.py die privaten Bewerbungskanäle an; deren Kanäle räumt dieses Skript nie auf
@@ -447,7 +449,7 @@ def main():
                 afk_id = cid
 
     # Alte Kanäle (z. B. Discord-Standardkanäle)
-    alte = [c for c in vorhanden if c["id"] not in behalten]
+    alte = [c for c in vorhanden if c["id"] not in behalten and c["name"] not in AUSSERHALB]
     if alte:
         print("\nKanäle, die nicht zur Struktur gehören:")
         for c in alte:

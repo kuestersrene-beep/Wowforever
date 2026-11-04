@@ -28,6 +28,7 @@ GRUND = "Rollen-Sync mit der Gilden-Website"
 KLASSEN = raid.KLASSEN
 SPIELROLLEN = {"tank": "🛡️ Tank", "heiler": "💚 Heiler", "dd": "⚔️ Schaden"}
 RAENGE = ("Gildenmeister", "Offizier", "Raidleiter", "Class-Leader", "Raider", "Mitglied", "Trial", "Gast")
+GILDENRAENGE = tuple(r for r in RAENGE if r != "Gast")
 # Zugangsrollen für Website-Module, landen ebenfalls in discord_members.ranks
 # (Website: GOLD_RADAR_ROLES in lib/goldRadar.ts). Weitere per .env, kommagetrennt.
 ZUGANGSROLLEN = tuple(r.strip() for r in os.getenv("ZUGANGSROLLEN", "Gold-Radar,Beta-Tester").split(",") if r.strip())
@@ -72,6 +73,10 @@ async def rollen_abgleichen(guild, ziel):
     geaendert = 0
     for member in guild.members:
         if member.bot or str(member.id) not in ziel:
+            continue
+        # Klassen- und Spielrollen öffnen die Kanäle in 🧙 KLASSEN & ROLLEN - die sind für die Gilde,
+        # also nur für Mitglieder mit Rang (ab Trial), nicht für Gäste oder Neue
+        if not any(r.name in GILDENRAENGE for r in member.roles):
             continue
         soll = {verwaltet[n] for n in ziel[str(member.id)] if n in verwaltet}
         ist = {r for r in member.roles if r.name in verwaltet}
