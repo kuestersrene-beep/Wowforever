@@ -6,8 +6,8 @@ import { loadDictionary } from "@/lib/content";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
 import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
-import BackgroundCarousel from "@/components/ui/BackgroundCarousel";
+import SiteHeader from "@/components/SiteHeader";
+import { GUILD_NAME } from "@/lib/guild";
 
 // Lokal statt next/font/google: next/font/google lädt die Dateien zur
 // Build-Zeit von Google herunter - schlägt der Docker-Build-Container
@@ -36,8 +36,8 @@ const inter = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const iconUrl = await getIconUrl();
   return {
-    title: "WoW Forever Umfrage",
-    description: "Umfrage unter Freunden zu World of Warcraft Forever",
+    title: `${GUILD_NAME} · WoW Forever`,
+    description: `${GUILD_NAME} – Horde-Gilde auf World of Warcraft Forever (PvP-EU)`,
     ...(iconUrl ? { icons: { icon: iconUrl, apple: iconUrl } } : {}),
   };
 }
@@ -53,20 +53,20 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className={`${cinzel.variable} ${inter.variable}`}>
-      <body className="min-h-screen font-sans">
-        <BackgroundCarousel />
+      <body className="flex min-h-screen flex-col overflow-x-clip font-sans">
         <LocaleProvider locale={locale} dict={dict}>
           <BrandingProvider
             logoUrl={logoUrl}
             timerLogoUrl={timerLogoUrl}
             logoScale={logoScale}
           >
-            <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8">
-              <div className="mb-2 flex justify-end">
-                <LanguageSwitcher />
+            <SiteHeader dict={dict} />
+            <div className="mx-auto w-full max-w-[1280px] flex-1 px-4 py-8 sm:px-6">{children}</div>
+            <footer className="border-t border-line">
+              <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-4 px-4 py-7 text-sm text-muted sm:px-6">
+                <span>{GUILD_NAME} · Kult der Shadra · WoW Forever, PvP-EU, Horde</span>
               </div>
-              {children}
-            </div>
+            </footer>
           </BrandingProvider>
         </LocaleProvider>
       </body>

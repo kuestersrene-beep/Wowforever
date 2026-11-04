@@ -7,6 +7,11 @@ import type { Dictionary, Locale } from "./types";
 // können - der Code hier wird stattdessen direkt in jeder Komponente
 // importiert, egal ob Server oder Client Component.
 
+// Setzt {platzhalter} in einen Text ein, z. B. fillTemplate("{count} Spieler", { count: 5 }).
+export function fillTemplate(template: string, values: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
+}
+
 export function formatDeadline(dict: Dictionary, date: string): string {
   return dict.survey.deadlineTemplate.replace("{date}", date);
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Emblem from "@/components/ui/Emblem";
 import { GUIDES } from "@/lib/guides";
 
 export const metadata = { title: "Guides · WoW Forever" };
@@ -8,7 +7,6 @@ export const metadata = { title: "Guides · WoW Forever" };
 export default function GuidesPage() {
   return (
     <main className="flex flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">Guides</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

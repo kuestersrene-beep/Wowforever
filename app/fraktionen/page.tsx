@@ -6,7 +6,6 @@ import { getLocale } from "@/lib/i18n";
 import { isSectionVisible, loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
 import FactionCard from "@/components/factions/FactionCard";
-import Emblem from "@/components/ui/Emblem";
 import type { GuildDraft } from "@/lib/types";
 
 export default async function FraktionenPage() {
@@ -47,7 +46,6 @@ export default async function FraktionenPage() {
 
   return (
     <main className="flex flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.guildDrafts.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

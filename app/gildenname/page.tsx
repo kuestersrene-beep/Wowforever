@@ -8,7 +8,6 @@ import RichText from "@/components/RichText";
 import GuildNamePoll from "@/components/guildname/GuildNamePoll";
 import SuggestGuildNameForm from "@/components/guildname/SuggestGuildNameForm";
 import GuildNameAdminQueue from "@/components/guildname/GuildNameAdminQueue";
-import Emblem from "@/components/ui/Emblem";
 import type { GuildNameSuggestion } from "@/lib/types";
 
 export default async function GildennamePage() {
@@ -70,7 +69,6 @@ export default async function GildennamePage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.guildName.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

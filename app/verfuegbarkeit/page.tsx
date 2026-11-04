@@ -5,7 +5,6 @@ import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
 import AvailabilityForm from "@/components/AvailabilityForm";
-import Emblem from "@/components/ui/Emblem";
 import type { Availability } from "@/lib/types";
 
 export default async function VerfuegbarkeitPage() {
@@ -28,7 +27,6 @@ export default async function VerfuegbarkeitPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.availability.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

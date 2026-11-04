@@ -12,7 +12,6 @@ import SignupForm from "@/components/events/SignupForm";
 import RosterButtons from "@/components/events/RosterButtons";
 import EventAdminActions from "@/components/events/EventAdminActions";
 import EventEditToggle from "@/components/events/EventEditToggle";
-import Emblem from "@/components/ui/Emblem";
 import type { Character, EventSignupRow, GuildEvent } from "@/lib/types";
 
 export default async function TerminDetailPage({
@@ -72,7 +71,6 @@ export default async function TerminDetailPage({
 
   return (
     <main className="flex flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{event.title}</h1>
         <Link href="/termine" className="text-sm text-gold-light hover:underline">

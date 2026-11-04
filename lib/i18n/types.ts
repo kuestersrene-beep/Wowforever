@@ -19,6 +19,67 @@ export type Locale = "de" | "en";
 // etc.) werden über Platzhalter-Templates + separate reine
 // Formatierungsfunktionen in lib/i18n/format.ts gelöst.
 export interface Dictionary {
+  menu: {
+    home: string;
+    events: string;
+    roster: string;
+    professions: string;
+    goldRadar: string;
+    guides: string;
+    admin: string;
+    apply: string;
+    joinDiscord: string;
+    login: string;
+    logout: string;
+    openMenu: string;
+    mainNav: string;
+  };
+  guildHome: {
+    kicker: string;
+    summary: string;
+    recruitLead: string;
+    recruitText: string;
+    quote: string;
+    joinDiscord: string;
+    apply: string;
+    tileLaunch: string;
+    tileLaunchBefore: string; // Platzhalter: {date}
+    tileLaunchDay: string; // Platzhalter: {day}
+    tileMembers: string;
+    tileMembersValue: string; // Platzhalter: {count}
+    tileMembersHint: string;
+    tileNextEvent: string;
+    tileNoEvent: string;
+    tileWanted: string;
+    tileWantedHint: string; // Platzhalter: {count}, {total}
+    eventsTitle: string;
+    eventsAll: string;
+    eventsEmpty: string;
+    eventSignups: string; // Platzhalter: {count}, {max}
+    eventOpen: string;
+    pollsTitle: string;
+    terminalKicker: string;
+    terminalTitle: string;
+    terminalText: string;
+    terminalButton: string;
+    guidesTitle: string;
+    guidesAll: string;
+    lineupTitle: string;
+    lineupHint: string; // Platzhalter: {count}
+    lineupOpen: string;
+    lineupLink: string;
+    professionsTitle: string;
+    professionsHint: string;
+    ranksTitle: string;
+    ranks: { name: string; role: string }[];
+    mineTitle: string;
+    mineHint: string;
+    mineCharacters: string;
+    mineProfessions: string;
+    mineAvailability: string;
+    loginTitle: string;
+    loginText: string;
+  };
   errorPage: {
     title: string;
     text: string;

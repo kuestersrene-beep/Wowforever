@@ -3,10 +3,7 @@
 @tailwind utilities;
 
 body {
-  /* Fallback solange der zufällige Szenenbild-Hintergrund (siehe
-     BackgroundCarousel) noch nicht geladen ist bzw. ohne JS - gleiche
-     Basisfarbe wie bisher der Radial-Verlauf. */
-  @apply bg-ink text-slate-100;
+  @apply bg-ink text-parchment;
   min-height: 100vh;
 }
 
@@ -41,14 +38,14 @@ body {
 }
 
 @layer components {
-  /* Wiederkehrender "Panel"-Look für Karten/Boxen, angelehnt an
-     WoW-Fensterrahmen: dunkles Panel mit dezentem Gold-Rand. */
+  /* Wiederkehrender "Panel"-Look für Karten/Boxen: fast schwarzes Panel
+     mit dezentem grünlichem Rand (Black Cocoon). */
   .panel {
-    @apply rounded-xl border border-gold/25 bg-panel/80 shadow-inner shadow-black/40;
+    @apply rounded-xl border border-line bg-panel shadow-inner shadow-black/40;
   }
 
   .heading-ornate {
-    @apply font-heading tracking-wide text-gold-light;
+    @apply font-heading tracking-wide text-parchment;
   }
 
   .divider-ornate {

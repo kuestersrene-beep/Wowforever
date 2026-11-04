@@ -11,7 +11,6 @@ import ProfessionOverview from "@/components/ProfessionOverview";
 import RoleNeedBanner from "@/components/admin/RoleNeedBanner";
 import ClassRoleCharts from "@/components/admin/ClassRoleCharts";
 import ClassPriorityOverview from "@/components/admin/ClassPriorityOverview";
-import Emblem from "@/components/ui/Emblem";
 import DiscordNameLink from "@/components/ui/DiscordNameLink";
 import ParticipantSummaryLine from "@/components/ParticipantSummaryLine";
 
@@ -56,7 +55,6 @@ export default async function UebersichtPage() {
 
   return (
     <main className="flex flex-col gap-8">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.overview.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">

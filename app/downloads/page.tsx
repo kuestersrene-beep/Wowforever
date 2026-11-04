@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import RichText from "@/components/RichText";
-import Emblem from "@/components/ui/Emblem";
 import type { DownloadItem } from "@/lib/types";
 
 export default async function DownloadsPage() {
@@ -28,7 +27,6 @@ export default async function DownloadsPage() {
 
   return (
     <main className="flex flex-col gap-6">
-      <Emblem className="mx-auto h-20 w-20 sm:h-24 sm:w-24" />
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.downloads.title}</h1>
         <Link href="/" className="text-sm text-gold-light hover:underline">
