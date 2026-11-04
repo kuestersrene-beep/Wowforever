@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
@@ -71,9 +70,6 @@ export default async function GildennamePage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.guildName.title}</h1>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          {dict.nav.back}
-        </Link>
       </div>
       <RichText
         value={dict.guildName.hint}

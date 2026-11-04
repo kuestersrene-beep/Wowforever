@@ -42,12 +42,12 @@ export interface Dictionary {
     quote: string;
     joinDiscord: string;
     apply: string;
+    joinTitle: string;
+    joinSteps: string[];
+    mineDownloads: string;
     tileLaunch: string;
     tileLaunchBefore: string; // Platzhalter: {date}
     tileLaunchDay: string; // Platzhalter: {day}
-    tileMembers: string;
-    tileMembersValue: string; // Platzhalter: {count}
-    tileMembersHint: string;
     tileNextEvent: string;
     tileNoEvent: string;
     tileWanted: string;
@@ -64,12 +64,6 @@ export interface Dictionary {
     terminalButton: string;
     guidesTitle: string;
     guidesAll: string;
-    lineupTitle: string;
-    lineupHint: string; // Platzhalter: {count}
-    lineupOpen: string;
-    lineupLink: string;
-    professionsTitle: string;
-    professionsHint: string;
     ranksTitle: string;
     ranks: { name: string; role: string }[];
     mineTitle: string;
@@ -77,8 +71,6 @@ export interface Dictionary {
     mineCharacters: string;
     mineProfessions: string;
     mineAvailability: string;
-    loginTitle: string;
-    loginText: string;
   };
   errorPage: {
     title: string;

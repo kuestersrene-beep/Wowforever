@@ -3,15 +3,12 @@ import { GUIDES } from "@/lib/guides";
 
 export const metadata = { title: "Guides · WoW Forever" };
 
-// Öffentlich (nicht in protectedPaths): die Guides sind zum Teilen gedacht.
+// Nur für eingeloggte Gildenmitglieder (siehe protectedPaths in lib/supabase/middleware.ts).
 export default function GuidesPage() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">Guides</h1>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          ← Startseite
-        </Link>
       </div>
       <p className="text-sm text-slate-400">
         Faktengeprüfte Guides zu WoW Forever, abgeglichen mit Wowhead und ForeverChanges.

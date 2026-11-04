@@ -56,9 +56,6 @@ export default async function TerminePage() {
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.events.title}</h1>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          {dict.nav.back}
-        </Link>
       </div>
       <RichText
         value={dict.events.hint}

@@ -35,9 +35,6 @@ export default async function GoldRadarPage() {
           einen Offizier. Nach der Vergabe dauert es bis zu ein paar Minuten, bis der
           Zugang hier ankommt.
         </p>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          ← Zur Startseite
-        </Link>
       </main>
     );
   }
@@ -58,9 +55,6 @@ export default async function GoldRadarPage() {
           <a href="/gold-radar/app" target="_blank" rel="noopener" className="text-gold-light hover:underline">
             Im eigenen Tab öffnen ↗
           </a>
-          <Link href="/" className="text-gold-light hover:underline">
-            ← Startseite
-          </Link>
         </div>
       </div>
       <iframe

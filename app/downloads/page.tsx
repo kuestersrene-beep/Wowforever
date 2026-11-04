@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
@@ -29,9 +28,6 @@ export default async function DownloadsPage() {
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.downloads.title}</h1>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          {dict.nav.back}
-        </Link>
       </div>
       <RichText value={dict.downloads.hint} className="text-sm text-slate-400" />
 

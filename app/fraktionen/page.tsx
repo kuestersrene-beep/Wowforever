@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
@@ -48,9 +47,6 @@ export default async function FraktionenPage() {
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.guildDrafts.title}</h1>
-        <Link href="/" className="text-sm text-gold-light hover:underline">
-          {dict.nav.back}
-        </Link>
       </div>
       <RichText
         value={dict.guildDrafts.hint}

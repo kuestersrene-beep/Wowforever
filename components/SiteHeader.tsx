@@ -23,6 +23,7 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
     : [false, false];
 
   const t = dict.menu;
+  // Gäste sehen nur die Gildenhalle; alles andere ist für Mitglieder.
   const items: NavItem[] = [
     { href: "/", label: t.home },
     ...(user
@@ -30,11 +31,11 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
           { href: "/termine", label: t.events },
           { href: "/charaktere", label: t.roster },
           { href: "/uebersicht", label: t.professions },
+          ...(goldRadar ? [{ href: "/gold-radar", label: t.goldRadar }] : []),
+          { href: "/guides", label: t.guides },
+          ...(admin ? [{ href: "/admin", label: t.admin }] : []),
         ]
       : []),
-    ...(goldRadar ? [{ href: "/gold-radar", label: t.goldRadar }] : []),
-    { href: "/guides", label: t.guides },
-    ...(admin ? [{ href: "/admin", label: t.admin }] : []),
   ];
   const invite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
   const avatar = user ? getAvatarUrl(user) : null;
