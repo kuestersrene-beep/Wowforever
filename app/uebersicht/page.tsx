@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
@@ -52,6 +53,10 @@ export default async function UebersichtPage() {
     .returns<{ discord_id: string }[]>();
   const discordMemberIds = new Set((discordMemberRows ?? []).map((r) => r.discord_id));
 
+  // Wer selbst noch nicht in der Planung steht, bekommt oben einen Hinweis mit Direktlinks
+  const hasSurvey = participants.some((p) => p.user_id === user.id);
+  const hasAvailability = (availabilityRows ?? []).some((a) => a.user_id === user.id && a.slots.length > 0);
+
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
@@ -62,6 +67,28 @@ export default async function UebersichtPage() {
           ersten Wochen am meisten hilft: Kurzstand -> wann hat wer Zeit ->
           wer kann welchen Beruf -> wer ist dabei -> Klassen-Auswertung.
           Fraktion und Spielstil sind entschieden und tauchen nicht mehr auf. */}
+      {(!hasSurvey || !hasAvailability) && (
+        <section className="panel flex flex-col gap-3 border-amber-soft/50 p-5">
+          <h2 className="font-heading text-lg text-amber-soft">{dict.overview.missingTitle}</h2>
+          <p className="text-sm text-parchment/90">{dict.overview.missingText}</p>
+          <div className="flex flex-wrap gap-3">
+            {!hasSurvey && (
+              <Link href="/umfrage" className="rounded-lg bg-gold px-4 py-2.5 font-semibold text-ink transition hover:brightness-110">
+                {dict.overview.missingSurvey}
+              </Link>
+            )}
+            {!hasAvailability && (
+              <Link
+                href="/verfuegbarkeit"
+                className="rounded-lg border border-gold-dark px-4 py-2.5 font-medium text-parchment transition hover:bg-gold/10"
+              >
+                {dict.overview.missingAvailability}
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+
       <StatTiles responses={participants} dict={dict} />
       <RoleNeedBanner responses={participants} dict={dict} />
 

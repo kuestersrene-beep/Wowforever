@@ -173,7 +173,7 @@ async function MemberHome({
   wantedTile: React.ReactNode;
 }) {
   const t = dict.guildHome;
-  const [goldRadar, quickPolls, { data: eventRows }] = await Promise.all([
+  const [goldRadar, quickPolls, { data: eventRows }, { data: ownResponse }, { data: ownAvailability }] = await Promise.all([
     hasGoldRadarAccess(discordId),
     loadQuickPolls(supabase, userId, true),
     supabase
@@ -183,6 +183,9 @@ async function MemberHome({
       .order("starts_at", { ascending: true })
       .limit(3)
       .returns<GuildEvent[]>(),
+    // Was die Person selbst noch nicht eingetragen hat ("offen" bei Mein Charakter)
+    supabase.from("responses").select("user_id").eq("user_id", userId).maybeSingle(),
+    supabase.from("availability").select("slots").eq("user_id", userId).maybeSingle<{ slots: string[] }>(),
   ]);
   const ids = (eventRows ?? []).map((e) => e.id);
   const { data: signups } = ids.length
@@ -291,17 +294,22 @@ async function MemberHome({
             <p className="mb-3 text-sm text-muted">{t.mineHint}</p>
             <div className="flex flex-col gap-2">
               {[
-                { href: "/charaktere", label: t.mineCharacters },
-                { href: "/umfrage", label: t.mineProfessions },
-                { href: "/verfuegbarkeit", label: t.mineAvailability },
-                { href: "/downloads", label: t.mineDownloads },
+                { href: "/charaktere", label: t.mineCharacters, open: false },
+                { href: "/umfrage", label: t.mineProfessions, open: !ownResponse },
+                { href: "/verfuegbarkeit", label: t.mineAvailability, open: !ownAvailability?.slots?.length },
+                { href: "/downloads", label: t.mineDownloads, open: false },
               ].map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
-                  className="rounded-lg border border-line bg-panel-2 px-4 py-3 text-parchment transition hover:border-gold-dark"
+                  className={`flex items-center justify-between gap-2 rounded-lg border bg-panel-2 px-4 py-3 text-parchment transition hover:border-gold-dark ${
+                    l.open ? "border-amber-soft/50" : "border-line"
+                  }`}
                 >
                   {l.label}
+                  {l.open && (
+                    <span className="rounded-full bg-amber-soft px-2 py-0.5 text-xs font-semibold text-ink">{t.mineOpen}</span>
+                  )}
                 </Link>
               ))}
             </div>

@@ -45,6 +45,7 @@ export interface Dictionary {
     joinTitle: string;
     joinSteps: string[];
     mineDownloads: string;
+    mineOpen: string;
     tileLaunch: string;
     tileLaunchBefore: string; // Platzhalter: {date}
     tileLaunchDay: string; // Platzhalter: {day}
@@ -159,6 +160,10 @@ export interface Dictionary {
   };
   overview: {
     title: string;
+    missingTitle: string;
+    missingText: string;
+    missingSurvey: string;
+    missingAvailability: string;
     participantsTitle: string;
     professionsTitle: string;
     professionsHint: string;

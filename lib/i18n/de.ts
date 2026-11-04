@@ -31,6 +31,7 @@ export const de: Dictionary = {
       "Du willst mit uns raiden? Bewirb dich im Discord in bewerbung-starten. Nach einem kurzen Gespräch startest du als Trial im Raidkader.",
     ],
     mineDownloads: "Downloads & Addons",
+    mineOpen: "offen",
     tileLaunch: "Server",
     tileLaunchBefore: "Start {date}",
     tileLaunchDay: "Tag {day} auf dem Server",
@@ -163,6 +164,10 @@ export const de: Dictionary = {
   },
   overview: {
     title: "Planung",
+    missingTitle: "Du fehlst noch in der Planung",
+    missingText: "Damit wir Gruppen und Raids planen können, trag bitte noch ein, was hier fehlt:",
+    missingSurvey: "Rolle, Klassen & Berufe eintragen",
+    missingAvailability: "Verfügbarkeit eintragen",
     participantsTitle: "Wer ist dabei?",
     professionsTitle: "Berufe in der Gilde",
     professionsHint: "Wer lernt was? Gestrichelte Berufe hat noch niemand gewählt – vielleicht ja du.",

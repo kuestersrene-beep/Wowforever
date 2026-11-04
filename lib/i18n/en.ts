@@ -31,6 +31,7 @@ export const en: Dictionary = {
       "Want to raid with us? Apply in the Discord channel bewerbung-starten. After a short chat you start as a trial in the raid team.",
     ],
     mineDownloads: "Downloads & addons",
+    mineOpen: "missing",
     tileLaunch: "Server",
     tileLaunchBefore: "Launch {date}",
     tileLaunchDay: "Day {day} on the server",
@@ -163,6 +164,10 @@ export const en: Dictionary = {
   },
   overview: {
     title: "Planning",
+    missingTitle: "You are still missing from the planning",
+    missingText: "So we can plan groups and raids, please add what is missing:",
+    missingSurvey: "Enter role, classes & professions",
+    missingAvailability: "Enter availability",
     participantsTitle: "Who's in?",
     professionsTitle: "Professions in the guild",
     professionsHint: "Who learns what? Dashed professions haven't been picked yet – maybe by you.",
