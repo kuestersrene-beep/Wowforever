@@ -208,6 +208,11 @@ server {
 
     location / {
         proxy_pass http://127.0.0.1:3001;
+        # Beim Login setzt Supabase mehrere große Cookies auf einmal - mit den
+        # Standard-Puffern antwortet nginx sonst mit 502 ("upstream sent too big header").
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
