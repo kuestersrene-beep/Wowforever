@@ -4,7 +4,8 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, isAdmin } from "@/lib/admin";
 import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
-import { formatLoadError } from "@/lib/i18n/format";
+import { formatLoadError, formatPending } from "@/lib/i18n/format";
+import { isGoldRadarOwner } from "@/lib/goldRadar";
 import type { AdminResponseRow, SurveyResponse } from "@/lib/types";
 import StatTiles from "@/components/admin/StatTiles";
 import FactionChart from "@/components/admin/FactionChart";
@@ -72,40 +73,74 @@ export default async function AdminPage() {
     .order("created_at", { ascending: true })
     .returns<DownloadItem[]>();
 
+  // Gildennamen-Vorschläge, die auf Freigabe warten (früher als Hinweis auf
+  // der Startseite, jetzt hier im Admin-Bereich)
+  const { count: pendingGuildNames } = await adminSupabase
+    .from("guild_name_suggestions")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "offen");
+
   return (
     <main className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="heading-ornate text-2xl">{dict.admin.title}</h1>
       </div>
 
-      <Link
-        href="/admin/texte"
-        className="panel flex items-center justify-between gap-3 border-gold/50 p-4 transition hover:bg-gold/10"
-      >
-        <span>
-          <span className="block font-heading text-base text-gold-light">
-            ✎ Texte bearbeiten
-          </span>
-          <span className="text-sm text-slate-400">
-            Startseite und Hinweise auf allen Seiten ändern, Abschnitte ein- und ausblenden
-          </span>
-        </span>
-        <span className="text-gold-light">→</span>
-      </Link>
+      {/* Alle Admin-Bereiche an einer Stelle - einige liegen auf eigenen
+          Seiten, der Rest weiter unten auf dieser Seite. */}
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+        {[
+          {
+            href: "/admin/texte",
+            title: "✎ Texte bearbeiten",
+            hint: "Startseite und Hinweise auf allen Seiten ändern, Abschnitte ein- und ausblenden",
+          },
+          {
+            href: "/admin/fraktionen",
+            title: dict.guildDrafts.admin.manageLink,
+            hint: `${dict.guildDrafts.admin.manageHint}. Stimmen zurücksetzen.`,
+          },
+          {
+            href: "/gildenname",
+            title: "Gildennamen-Vorschläge",
+            hint: "Vorschläge freigeben oder ablehnen, Umfrage ein- und ausblenden",
+            badge: pendingGuildNames ? formatPending(dict, pendingGuildNames) : null,
+          },
+          ...(isGoldRadarOwner(getDiscordId(user))
+            ? [
+                {
+                  href: "/admin/gold-radar",
+                  title: "Blackwater Terminal",
+                  hint: "Nutzung, Scan-Uploads, Feedback und Tool-Daten",
+                },
+              ]
+            : []),
+          { href: "#kurzabstimmungen", title: dict.quickPoll.admin.title, hint: "Abstimmungen auf der Startseite" },
+          { href: "#downloads", title: dict.downloads.title, hint: "Addons und Dateien für Mitglieder" },
+          { href: "#logo", title: dict.admin.logo.title, hint: "Logo und Bild für den Countdown" },
+        ].map((c) => (
+          <Link
+            key={c.href}
+            href={c.href}
+            className="panel flex items-center justify-between gap-3 p-4 transition hover:border-gold-dark"
+          >
+            <span>
+              <span className="block font-heading text-base text-gold-light">
+                {c.title}
+                {"badge" in c && c.badge && (
+                  <span className="ml-2 rounded-full bg-amber-soft px-2 py-0.5 font-sans text-xs text-ink">
+                    {c.badge}
+                  </span>
+                )}
+              </span>
+              <span className="text-sm text-muted">{c.hint}</span>
+            </span>
+            <span className="text-gold-light">→</span>
+          </Link>
+        ))}
+      </div>
 
-      <Link
-        href="/admin/fraktionen"
-        className="panel flex items-center justify-between gap-3 border-gold/50 p-4 transition hover:bg-gold/10"
-      >
-        <span>
-          <span className="block font-heading text-base text-gold-light">
-            {dict.guildDrafts.admin.manageLink}
-          </span>
-          <span className="text-sm text-slate-400">{dict.guildDrafts.admin.manageHint}</span>
-        </span>
-        <span className="text-gold-light">→</span>
-      </Link>
-
+      <h2 className="heading-ornate -mb-4 text-xl">Umfrage-Auswertung</h2>
       <StatTiles responses={responses} dict={dict} />
       <InsightBanner responses={responses} dict={dict} />
       <RoleNeedBanner responses={responses} dict={dict} />
@@ -126,12 +161,12 @@ export default async function AdminPage() {
       </div>
       <ParticipantsTable responses={responses} dict={dict} locale={locale} />
 
-      <h2 className="font-heading text-lg text-gold-light">
+      <h2 id="downloads" className="scroll-mt-6 font-heading text-lg text-gold-light">
         {dict.downloads.title}
       </h2>
       <DownloadsManager downloads={downloadsData ?? []} dict={dict} />
 
-      <h2 className="font-heading text-lg text-gold-light">
+      <h2 id="kurzabstimmungen" className="scroll-mt-6 font-heading text-lg text-gold-light">
         {dict.quickPoll.admin.title}
       </h2>
       <p className="-mt-6 text-sm text-slate-400">{dict.quickPoll.admin.hint}</p>
@@ -140,7 +175,7 @@ export default async function AdminPage() {
         dict={dict}
       />
 
-      <h2 className="font-heading text-lg text-gold-light">
+      <h2 id="logo" className="scroll-mt-6 font-heading text-lg text-gold-light">
         {dict.admin.logo.title}
       </h2>
       <LogoSettings settings={await getSiteSettings()} dict={dict} />

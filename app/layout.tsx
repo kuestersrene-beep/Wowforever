@@ -5,9 +5,9 @@ import { getLocale } from "@/lib/i18n";
 import { loadDictionary } from "@/lib/content";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { BrandingProvider } from "@/lib/branding";
-import { getIconUrl, getSiteSettings } from "@/lib/siteSettings";
+import { getSiteSettings } from "@/lib/siteSettings";
 import SiteHeader from "@/components/SiteHeader";
-import { GUILD_NAME } from "@/lib/guild";
+import { GUILD_CREST, GUILD_NAME } from "@/lib/guild";
 
 // Lokal statt next/font/google: next/font/google lädt die Dateien zur
 // Build-Zeit von Google herunter - schlägt der Docker-Build-Container
@@ -31,14 +31,13 @@ const inter = localFont({
   display: "swap",
 });
 
-// Eigenes Logo (bevorzugt das quadratische Countdown-Logo, siehe
-// getIconUrl) auch als Browser-Tab-Icon.
+// Das Gildenwappen als Browser-Tab-Icon (das im Admin-Bereich gesetzte
+// Countdown-Logo ist das WoW-Forever-Logo und passt dafür nicht mehr).
 export async function generateMetadata(): Promise<Metadata> {
-  const iconUrl = await getIconUrl();
   return {
     title: `${GUILD_NAME} · WoW Forever`,
     description: `${GUILD_NAME} – Horde-Gilde auf World of Warcraft Forever (PvP-EU)`,
-    ...(iconUrl ? { icons: { icon: iconUrl, apple: iconUrl } } : {}),
+    icons: { icon: GUILD_CREST, apple: GUILD_CREST },
   };
 }
 
