@@ -49,9 +49,9 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
           <span className="font-heading text-base font-bold tracking-[0.08em] sm:text-xl">{GUILD_NAME.toUpperCase()}</span>
         </Link>
 
-        {/* Auf schmalen Bildschirmen rutscht die Navigation in eine eigene
+        {/* Unter 1280 px rutscht die Navigation in eine eigene
             Zeile, Login/Profil bleiben oben rechts in der Ecke. */}
-        <div className="order-last w-full min-w-0 lg:order-none lg:w-auto lg:flex-1">
+        <div className="order-last w-full min-w-0 xl:order-none xl:w-auto xl:flex-1">
           <NavLinks items={items} label={t.mainNav} />
         </div>
 
@@ -79,7 +79,8 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
               <Link
                 href="/charaktere"
                 aria-label={name}
-                className="flex items-center gap-2 rounded-full border border-line bg-panel py-1 pl-1 pr-1 text-sm text-parchment xl:pr-3"
+                title={name}
+                className="flex items-center gap-2 rounded-full border border-line bg-panel p-1 text-sm text-parchment"
               >
                 {avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -89,7 +90,6 @@ export default async function SiteHeader({ dict }: { dict: Dictionary }) {
                     {name.slice(0, 1).toUpperCase()}
                   </span>
                 )}
-                <span className="hidden max-w-[9rem] truncate xl:inline">{name}</span>
               </Link>
               <LogoutButton />
             </div>
