@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 // Discord schickt den Nutzer nach dem Login hierher zurück, im Query-
@@ -7,11 +8,15 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  // Zurück dorthin, wo der Login gestartet wurde (siehe LoginButton), sonst
-  // in die Gildenhalle. Nur eigene Pfade - "//andere-seite.de" oder volle
+  // Zurück dorthin, wo der Login gestartet wurde - das merkt sich LoginButton
+  // im Cookie "login_next" (nicht in der Adresse: Supabase akzeptiert nur
+  // Rücksprung-Adressen, die genau in seiner Erlaubt-Liste stehen). Sonst in
+  // die Gildenhalle. Nur eigene Pfade - "//andere-seite.de" oder volle
   // Adressen würden sonst auf fremde Seiten weiterleiten.
-  const requested = searchParams.get("next") ?? "/";
+  const cookieStore = await cookies();
+  const requested = decodeURIComponent(cookieStore.get("login_next")?.value ?? "/");
   const next = requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+  cookieStore.delete("login_next");
 
   // Hinter einem Reverse-Proxy (nginx) baut Next.js die eigene Adresse
   // manchmal falsch aus der internen Bind-Adresse zusammen, statt aus der

@@ -7,12 +7,14 @@ import { useI18n } from "@/lib/i18n/LocaleProvider";
 export default function LoginButton({ compact = false, label }: { compact?: boolean; label?: string }) {
   const { dict } = useI18n();
   const handleLogin = async () => {
+    // Nach dem Login zurück auf die aktuelle Seite (liest app/auth/callback/route.ts), 10 Minuten gültig
+    document.cookie = `login_next=${encodeURIComponent(window.location.pathname)}; path=/; max-age=600; SameSite=Lax`;
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
-        // Nach dem Login zurück auf die aktuelle Seite
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
+        // Genau diese Adresse muss in Supabase unter "Redirect URLs" stehen.
+        redirectTo: `${window.location.origin}/auth/callback`,
         scopes: "identify",
       },
     });
