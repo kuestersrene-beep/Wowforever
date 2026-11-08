@@ -53,7 +53,7 @@ export interface ScanSource {
 export const SCAN_SOURCES: readonly ScanSource[] = [
   { tier: "S", addon: "AuctionDB (AHDB von MooreaTV)", file: "AuctionDB.lua", marker: "AuctionDB",
     prices: "ja", quantity: "ja", intraday: "ja", history: "7 Tage jeder Scan, dazu 180 Tage Tageswerte",
-    note: "Scannt beim Öffnen des Auktionshauses automatisch das ganze AH (höchstens alle 15 Minuten), mit Tiefstpreis, Median und Menge. Damit funktioniert alles.",
+    note: "Scannt beim Öffnen des Auktionshauses automatisch das ganze AH (höchstens alle 15 Minuten), mit Tiefstpreis, Median und Menge. Damit funktioniert alles. Mit der Option „Record full scans“ speichert es zusätzlich jede einzelne Auktion der letzten 3 Scans: Daraus misst das Tool, was wirklich gekauft wird (Verkäufe pro Tag, gezahlte Preise). Die Datei wird dann 10–25 MB groß.",
     url: "https://github.com/mooreatv/AuctionDB/releases" },
   { tier: "A", addon: "Tradeskills", file: "Blackthornes_TS.lua", marker: "BlackthornesTSDB",
     prices: "ja", quantity: "ja", intraday: "ja", history: "die letzten 12 Messungen je Item",
@@ -65,7 +65,7 @@ export const SCAN_SOURCES: readonly ScanSource[] = [
     prices: "ja", quantity: "nein", intraday: "nein", history: "ein Wert pro Tag (bis 11 Tage)",
     note: "Tagestiefstpreis ohne Mengen: nur Preise und Trends." },
 ];
-export const SCAN_FILE_MAX_BYTES = 9 * 1024 * 1024; // bodySizeLimit in next.config.ts ist 10 MB
+export const SCAN_FILE_MAX_BYTES = 40 * 1024 * 1024; // AuctionDB mit Rohscans: ~13 MB bei 250.000 Auktionen; bodySizeLimit in next.config.ts ist 45 MB
 export const SCAN_UPLOADS_PER_DAY = 24;
 // Das Modell (dashboard-teilen.html) liegt hier; der Worker baut daraus
 // mit den Live-Daten <ruleset>/dashboard.html.

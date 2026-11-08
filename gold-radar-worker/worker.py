@@ -20,7 +20,11 @@ Loop (every INTERVAL_SECONDS):
    classicann:eu:Spineshatter:Horde; if its auction house is not in the API the worker looks for a Classic realm
    that is) feeds the Demo button instead of TSM when available. Snapshots live only on the
    server (blizzard-*.db, last BLIZZARD_KEEP_DAYS days), not in Supabase; status/blizzard.json tells the admin page.
-6. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
+6. Recorded full scans in uploaded AuctionDB files (every single auction, tool/ah/rawscan.py): kept on the server
+   only (raw-<ruleset>.db, not in Supabase; single auctions 4 days, depth 30 days), consecutive scans of any
+   members within 12 hours measure what was bought per day and at which prices. A withdrawn upload takes its scans
+   (and what was measured from them) along, unless another upload brought the same scan.
+7. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
 
@@ -33,7 +37,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
-import dashboard, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
+import dashboard, rawscan, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
 import blizzard  # noqa: E402
 from snapshot import SCHEMA  # noqa: E402
 
@@ -116,6 +120,18 @@ def local(ruleset, suffix=''):
     os.makedirs(DATA_DIR, exist_ok=True)
     con = sqlite3.connect(os.path.join(DATA_DIR, f'{ruleset}.db{suffix}'))
     con.executescript(SCHEMA)
+    if not suffix:  # the measured sales (raw-<ruleset>.db) for the analysis; its tables are not in the main schema
+        raw_db(ruleset).close()
+        con.execute('ATTACH DATABASE ? AS raw', (os.path.join(DATA_DIR, f'raw-{ruleset}.db'),))
+    return con
+
+
+def raw_db(ruleset):
+    """Recorded full scans of the members' AuctionDB files: survives a resync, as it is not in Supabase."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    con = sqlite3.connect(os.path.join(DATA_DIR, f'raw-{ruleset}.db'))
+    con.executescript(rawscan.SCHEMA)
+    con.execute('CREATE TABLE IF NOT EXISTS raw_owner (realm TEXT, ts INTEGER, upload_id TEXT, PRIMARY KEY (realm, ts, upload_id))')
     return con
 
 
@@ -209,7 +225,7 @@ def store(table, rows, conflict):
              prefer='resolution=ignore-duplicates,return=minimal')
 
 
-def process(u, con):
+def process(u, con, rawcon=None):
     raw = storage_get(u['file_path'])
     if raw is None:
         raise ValueError('Datei nicht im Speicher gefunden')
@@ -217,11 +233,39 @@ def process(u, con):
     store('gold_radar_scans', scans, 'ruleset,item_id,seen')
     store('gold_radar_history', history, 'ruleset,item_id,t')
     put_local(con, u['ruleset'], scans, history)
+    full = raw_put(rawcon, u, raw) if rawcon is not None else ''
     rest('PATCH', 'gold_radar_uploads', f'id=eq.{u["id"]}',
-         {'status': 'done', 'items': len(scans), 'realms': realms, 'message': None, 'processed_at': now_iso()},
-         prefer='return=minimal')
+         {'status': 'done', 'items': len(scans), 'realms': realms + ([full] if full else []), 'message': None,
+          'processed_at': now_iso()}, prefer='return=minimal')
     log.info('Upload %s (%s): %d Preise, %d Verlaufspunkte, Quellen %s', u['id'], u.get('display_name'),
-             len(scans), len(history), ', '.join(realms))
+             len(scans), len(history), ', '.join(realms + ([full] if full else [])))
+
+
+def raw_put(rawcon, u, raw):
+    """The single auctions of an AuctionDB file's recorded full scans (option "Record full scans"), if any; a broken
+    or odd part never fails the upload, its prices are in already. Returns a note for the upload's sources."""
+    if not raw.lstrip()[:40].startswith(b'AuctionDB') or b'["dataFormatVersion"]' not in raw:
+        return ''
+    try:
+        added, pairs, stamps = rawscan.ingest(rawcon, raw, u['ruleset'], faction_of(u['ruleset']))
+        rawcon.executemany('INSERT OR IGNORE INTO raw_owner VALUES (?,?,?)', [(u['ruleset'], t, u['id']) for t in stamps])
+        rawcon.commit()
+    except Exception as e:
+        log.warning('Upload %s: Rohscans nicht gelesen: %s', u['id'], e)
+        return ''
+    log.info('Upload %s: %d Rohscans (%d neu), %d Scan-Paare mit Verkäufen gemessen', u['id'], len(stamps), added, pairs)
+    return f'AuctionDB-Rohscans ({len(stamps)} Scans, einzelne Auktionen)' if stamps else ''
+
+
+def raw_revoke(rawcon, u):
+    """Removes the full scans only this upload brought, with the sales measured from them."""
+    stamps = [t for t, in rawcon.execute('SELECT ts FROM raw_owner WHERE realm=? AND upload_id=?', (u['ruleset'], u['id']))]
+    rawcon.execute('DELETE FROM raw_owner WHERE upload_id=?', (u['id'],))
+    orphans = [t for t in stamps if not rawcon.execute('SELECT 1 FROM raw_owner WHERE realm=? AND ts=?', (u['ruleset'], t)).fetchone()]
+    rawscan.drop_scans(rawcon, u['ruleset'], orphans)
+    rawcon.commit()
+    if orphans:
+        log.info('Upload %s: %d Rohscans entfernt', u['id'], len(orphans))
 
 
 def revoke(u):
@@ -297,6 +341,7 @@ def main():
     except (OSError, ValueError):
         state = {}
     cons = {}
+    raws = {r: raw_db(r) for r in RULESETS}
     while True:  # without the tables nothing works: wait for the schema instead of crashing in a loop
         try:
             for r in RULESETS:
@@ -321,7 +366,7 @@ def main():
                 if u['ruleset'] not in RULESETS:
                     continue
                 try:
-                    process(u, cons[u['ruleset']])
+                    process(u, cons[u['ruleset']], raws[u['ruleset']])
                     dirty.add(u['ruleset'])
                 except Exception as e:  # a broken file must not stop the others
                     log.warning('Upload %s fehlgeschlagen: %s', u['id'], e)
@@ -329,6 +374,8 @@ def main():
                          {'status': 'error', 'message': str(e)[:200], 'processed_at': now_iso()}, prefer='return=minimal')
             revoked = set()
             for u in rest('GET', 'gold_radar_uploads', 'status=eq.revoke&limit=50') or []:
+                if u['ruleset'] in raws:
+                    raw_revoke(raws[u['ruleset']], u)
                 revoke(u)
                 revoked.add(u['ruleset'])
             for r in revoked & set(RULESETS):

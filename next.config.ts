@@ -5,9 +5,10 @@ const nextConfig: NextConfig = {
   // Das brauchen wir für das schlanke Docker-Image (siehe Dockerfile).
   output: "standalone",
   experimental: {
-    // Gold-Radar-Upload (app/admin/gold-radar): die Tool-Datei ist ~2 MB,
+    // Gold-Radar-Uploads: die Tool-Datei ist ~2 MB, eine AuctionDB.lua mit
+    // Rohscans (einzelne Auktionen) 10-25 MB (SCAN_FILE_MAX_BYTES 40 MB).
     // Server Actions erlauben standardmäßig nur 1 MB.
-    serverActions: { bodySizeLimit: "10mb" },
+    serverActions: { bodySizeLimit: "45mb" },
   },
   images: {
     remotePatterns: [

@@ -12,7 +12,7 @@ from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import scanfiles
+import scanfiles, rawscan
 
 DEFAULT_WOW = r'C:\Program Files (x86)\World of Warcraft\_forever_'
 SV_NAMES = ('AuctionDB.lua', 'Auctionator.lua', 'aux-addon.lua', 'Blackthornes_TS.lua')
@@ -73,6 +73,25 @@ def ingest(con, path, sha1):
     return len(p.scans), len(p.history), p.sources
 
 
+def raw_backfill(con, paths):
+    """AuctionDB's recorded full scans (single auctions, ah/rawscan.py) from every archived file not read yet."""
+    realm, faction = house()
+    con.execute('CREATE TABLE IF NOT EXISTS raw_files (file TEXT PRIMARY KEY)')
+    done = {f for f, in con.execute('SELECT file FROM raw_files')}
+    scans = pairs = 0
+    for path in paths:
+        name = os.path.basename(path)
+        if name in done:
+            continue
+        raw = open(path, 'rb').read()
+        if raw[:200].lstrip().startswith(b'AuctionDB') and b'["dataFormatVersion"]' in raw:
+            s, p, _ = rawscan.ingest(con, raw, realm, faction)
+            scans, pairs = scans + s, pairs + p
+        con.execute('INSERT OR IGNORE INTO raw_files VALUES (?)', (name,))
+        con.commit()
+    return scans, pairs
+
+
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
     ap = argparse.ArgumentParser()
@@ -97,6 +116,9 @@ def main():
             print(f'{os.path.basename(f)}: {e}')
             continue
         print(f'{os.path.basename(copy or f)}: {n} Preise, {h} Verlaufspunkte übernommen ({", ".join(sources)})')
+    s, p = raw_backfill(con, sorted(glob.glob(os.path.join(SNAP_DIR, '*.lua'))) + ([a.file] if a.file else []))
+    if s or p:
+        print(f'Rohscans (einzelne Auktionen): {s} neue Scans, {p} neue Scan-Paare mit Verkäufen gemessen (python ah/rawscan.py)')
     total = con.execute('SELECT COUNT(*), COUNT(DISTINCT item_id), COUNT(DISTINCT seen) FROM scans').fetchone()
     print(f'ah.db: {total[0]} Messungen, {total[1]} Items, {total[2]} Scan-Zeitpunkte')
 

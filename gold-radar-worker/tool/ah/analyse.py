@@ -67,6 +67,11 @@ def analyse(con, realm, cfg, now):
             '(SELECT MAX(t) FROM tsm u WHERE u.realm=t.realm AND u.item_id=t.item_id)', (realm,))}
     except sqlite3.OperationalError:
         tsm = {}
+    try:  # sales measured from AuctionDB's recorded full scans (ah/rawscan.py): single auctions bought between scans
+        import rawscan
+        measured, depth = rawscan.sold_per_day(con, realm, now), rawscan.latest_depth(con, realm)
+    except ImportError:
+        measured, depth = {}, {}
     rows = {}
     for item, ser in series.items():
         last = ser[-1]
@@ -98,6 +103,12 @@ def analyse(con, realm, cfg, now):
         r['tsm_sold'] = r['tsm']['sold'] if r['tsm'] else None
         if r['tsm_sold'] is not None and (r['gone_per_day'] is None or cfg.get('tsm_abverkauf_vorrang')):
             r['gone_per_day'] = r['tsm_sold']
+        # measured sales beat both: the proxy misses every sale that new listings hide, TSM is another game's data
+        r['sold_raw'], r['depth'] = measured.get(item), depth.get(item)
+        if r['sold_raw']:
+            r['gone_per_day'] = r['sold_raw']['per_day']
+        elif measured and r['depth']:   # measured intervals, listed, but nothing of it bought
+            r['gone_per_day'] = 0.0
         rows[item] = r
 
     def price_of(i):
@@ -152,7 +163,13 @@ def analyse(con, realm, cfg, now):
         if r['median7'] and r['price'] > 2 * r['median7'] and (r['q_d1'] or 0) > 0:
             sig['heiss'].append(r)
         # squeeze: the market sells more per day than is listed, the rest is about to be bought out
-        if r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss']:
+        # with measured sales: bought faster than restocked (new listings include reposts, so they overstate the
+        # supply), the listed quantity fell by a fifth in a day, and what is left lasts less than half a day
+        m = r['sold_raw']
+        if m and r['qty'] and r not in sig['heiss']:
+            if m['per_day'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000:
+                sig['squeeze'].append(r)
+        elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss']:
             sig['squeeze'].append(r)
         # worth the trip only from 20s total profit on
         if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
@@ -189,7 +206,8 @@ def todo_items(rows, crafts, sig, cfg):
         crate = r['crate']
         acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], qty=r['qty'], limit=round((r['median7'] or r['price']) * 1.25),
                          limit_label='Kaufen bis',
-                         why=f"Leerkauf droht: ca. {r['gone_per_day']:.0f} Stück/Tag verkauft, nur {r['qty']} im AH"
+                         why=f"Leerkauf droht: ca. {r['gone_per_day']:.0f} Stück/Tag {'gekauft (gemessen)' if r['sold_raw'] else 'verkauft'}, nur {r['qty']} im AH"
+                             + (f", Nachschub ca. {r['sold_raw']['new']:.0f}/Tag" if r['sold_raw'] else '')
                              + (f"; steckt in Merchant's-Favor-Crates ({crate})" if crate else '') + '. Restbestand abgreifen, teurer neu einstellen'))
     for r in sig['heiss'][:2]:
         acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(r['median7'] * 1.5), limit_label='Mindestens',

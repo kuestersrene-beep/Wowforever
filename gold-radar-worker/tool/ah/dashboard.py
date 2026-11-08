@@ -266,6 +266,13 @@ def pack(live, cfg, wanted, fills):
             rows[str(iid)] = dict(lp=lr['price'], lq=lr['qty'], sell=lr['sell'], med7=lr['median7'],
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
                                   spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'))
+            m, dp = lr.get('sold_raw'), lr.get('depth')
+            if m:   # measured from single auctions (ah/rawscan.py): bought per day, at which prices, restock
+                rows[str(iid)]['sd'] = dict(d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1),
+                                            avg=round(m['avg']) if m['avg'] else None, top=m['top'], new=round(m['new'], 1), h=round(m['hours'], 1))
+            if dp:  # depth of the newest full scan: units near the cheapest one, fresh listings
+                rows[str(iid)]['dp'] = dict(u=dp['units'], a=dp['auctions'], u110=dp['u110'], u125=dp['u125'], u150=dp['u150'],
+                                            c150=dp['cost150'], fr=dp['fresh'], sh=dp['short'])
     return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
                 qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,

@@ -12,8 +12,9 @@ server {
     listen [::]:80;
     server_name DEINE-ID.duckdns.org;
 
-    # Uploads bis 10 MB (Gold-Radar-Datei ~2 MB, nginx-Standard ist 1 MB).
-    client_max_body_size 10m;
+    # Uploads bis 50 MB (Gold-Radar-Datei ~2 MB, AuctionDB.lua mit Rohscans
+    # 10-25 MB, nginx-Standard ist 1 MB).
+    client_max_body_size 50m;
 
     location / {
         proxy_pass http://127.0.0.1:3001;

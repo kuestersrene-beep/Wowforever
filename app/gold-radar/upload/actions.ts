@@ -40,7 +40,7 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
     return { ok: false, message: "Keine Datei ausgewählt." };
   }
   if (file.size > SCAN_FILE_MAX_BYTES) {
-    return { ok: false, message: "Datei ist zu groß (max. 9 MB)." };
+    return { ok: false, message: `Datei ist zu groß (max. ${Math.round(SCAN_FILE_MAX_BYTES / 1_048_576)} MB).` };
   }
   // Byte für Byte speichern: Auctionator legt Binärdaten (CBOR) in Lua-Strings ab,
   // die eine Umwandlung in UTF-8-Text zerstören würde.
