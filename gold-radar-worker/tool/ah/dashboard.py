@@ -40,8 +40,42 @@ def analysed(con, realm, cfg, now):
                        ('vendor', 'Vendor-Flip')):
         for r in sig[key]:
             flags.setdefault(r['item'], []).append(label)
+    try:  # order book and market value line from the recorded full scans (ah/rawscan.py), if there are any
+        import rawscan
+        book, book_ts = rawscan.ladder(con, realm)
+        mv = rawscan.market_series(con, realm, now)
+    except Exception as e:
+        print(f'Rohscans: Orderbuch nicht gebaut ({e})')
+        book, book_ts, mv = {}, None, {}
     return dict(realm=realm, now=now, days=days, n_scans=n_scans, rows=rows, crafts=crafts, flags=flags,
-                todo=analyse.todo_items(rows, crafts, sig, cfg))
+                todo=analyse.todo_items(rows, crafts, sig, cfg), book=book, book_ts=book_ts, mv=mv, best=bestsellers(con, rows))
+
+
+# item classes as AuctionDB stores them (classic class ids) -> the page's category filter
+CLASS_DE = {0: 'Verbrauchbar', 1: 'Behälter', 2: 'Waffe', 3: 'Edelstein', 4: 'Rüstung', 5: 'Reagenz', 6: 'Projektil',
+            7: 'Handwerkswaren', 9: 'Rezept', 11: 'Köcher', 12: 'Quest', 13: 'Schlüssel', 15: 'Verschiedenes'}
+
+
+def bestsellers(con, rows):
+    """Every item with sales measured from the recorded full scans (ah/rawscan.py), any item, not only the model's:
+    bought per day, gold per day at the average paid price, restock, how long the listed stock lasts."""
+    try:
+        meta = {i: (n, c) for i, n, c in con.execute('SELECT item_id, name, class FROM item_meta')}
+    except sqlite3.OperationalError:
+        meta = {}
+    out = []
+    for iid, r in rows.items():
+        m, dp = r.get('sold_raw'), r.get('depth') or {}
+        if not m or not m.get('avg') or m['per_day'] < 0.5:
+            continue
+        name, cls = meta.get(iid, (None, None))
+        units = dp.get('units', r.get('qty'))
+        out.append(dict(id=iid, name=name or r['name'], en=r['name'], cat=CLASS_DE.get(cls, 'ohne Angabe'),
+                        d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1), avg=round(m['avg']), top=m['top'],
+                        new=round(m['new'], 1), gold=round(m['per_day'] * m['avg']), u=units, lp=r['price'], h=round(m['hours'], 1),
+                        reach=round(24 * units / m['per_day'], 1) if units is not None and m['per_day'] else None))
+    out.sort(key=lambda b: -b['gold'])
+    return out
 
 
 def live_data(cfg):
@@ -260,6 +294,18 @@ def pack(live, cfg, wanted, fills):
     """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows."""
     if not live:
         return None
+    best = [dict(b) for b in (live.get('best') or [])[:400]]
+    for b in best:   # items outside the model page: their own chart, order book and market value for the detail view
+        if str(b['id']) in wanted:
+            continue
+        lr = live['rows'].get(b['id']) or {}
+        if lr.get('series'):
+            b['spark'] = [[p[0], p[1], p[3]] for p in thin(lr['series'])]
+        b['med7'], b['sell'] = lr.get('median7'), lr.get('sell')
+        if live.get('book', {}).get(b['id']):
+            b['ob'] = live['book'][b['id']][:60]
+        if live.get('mv', {}).get(b['id']):
+            b['mv'] = live['mv'][b['id']]
     rows = {}
     for iid, lr in live['rows'].items():
         if str(iid) in wanted:
@@ -270,12 +316,17 @@ def pack(live, cfg, wanted, fills):
             if m:   # measured from single auctions (ah/rawscan.py): bought per day, at which prices, restock
                 rows[str(iid)]['sd'] = dict(d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1),
                                             avg=round(m['avg']) if m['avg'] else None, top=m['top'], new=round(m['new'], 1), h=round(m['hours'], 1))
+            if live.get('book', {}).get(iid):   # order book of the newest full scan: [unit price, units, auctions]
+                rows[str(iid)]['ob'] = live['book'][iid]
+            if live.get('mv', {}).get(iid):     # market value (median of what is listed) per full scan
+                rows[str(iid)]['mv'] = live['mv'][iid]
             if dp:  # depth of the newest full scan: units near the cheapest one, fresh listings
                 rows[str(iid)]['dp'] = dict(u=dp['units'], a=dp['auctions'], u110=dp['u110'], u125=dp['u125'], u150=dp['u150'],
                                             c150=dp['cost150'], fr=dp['fresh'], sh=dp['short'])
     return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
-                qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
-                flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
+                qsim=bool(live.get('qty_simulated')), days=live['days'], ob_at=live.get('book_ts'), n_scans=live['n_scans'], todo=live['todo'],
+                flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows, best=best,
+                best_h=best[0]['h'] if best else None,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
                              margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 

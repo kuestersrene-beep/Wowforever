@@ -28,7 +28,7 @@ lower estimate leaves them out.
     python ah/rawscan.py              sales of the last 3 days from ah.db (after ah/snapshot.py)
     python ah/rawscan.py --top 60
 """
-import argparse, json, os, re, sqlite3, sys, time
+import argparse, json, math, os, re, sqlite3, sys, time
 from collections import defaultdict
 from datetime import datetime
 
@@ -230,7 +230,11 @@ def ingest(con, raw, realm, faction):
     scans, meta = read(raw, faction)
     scans = [s for s in scans if s['ts'] <= time.time() + 2 * 3600]
     if meta:
-        con.executemany('INSERT OR REPLACE INTO item_meta VALUES (?,?,?,?,?,?,?,?)',
+        # a file whose client had not loaded an item's info yet keeps what an earlier file knew
+        con.executemany('INSERT INTO item_meta VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(item_id) DO UPDATE SET '
+                        'name=coalesce(excluded.name, name), sell=coalesce(excluded.sell, sell), stack=coalesce(excluded.stack, stack), '
+                        'class=coalesce(excluded.class, class), subclass=coalesce(excluded.subclass, subclass), '
+                        'rarity=coalesce(excluded.rarity, rarity), min_level=coalesce(excluded.min_level, min_level)',
                         [(i, m.get('name'), m.get('sell'), m.get('stack'), m.get('class'), m.get('subclass'), m.get('rarity'),
                           m.get('min_level')) for i, m in meta.items()])
     added = 0
@@ -329,6 +333,52 @@ def latest_depth(con, realm):
                                      'FROM depth d WHERE realm=? AND ts=(SELECT MAX(ts) FROM raw_scans WHERE realm=?)', (realm, realm))}
     except sqlite3.OperationalError:
         return {}
+
+
+def ladder(con, realm, levels=40):
+    """(item -> [[unit price, units, auctions], ...] cheapest first, scan time) of the newest full scan: the order
+    book a buyer walks up. Far-off fantasy prices (above 8x the cheapest, after the first 5 steps) are left out;
+    more than `levels` price steps are merged into 2 % bands (price = the band's highest unit price)."""
+    try:
+        ts = con.execute('SELECT MAX(ts) FROM raw_scans WHERE realm=?', (realm,)).fetchone()[0]
+        rows = con.execute('SELECT item_id, data FROM listings WHERE realm=? AND ts=?', (realm, ts)).fetchall() if ts else []
+    except sqlite3.OperationalError:
+        return {}, None
+    out = {}
+    for i, d in rows:
+        lv = defaultdict(lambda: [0, 0])
+        for a in decode(d):
+            if a[4]:
+                u = unit(a)
+                lv[u][0] += a[2]
+                lv[u][1] += 1
+        steps = sorted([u, q, n] for u, (q, n) in lv.items())
+        if not steps:
+            continue
+        lo = steps[0][0]
+        steps = [x for k, x in enumerate(steps) if k < 5 or x[0] <= 8 * lo]
+        if len(steps) > levels:   # many 1c steps (mass goods): 2 % price bands, each shown at its highest price
+            bands = {}
+            for u, q, n in steps:
+                k = int(math.log(u / lo) / math.log(1.02)) if u > lo else 0
+                b = bands.setdefault(k, [u, 0, 0])
+                b[0], b[1], b[2] = max(b[0], u), b[1] + q, b[2] + n
+            steps = [bands[k] for k in sorted(bands)]
+        out[i] = steps[:3 * levels]
+    return out, ts
+
+
+def market_series(con, realm, now, days=30):
+    """item -> [[ts, median unit buyout]] per full scan: the quantity weighted median of what is listed (AuctionDB's
+    market value), for the chart's market value line."""
+    out = defaultdict(list)
+    try:
+        for i, ts, med in con.execute('SELECT item_id, ts, median FROM depth WHERE realm=? AND ts > ? AND median > 0 ORDER BY ts',
+                                      (realm, now - days * D)):
+            out[i].append([ts, med])
+    except sqlite3.OperationalError:
+        return {}
+    return dict(out)
 
 
 def main():
