@@ -168,42 +168,79 @@ def simulate_quantities(con, realm, snaps):
 def flips(live, cfg):
     """AH flip score from live scans (any item, mass goods included, vendor goods excluded):
     (profit per day)^0.35 x margin x safety near the vendor floor x confidence.
-    profit per day = (target after fee - price) x units the market absorbs per day (observed sell-through, capped by
-    what is listed). Target = 7-day median. Confidence damps thin markets so one listing cannot fake a price."""
-    fee = cfg.get('ah_gebuehr', 0.05)
+    Target = the lowest of: median of the last 24 h, 7-day median, average price actually paid (measured raw scans).
+    On a young realm the 7-day median still holds the launch prices; a price that stood unchanged with an unchanged
+    quantity over several scans (one seller nobody buys from) counts once. Markets whose 24-h median is clearly below
+    the day(s) before are falling, not dipping, and are left out (vendor-floor buys excepted).
+    profit per day = (target after fee - price) x units you can flip per day: a share of the measured sales
+    (flip_marktanteil), at most what is listed up to the buy limit."""
+    D, fee = analyse.D, cfg.get('ah_gebuehr', 0.05)
     min_unit, min_day = cfg.get('flip_min_gewinn_stueck', 20), cfg.get('flip_min_gewinn_tag', 2000)
+    share, fall = cfg.get('flip_marktanteil', 0.15), cfg.get('flip_trend_grenze', 0.85)
     vendor_goods = set(load('vendor_items.json'))
     vendor_ids = {int(k) for k in cfg['vendor_kosten'] if not k.startswith('_')}
     out = []
     for iid, r in live['rows'].items():
         if iid in vendor_ids or r['name'] in vendor_goods:
             continue
-        price, target, vendor, qty = r['price'], r['median7'] or r['market'], r['sell'], r['qty'] or 0
+        price, vendor, qty = r['price'], r['sell'], r['qty'] or 0
         if not qty and r.get('tsm_sold'):  # no AH quantity (TSM data): about two days of sales
             qty = max(1, round(2 * r['tsm_sold']))
-        if not price or not target or not qty:
+        if not price or not qty:
             continue
+        # reference points: readings with at least 5 listed; repeats of the same price and quantity count once
+        pts = [p for p in r['series'] if p[1] and (p[3] or 0) >= 5] or [p for p in r['series'] if p[1]]
+        pts = [p for k, p in enumerate(pts) if k == 0 or (p[1], p[3]) != (pts[k - 1][1], pts[k - 1][3])]
+        last = r['seen']
+        day = [p[1] for p in pts if p[0] > last - D]
+        before = [p[1] for p in pts if last - 3 * D <= p[0] <= last - D]
+        ref24 = statistics.median(day) if len(day) >= 3 else None
+        trend = ref24 / statistics.median(before) if ref24 and before else None
+        paid = (r.get('sold_raw') or {}).get('avg')
+        cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
+                                         (paid, 'Ø bezahlt')) if v]
+        if not cands:
+            continue
+        target, target_src = min(cands)
         net = target * (1 - fee)
         below_vendor = bool(vendor) and price < vendor * 0.95
+        falling = trend is not None and trend < fall
+        if falling and not below_vendor:
+            continue
         unit = max(net - price, (vendor - price) if below_vendor else 0)
         margin = (price + unit) / price
-        liq = r['gone_per_day'] if r['gone_per_day'] is not None else 0.2 * qty
-        per_day = unit * min(max(liq, 1), qty)
+        buy_max = (price + unit) / 1.15 if below_vendor and unit > net - price else net / 1.15
+        # units you can buy up to the limit (order book of the newest full scan), else everything listed
+        d = r.get('depth')
+        if d and d.get('min'):
+            lim = buy_max / d['min']
+            buyable = 0 if lim < 1 else d['u110'] if lim < 1.25 else d['u125'] if lim < 1.5 else d['u150']
+        else:
+            buyable = qty
+        liq = r['gone_per_day']
+        # measured sales: your share of them; measured but nothing bought: no flip; unknown: 1 a day
+        units = min(share * liq if liq else (1 if liq is None else 0), buyable or 0)
+        per_day = unit * units
         if unit < min_unit or per_day < min_day or (margin < 1.15 and not below_vendor):
             continue
         floor = price / vendor if vendor else None          # 1.0 = price equals what the vendor pays
         safety = 3.0 if below_vendor else (1.0 + 2.0 * max(0.0, (1.3 - floor) / 1.3) if floor else 1.0)
-        points = len([p for p in r['series'] if p[1]])
-        conf = min(1.0, qty / 20) * min(1.0, points / 4)
+        points = len(day) + len(before)
+        conf = min(1.0, qty / 20) * min(1.0, points / 4) * (1.0 if trend is not None else 0.6)
         score = (per_day ** cfg.get('flip_exponent', 0.35)) * margin * safety * conf
         note = []
         if qty < 10:
             note.append('dünner Markt')
         if points < 4:
             note.append('wenig Messpunkte')
-        out.append(dict(id=iid, name=r['name'], price=price, target=target, margin=margin, vendor=vendor, floor=floor,
-                        qty=qty, liq=r['gone_per_day'], unit=unit, per_day=per_day, conf=conf, score=score,
-                        below_vendor=below_vendor, buy_max=net / 1.15, note=', '.join(note)))
+        if trend is None:
+            note.append('Trend unbekannt')
+        elif falling:
+            note.append(f'Markt fällt ({round((trend - 1) * 100)} % in 24 Std.), nur wegen Händlerpreis drin')
+        out.append(dict(id=iid, name=r['name'], price=price, target=target, target_src=target_src, ref24=ref24,
+                        med7=r['median7'], paid=paid, trend=trend, margin=margin, vendor=vendor, floor=floor,
+                        qty=qty, liq=liq, units=units, unit=unit, per_day=per_day, conf=conf, score=score,
+                        below_vendor=below_vendor, buy_max=buy_max, note=', '.join(note)))
     out.sort(key=lambda x: -x['score'])
     return out[:150]
 
