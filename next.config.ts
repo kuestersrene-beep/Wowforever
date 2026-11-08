@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     // Rohscans (einzelne Auktionen) 10-25 MB (SCAN_FILE_MAX_BYTES 40 MB).
     // Server Actions erlauben standardmäßig nur 1 MB.
     serverActions: { bodySizeLimit: "45mb" },
+    // Die Middleware (Supabase-Login, läuft für jede Seite) liest den Body
+    // mit und kappt ihn ab Next 15.5 standardmäßig bei 10 MB: größere
+    // Uploads kämen abgeschnitten an und die Server Action scheitert.
+    middlewareClientMaxBodySize: "45mb",
   },
   images: {
     remotePatterns: [
