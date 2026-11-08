@@ -70,9 +70,13 @@ def bestsellers(con, rows):
             continue
         name, cls = meta.get(iid, (None, None))
         units = dp.get('units', r.get('qty'))
+        # a few dear sales (random-suffix gear shares one item id) must not set the gold per day: above 3x the
+        # cheapest listing the paid average is capped at the median of what is listed now
+        out_avg = m['avg'] > 3 * r['price']
+        gold_price = min(m['avg'], max(r['price'], dp.get('median') or 3 * r['price'])) if out_avg else m['avg']
         out.append(dict(id=iid, name=name or r['name'], en=r['name'], cat=CLASS_DE.get(cls, 'ohne Angabe'),
                         d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1), avg=round(m['avg']), top=m['top'],
-                        new=round(m['new'], 1), gold=round(m['per_day'] * m['avg']), u=units, lp=r['price'], h=round(m['hours'], 1),
+                        new=round(m['new'], 1), gold=round(m['per_day'] * gold_price), out=out_avg, u=units, lp=r['price'], h=round(m['hours'], 1),
                         reach=round(24 * units / m['per_day'], 1) if units is not None and m['per_day'] else None))
     out.sort(key=lambda b: -b['gold'])
     return out
@@ -174,7 +178,7 @@ def flips(live, cfg):
     the day(s) before are falling, not dipping, and are left out (vendor-floor buys excepted).
     profit per day = (target after fee - price) x units you can flip per day: a share of the measured sales
     (flip_marktanteil), at most what is listed up to the buy limit."""
-    D, fee = analyse.D, cfg.get('ah_gebuehr', 0.05)
+    fee = cfg.get('ah_gebuehr', 0.05)
     min_unit, min_day = cfg.get('flip_min_gewinn_stueck', 20), cfg.get('flip_min_gewinn_tag', 2000)
     share, fall = cfg.get('flip_marktanteil', 0.15), cfg.get('flip_trend_grenze', 0.85)
     vendor_goods = set(load('vendor_items.json'))
@@ -186,16 +190,9 @@ def flips(live, cfg):
         price, vendor, qty = r['price'], r['sell'], r['qty'] or 0
         if not qty and r.get('tsm_sold'):  # no AH quantity (TSM data): about two days of sales
             qty = max(1, round(2 * r['tsm_sold']))
-        if not price or not qty:
+        if not price or not qty or r.get('stale'):
             continue
-        # reference points: readings with at least 5 listed; repeats of the same price and quantity count once
-        pts = [p for p in r['series'] if p[1] and (p[3] or 0) >= 5] or [p for p in r['series'] if p[1]]
-        pts = [p for k, p in enumerate(pts) if k == 0 or (p[1], p[3]) != (pts[k - 1][1], pts[k - 1][3])]
-        last = r['seen']
-        day = [p[1] for p in pts if p[0] > last - D]
-        before = [p[1] for p in pts if last - 3 * D <= p[0] <= last - D]
-        ref24 = statistics.median(day) if len(day) >= 3 else None
-        trend = ref24 / statistics.median(before) if ref24 and before else None
+        ref24, trend, points = r['ref24'], r['trend'], r['ref_points']   # analyse.recent(): the price of the last 24 h
         paid = (r.get('sold_raw') or {}).get('avg')
         cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
                                          (paid, 'Ø bezahlt')) if v]
@@ -218,14 +215,14 @@ def flips(live, cfg):
         else:
             buyable = qty
         liq = r['gone_per_day']
-        # measured sales: your share of them; measured but nothing bought: no flip; unknown: 1 a day
-        units = min(share * liq if liq else (1 if liq is None else 0), buyable or 0)
+        # measured sales: your share of them, at least one sale a day; under one sale a day it is luck, not trade;
+        # unknown: 1 a day
+        units = min(max(share * liq, 1) if liq is not None and liq >= 1 else (1 if liq is None else 0), buyable or 0)
         per_day = unit * units
         if unit < min_unit or per_day < min_day or (margin < 1.15 and not below_vendor):
             continue
         floor = price / vendor if vendor else None          # 1.0 = price equals what the vendor pays
         safety = 3.0 if below_vendor else (1.0 + 2.0 * max(0.0, (1.3 - floor) / 1.3) if floor else 1.0)
-        points = len(day) + len(before)
         conf = min(1.0, qty / 20) * min(1.0, points / 4) * (1.0 if trend is not None else 0.6)
         score = (per_day ** cfg.get('flip_exponent', 0.35)) * margin * safety * conf
         note = []
@@ -237,7 +234,7 @@ def flips(live, cfg):
             note.append('Trend unbekannt')
         elif falling:
             note.append(f'Markt fällt ({round((trend - 1) * 100)} % in 24 Std.), nur wegen Händlerpreis drin')
-        out.append(dict(id=iid, name=r['name'], price=price, target=target, target_src=target_src, ref24=ref24,
+        out.append(dict(id=iid, name=r['name'], de=r.get('de'), price=price, target=target, target_src=target_src, ref24=ref24,
                         med7=r['median7'], paid=paid, trend=trend, margin=margin, vendor=vendor, floor=floor,
                         qty=qty, liq=liq, units=units, unit=unit, per_day=per_day, conf=conf, score=score,
                         below_vendor=below_vendor, buy_max=buy_max, note=', '.join(note)))
@@ -348,7 +345,9 @@ def pack(live, cfg, wanted, fills):
         if str(iid) in wanted:
             rows[str(iid)] = dict(lp=lr['price'], lq=lr['qty'], sell=lr['sell'], med7=lr['median7'],
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
-                                  spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'))
+                                  spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'),
+                                  st=1 if lr.get('stale') else 0, ref=round(lr['ref']) if lr.get('ref') else None,
+                                  tr=round(lr['trend'], 3) if lr.get('trend') else None)
             m, dp = lr.get('sold_raw'), lr.get('depth')
             if m:   # measured from single auctions (ah/rawscan.py): bought per day, at which prices, restock
                 rows[str(iid)]['sd'] = dict(d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1),
@@ -365,7 +364,7 @@ def pack(live, cfg, wanted, fills):
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows, best=best,
                 best_h=best[0]['h'] if best else None,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
-                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
+                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped'), spec=c.get('spec')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 
 
 def main():

@@ -5,7 +5,7 @@ are there (ah/scanfiles.py), and keeps the auction house of the faction in confi
 Run after you logged out or typed /reload (only then does the game write the files):
     python ah/snapshot.py
     python ah/snapshot.py --wow "D:\\Games\\World of Warcraft\\_forever_"
-    python ah/snapshot.py --file some/Auctionator.lua      (import one file, e.g. a test)
+    python ah/snapshot.py --file some/AuctionDB.lua      (import one file, e.g. a test)
 """
 import argparse, glob, hashlib, json, os, shutil, sqlite3, sys, time
 from datetime import datetime

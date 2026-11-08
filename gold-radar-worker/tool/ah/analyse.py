@@ -9,6 +9,8 @@ from datetime import datetime, date
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROF_DE = {'alchemy': 'Alchemie', 'blacksmithing': 'Schmiedekunst', 'enchanting': 'Verzauberkunst', 'engineering': 'Ingenieurskunst', 'leatherworking': 'Lederverarbeitung', 'tailoring': 'Schneiderei', 'cooking': 'Kochen', 'first-aid': 'Erste Hilfe'}
 DATA = os.path.join(HERE, 'data')
+# recipe items an engineer makes (Goblin or Gnomish specialisation only)
+RECIPE_ITEM = ('Recipe:', 'Pattern:', 'Plans:', 'Schematic:', 'Formula:', 'Manual:')
 H, D = 3600, 86400
 BAND_PEAK_DAYS = {'1-20': (0, 7), '20-30': (3, 14), '30-40': (7, 28), '40-50': (14, 42), '50-60': (28, 90)}
 
@@ -52,6 +54,18 @@ def at_or_before(series, t):
     return best
 
 
+def recent(ser, last):
+    """(median of the last 24 h, that median / the median of the 1-3 days before, points used): readings with at
+    least 5 listed; repeats of the same price and quantity count once, so one listing nobody buys sets no price.
+    On a young realm the 7-day median still holds the launch prices: this is the price the market pays now."""
+    pts = [p for p in ser if p[1] and (p[3] or 0) >= 5] or [p for p in ser if p[1]]
+    pts = [p for k, p in enumerate(pts) if k == 0 or (p[1], p[3]) != (pts[k - 1][1], pts[k - 1][3])]
+    day = [p[1] for p in pts if p[0] > last - D]
+    before = [p[1] for p in pts if last - 3 * D <= p[0] <= last - D]
+    ref = statistics.median(day) if len(day) >= 3 else None
+    return ref, (ref / statistics.median(before) if ref and before else None), len(day) + len(before)
+
+
 def analyse(con, realm, cfg, now):
     items = json.load(open(os.path.join(DATA, 'items.json'), encoding='utf-8'))
     watch = json.load(open(os.path.join(DATA, 'watchlist.json'), encoding='utf-8'))
@@ -72,6 +86,10 @@ def analyse(con, realm, cfg, now):
         measured, depth = rawscan.sold_per_day(con, realm, now), rawscan.latest_depth(con, realm)
     except ImportError:
         measured, depth = {}, {}
+    try:  # names as the game client shows them (AuctionDB's item DB): for items the model's lists do not know
+        meta = {i: n for i, n in con.execute('SELECT item_id, name FROM item_meta') if n}
+    except sqlite3.OperationalError:
+        meta = {}
     rows = {}
     for item, ser in series.items():
         last = ser[-1]
@@ -82,7 +100,7 @@ def analyse(con, realm, cfg, now):
         # thin markets (never 5 listed) fall back to all points
         week = [p[1] for p in ser if p[0] >= now - 7 * D and p[1] and (p[3] or 0) >= 5] \
             or [p[1] for p in ser if p[0] >= now - 7 * D and p[1]]
-        r = dict(item=item, name=items.get(str(item), {}).get('name', f'#{item}'), price=price, market=last[1],
+        r = dict(item=item, name=items.get(str(item), {}).get('name') or meta.get(item) or f'#{item}', de=meta.get(item), price=price, market=last[1],
                  # quantity: the newest reading that has one (TSM points carry none), at most a day older
                  qty=next((p[3] for p in reversed(ser) if p[3] is not None and p[0] >= last[0] - D), None), seen=last[0], median7=statistics.median(week) if week else None,
                  vol=(statistics.pstdev(week) / statistics.mean(week)) if len(week) > 2 else None,
@@ -109,11 +127,19 @@ def analyse(con, realm, cfg, now):
             r['gone_per_day'] = r['sold_raw']['per_day']
         elif measured and r['depth']:   # measured intervals, listed, but nothing of it bought
             r['gone_per_day'] = 0.0
+        r['ref24'], r['trend'], r['ref_points'] = recent(ser, last[0])
+        # conservative "what it sells for now": lowest of the 24-h median, the 7-day median and the measured paid price
+        r['ref'] = min([v for v in (r['ref24'], r['median7'], (r['sold_raw'] or {}).get('avg')) if v] or [price])
         rows[item] = r
+    # a price only counts while the item is listed: missing from the newest scan (older readings) or fewer than 3
+    # listed is no market price, so no factor, profit or tip is built on it
+    newest = max((r['seen'] for r in rows.values()), default=0)
+    for r in rows.values():
+        r['stale'] = r['seen'] < newest - 2 * H or (r['qty'] is not None and r['qty'] < 3)
 
     def price_of(i):
         r = rows.get(i)
-        if r:
+        if r and not r['stale']:
             return r['price']
         return cfg['vendor_kosten'].get(str(i))
 
@@ -123,19 +149,21 @@ def analyse(con, realm, cfg, now):
         if cfg['meine_berufe'] and rc['prof'] not in cfg['meine_berufe']:
             continue
         prod = rows.get(rc['item_id'])
-        if not prod:
+        # a product with no current listing has no price, one nobody buys (measured) brings no revenue
+        if not prod or prod['stale'] or (prod['gone_per_day'] is not None and prod['gone_per_day'] < 1):
             continue
         costs = [price_of(i) for i, _ in rc['reagents']]
         if any(c is None for c in costs):
             continue
         cost = sum(c * n for c, (_, n) in zip(costs, rc['reagents'])) / rc['count']
         avg_sale = (prod['tsm'] or {}).get('avg_sale')
-        price = min(p for p in (prod['price'], prod['median7'], avg_sale) if p)   # one fantasy listing is no revenue
+        price = min(p for p in (prod['price'], prod['ref'], avg_sale) if p)   # one fantasy listing is no revenue
         revenue = price * (1 - fee)
         if cost > 0 and (revenue - cost) / cost >= cfg['min_craft_marge']:
             crafts.append(dict(prof=rc['prof'], item_id=rc['item_id'], name=prod['name'], cost=cost, revenue=revenue,
                                margin=(revenue - cost) / cost, profit=revenue - cost, qty=prod['qty'], learn=rc['learn'],
-                               sold=prod['gone_per_day'], capped=price < prod['price']))
+                               sold=prod['gone_per_day'], capped=price < prod['price'],
+                               spec=prod['name'].startswith(RECIPE_ITEM)))
     crafts.sort(key=lambda c: -c['profit'])
 
     days = (date.fromtimestamp(now) - date.fromisoformat(cfg['launch'])).days
@@ -153,23 +181,26 @@ def analyse(con, realm, cfg, now):
             if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
                 sig['vendor'].append(r)
             continue
-        if p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20:
+        real = not r['stale'] and (r['qty'] or 0) >= 5 and r['price'] * (r['qty'] or 0) >= 10000   # at least 1g listed
+        if real and p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20:
             sig['akku'].append(r)
         band = r['w'].get('band')
         if r['w'].get('score', 0) >= 40 and band in BAND_PEAK_DAYS:
             start = BAND_PEAK_DAYS[band][0]
-            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05):
+            end = r['w'].get('end')
+            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05) and real and (r['trend'] is None or r['trend'] >= 0.85)                     and (end is None or end >= 1) and r['price'] <= r['ref'] * 1.05:
                 sig['unter'].append(r)
-        if r['median7'] and r['price'] > 2 * r['median7'] and (r['q_d1'] or 0) > 0:
+        base = r['ref24'] or r['median7']
+        if real and base and r['price'] > 2 * base and (r['q_d1'] or 0) > 0:
             sig['heiss'].append(r)
         # squeeze: the market sells more per day than is listed, the rest is about to be bought out
         # with measured sales: bought faster than restocked (new listings include reposts, so they overstate the
         # supply), the listed quantity fell by a fifth in a day, and what is left lasts less than half a day
         m = r['sold_raw']
-        if m and r['qty'] and r not in sig['heiss']:
-            if m['per_day'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000:
+        if m and r['qty'] and r not in sig['heiss'] and not r['stale']:
+            if m['per_day'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000                     and r['qty'] * r['price'] >= 10000:
                 sig['squeeze'].append(r)
-        elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss']:
+        elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
             sig['squeeze'].append(r)
         # worth the trip only from 20s total profit on
         if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
@@ -197,26 +228,31 @@ def todo_items(rows, crafts, sig, cfg):
         acts.append(dict(kind='haendler', id=r['item'], name=r['name'], qty=r['qty'], limit=round(r['sell'] * 0.95),
                          limit_label='Kaufen bis', why=f"Buyout {money(r['price'])} < Händlerpreis {money(r['sell'])}"))
     for r in sorted(sig['unter'], key=lambda r: -r['w']['score'])[:3]:
-        acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], limit=round((r['median7'] or r['price']) * 1.05), limit_label='Kaufen bis',
-                         why=f"Die Spieler für Levelband {r['w']['band']} kommen erst noch, der Preis ist noch nicht gestiegen" + (f" ({fmt_pct(r['p_d3'])} in 3 Tagen)" if r['p_d3'] is not None else '')))
+        acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], limit=round(r['ref'] * 1.05), limit_label='Kaufen bis',
+                         why=f"Die Spieler für Levelband {r['w']['band']} kommen erst noch, der Preis fällt nicht mehr"
+                             + (f" (24 Std. {fmt_pct(r['trend'] - 1)})" if r['trend'] is not None else '')
+                             + (f", am Ende des Fensters knapp ({r['w']['end']:.1f})" if r['w'].get('end') else '')))
     for r in sorted((r for r in sig['akku'] if r['item'] not in taken), key=lambda r: -(r['p_d3'] or 0))[:2]:
         acts.append(dict(kind='halten', id=r['item'], name=r['name'], limit=round(r['price']), limit_label='Nicht unter',
                          why=f"Preis {fmt_pct(r['p_d3'])}, Menge {fmt_pct(r['q_d3'])} in 3 Tagen: Angebot wird knapp"))
     for r in squeeze:
         crate = r['crate']
-        acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], qty=r['qty'], limit=round((r['median7'] or r['price']) * 1.25),
+        acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], qty=r['qty'], limit=round(r['ref'] * 1.25),
                          limit_label='Kaufen bis',
                          why=f"Leerkauf droht: ca. {r['gone_per_day']:.0f} Stück/Tag {'gekauft (gemessen)' if r['sold_raw'] else 'verkauft'}, nur {r['qty']} im AH"
                              + (f", Nachschub ca. {r['sold_raw']['new']:.0f}/Tag" if r['sold_raw'] else '')
                              + (f"; steckt in Merchant's-Favor-Crates ({crate})" if crate else '') + '. Restbestand abgreifen, teurer neu einstellen'))
     for r in sig['heiss'][:2]:
-        acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(r['median7'] * 1.5), limit_label='Mindestens',
-                         why=f"Preis {money(r['price'])} ist mehr als 2x 7-Tage-Median {money(r['median7'])}, Menge steigt wieder"))
+        base = r['ref24'] or r['median7']
+        acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(base * 1.5), limit_label='Mindestens',
+                         why=f"Preis {money(r['price'])} ist mehr als doppelt so hoch wie {'der Median der letzten 24 Std.' if r['ref24'] else 'der 7-Tage-Median'} {money(base)}, Menge steigt wieder"))
     # the first weeks: no endgame recipes (skill 275+) in the daily list; the full list stays in its own tab
-    for c in [c for c in crafts if (c['learn'] or 0) < 275][:3]:
+    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec')][:3]:
         acts.append(dict(kind='craften', id=c.get('item_id'), name=c['name'], prof=PROF_DE.get(c['prof'], c['prof']), skill=c['learn'],
                          cost=round(c['cost']), revenue=round(c['revenue']), margin=c['margin'], limit=round(c['revenue'] - c['cost']),
                          limit_label='Gewinn', why=f"Kosten {money(c['cost'])}, Erlös nach Gebühr {money(c['revenue'])} (+{c['margin']:.0%})"))
+    for a in acts:   # the name as the (German) game client shows it, for the page
+        a['de'] = (rows.get(a['id']) or {}).get('de') if a.get('id') else None
     return acts[:10]
 
 
