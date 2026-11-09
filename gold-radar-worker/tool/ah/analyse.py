@@ -84,8 +84,20 @@ def analyse(con, realm, cfg, now):
     try:  # sales measured from AuctionDB's recorded full scans (ah/rawscan.py): single auctions bought between scans
         import rawscan
         measured, depth = rawscan.sold_per_day(con, realm, now), rawscan.latest_depth(con, realm)
-    except ImportError:
-        measured, depth = {}, {}
+        book = rawscan.ladder(con, realm)[0] if con.execute('SELECT 1 FROM raw_scans WHERE realm=? LIMIT 1', (realm,)).fetchone() else None
+    except (ImportError, sqlite3.OperationalError):
+        measured, depth, book = {}, {}, None
+
+    def vendor_take(r):
+        """(units, profit) a buyer gets below 95 % of the vendor price: what the order book of the newest full scan
+        holds there (one cheap auction among hundreds above the vendor price is no deal); without recorded full
+        scans only the cheapest unit is sure."""
+        if not (r['sell'] and r['price']) or r['stale']:
+            return 0, 0
+        lim = r['sell'] * 0.95
+        steps = book.get(r['item'], []) if book is not None else [[r['price'], 1, 1]]
+        units = sum(q for u, q, _ in steps if u <= lim)
+        return units, sum((lim - u) * q for u, q, _ in steps if u <= lim)
     try:  # names as the game client shows them (AuctionDB's item DB): for items the model's lists do not know
         meta = {i: n for i, n in con.execute('SELECT item_id, name FROM item_meta') if n}
     except sqlite3.OperationalError:
@@ -177,8 +189,10 @@ def analyse(con, realm, cfg, now):
         p3, q3 = r['p_d3'], r['q_d3']
         if r['item'] in first_aid:   # bandages: nearly everyone makes their own
             continue
+        # worth the trip only from 20s total profit on, counted over the auctions that really sit below the limit
+        r['v_units'], r['v_profit'] = vendor_take(r)
         if r['name'] in vendor_goods:
-            if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
+            if r['v_profit'] >= 2000:
                 sig['vendor'].append(r)
             continue
         real = not r['stale'] and (r['qty'] or 0) >= 5 and r['price'] * (r['qty'] or 0) >= 10000   # at least 1g listed
@@ -202,8 +216,7 @@ def analyse(con, realm, cfg, now):
                 sig['squeeze'].append(r)
         elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
             sig['squeeze'].append(r)
-        # worth the trip only from 20s total profit on
-        if r['sell'] and r['price'] and r['qty'] and (r['sell'] * 0.95 - r['price']) * r['qty'] >= 2000:
+        if r['v_profit'] >= 2000:
             sig['vendor'].append(r)
     by_band = {}
     for r in rows.values():
@@ -224,9 +237,11 @@ def todo_items(rows, crafts, sig, cfg):
     hot = {r['item'] for r in sig['heiss'][:2]}
     squeeze = [r for r in sig['squeeze'] if r['item'] not in hot][:2]
     taken = hot | {r['item'] for r in squeeze}
-    for r in sorted(sig['vendor'], key=lambda r: -(r['sell'] - r['price']) * (r['qty'] or 1))[:3]:
-        acts.append(dict(kind='haendler', id=r['item'], name=r['name'], qty=r['qty'], limit=round(r['sell'] * 0.95),
-                         limit_label='Kaufen bis', why=f"Buyout {money(r['price'])} < Händlerpreis {money(r['sell'])}"))
+    for r in sorted(sig['vendor'], key=lambda r: -r['v_profit'])[:3]:
+        acts.append(dict(kind='haendler', id=r['item'], name=r['name'], qty=r['v_units'], qty_label='Stück unter der Grenze',
+                         limit=round(r['sell'] * 0.95), limit_label='Kaufen bis',
+                         why=f"Buyout ab {money(r['price'])} < Händlerpreis {money(r['sell'])}: {r['v_units']} Stück darunter, "
+                             f"zusammen ca. {money(r['v_profit'])} Gewinn"))
     for r in sorted(sig['unter'], key=lambda r: -r['w']['score'])[:3]:
         acts.append(dict(kind='kaufen', id=r['item'], name=r['name'], limit=round(r['ref'] * 1.05), limit_label='Kaufen bis',
                          why=f"Die Spieler für Levelband {r['w']['band']} kommen erst noch, der Preis fällt nicht mehr"
@@ -259,7 +274,7 @@ def todo_items(rows, crafts, sig, cfg):
 def todo_text(a):
     """(what, why) for the Markdown report."""
     n, lim = f"**{a['name']}**", money(a['limit'])
-    what = {'haendler': f"{n} alle {a.get('qty')} kaufen bis {lim} und an den Händler verkaufen",
+    what = {'haendler': f"{n} die {a.get('qty')} Stück bis {lim} kaufen und an den Händler verkaufen",
             'kaufen': f"{n} kaufen bis max. {lim}",
             'halten': f"{n} halten bzw. nicht unter {lim} verkaufen",
             'verkaufen': f"{n} jetzt verkaufen, mindestens {lim}",
@@ -356,7 +371,8 @@ def main():
     table('Leerkauf droht: pro Tag wird mehr verkauft als im AH liegt', sig['squeeze'], base_cols)
     table('Vendor-Flip: Buyout unter Händlerpreis', sig['vendor'][:20],
           [('Item', lambda r: r['name']), ('Buyout', lambda r: money(r['price'])),
-           ('Händler zahlt', lambda r: money(r['sell'])), ('Menge', lambda r: r['qty'])])
+           ('Händler zahlt', lambda r: money(r['sell'])), ('Stück unter der Grenze', lambda r: r['v_units']),
+           ('Gewinn', lambda r: money(r['v_profit']))])
     table(f"Craft-Arbitrage (Marge ≥ {cfg['min_craft_marge']:.0%}, {', '.join(cfg['meine_berufe']) or 'alle Berufe'})",
           crafts[:25], [('Item', lambda c: c['name']), ('Beruf', lambda c: c['prof']), ('Skill', lambda c: c['learn']),
                         ('Kosten', lambda c: money(c['cost'])), ('Erlös netto', lambda c: money(c['revenue'])),
