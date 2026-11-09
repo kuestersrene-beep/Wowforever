@@ -1,12 +1,14 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getDiscordId, getDisplayName } from "@/lib/admin";
 import {
   GOLD_RADAR_BUCKET,
   SCAN_FILE_MAX_BYTES,
+  SCAN_FILE_MAX_UNPACKED_BYTES,
   SCAN_SOURCES,
   SCAN_UPLOADS_PER_DAY,
   hasGoldRadarAccess,
@@ -44,8 +46,18 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
   }
   // Byte für Byte speichern: Auctionator legt Binärdaten (CBOR) in Lua-Strings ab,
   // die eine Umwandlung in UTF-8-Text zerstören würde.
+  // Das Formular schickt die Datei gzip-gepackt (UploadForm); gespeichert wird sie gepackt, der Worker entpackt sie.
   const bytes = Buffer.from(await file.arrayBuffer());
-  const text = bytes.toString("latin1");
+  const packed = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+  let plain = bytes;
+  if (packed) {
+    try {
+      plain = gunzipSync(bytes, { maxOutputLength: SCAN_FILE_MAX_UNPACKED_BYTES });
+    } catch {
+      return { ok: false, message: `Die Datei ließ sich nicht entpacken oder ist entpackt größer als ${Math.round(SCAN_FILE_MAX_UNPACKED_BYTES / 1_048_576)} MB.` };
+    }
+  }
+  const text = plain.toString("latin1");
   if (!SCAN_SOURCES.some((s) => text.includes(s.marker))) {
     return {
       ok: false,
@@ -65,7 +77,7 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
   }
 
   const id = randomUUID();
-  const path = `uploads/${ruleset}/${id}.lua`;
+  const path = `uploads/${ruleset}/${id}.lua${packed ? ".gz" : ""}`;
   const { error: storageError } = await db.storage
     .from(GOLD_RADAR_BUCKET)
     .upload(path, bytes, { contentType: "application/octet-stream" });
@@ -78,7 +90,7 @@ export async function uploadScan(_prev: UploadResult | null, formData: FormData)
     display_name: getDisplayName(user),
     ruleset,
     file_path: path,
-    size_bytes: file.size,
+    size_bytes: plain.length,
   });
   if (error) {
     await db.storage.from(GOLD_RADAR_BUCKET).remove([path]);

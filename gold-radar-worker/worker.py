@@ -32,7 +32,7 @@ Only the Python standard library; the tool code in tool/ comes from WowForever-G
 Environment: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, GOLD_RADAR_RULESETS
 (default pvp-eu-horde), DATA_DIR (default /data), INTERVAL_SECONDS (default 60).
 """
-import json, logging, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
+import gzip, json, logging, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -229,6 +229,8 @@ def process(u, con, rawcon=None):
     raw = storage_get(u['file_path'])
     if raw is None:
         raise ValueError('Datei nicht im Speicher gefunden')
+    if raw[:2] == b'\x1f\x8b':   # the upload form packs the file (gzip) before sending it
+        raw = gzip.decompress(raw)
     scans, history, realms = parse(raw, u['ruleset'], u['id'])
     store('gold_radar_scans', scans, 'ruleset,item_id,seen')
     store('gold_radar_history', history, 'ruleset,item_id,t')

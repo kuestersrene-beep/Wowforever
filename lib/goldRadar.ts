@@ -65,7 +65,10 @@ export const SCAN_SOURCES: readonly ScanSource[] = [
     prices: "ja", quantity: "nein", intraday: "nein", history: "ein Wert pro Tag (bis 11 Tage)",
     note: "Tagestiefstpreis ohne Mengen: nur Preise und Trends." },
 ];
-export const SCAN_FILE_MAX_BYTES = 40 * 1024 * 1024; // AuctionDB mit Rohscans: ~13 MB bei 250.000 Auktionen; bodySizeLimit in next.config.ts ist 45 MB
+export const SCAN_FILE_MAX_BYTES = 40 * 1024 * 1024; // so wie hochgeladen; bodySizeLimit in next.config.ts ist 45 MB
+// Der Browser packt die Datei vor dem Hochladen (gzip, verlustfrei): AuctionDB mit 10 Rohscans hat ~37 MB, gepackt
+// ~6 MB. Entpackt darf sie höchstens so groß sein (Schutz vor Packbomben, der Worker liest sie im Speicher).
+export const SCAN_FILE_MAX_UNPACKED_BYTES = 250 * 1024 * 1024;
 export const SCAN_UPLOADS_PER_DAY = 24;
 // Das Modell (dashboard-teilen.html) liegt hier; der Worker baut daraus
 // mit den Live-Daten <ruleset>/dashboard.html.
