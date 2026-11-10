@@ -217,6 +217,7 @@ def analyse(con, realm, cfg, now):
             crafts.append(dict(prof=rc['prof'], item_id=rc['item_id'], name=prod['name'], cost=cost, revenue=revenue,
                                margin=(revenue - cost) / cost, profit=revenue - cost, qty=prod['qty'], learn=rc['learn'],
                                sold=sold, capped=price < prod['price'], deposit=deposit, cd=cd, fall=prod['p_d1'],
+                               cover=(prod['qty'] or 0) / sold if sold else None,
                                per_day=(revenue - cost) * units, spec=prod['name'].startswith(RECIPE_ITEM)))
     crafts.sort(key=lambda c: -c['per_day'])
 
@@ -227,6 +228,16 @@ def analyse(con, realm, cfg, now):
     except OSError:
         vendor_goods = set()
     first_aid = {rc['item_id'] for rc in recipes if rc['prof'] == 'first-aid'}
+
+    def paid_ok(r):
+        """The price is one buyers pay: a reseller who bought out the cheap supply and relisted it at 5-200x sets a
+        price nobody has paid yet (no hold or sell tip on it). With measured sales the dearest paid level (90th
+        percentile of an interval) must reach 2/3 of the price, without them the price is at most 4x the 7-day median."""
+        m = r['sold_raw'] or {}
+        if m.get('top'):
+            return r['price'] <= 1.5 * m['top']
+        base = r['median7'] or r['ref']
+        return not base or r['price'] <= 4 * base
     for r in rows.values():
         p3, q3 = r['p_d3'], r['q_d3']
         if r['item'] in first_aid:   # bandages: nearly everyone makes their own
@@ -238,6 +249,8 @@ def analyse(con, realm, cfg, now):
                 sig['vendor'].append(r)
             continue
         real = not r['stale'] and (r['qty'] or 0) >= 5 and r['price'] * (r['qty'] or 0) >= 10000   # at least 1g listed
+        r['reset'] = not paid_ok(r)
+        real = real and not r['reset']
         # rising over 3 days with shrinking stock, but not if it is crashing today (a hold tip in a falling market)
         if real and p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20 and (r['p_d1'] or 0) > -0.2:
             sig['akku'].append(r)
@@ -252,10 +265,12 @@ def analyse(con, realm, cfg, now):
             sig['heiss'].append(r)
         # squeeze: the market sells more per day than is listed, the rest is about to be bought out
         # with measured sales: bought faster than restocked (new listings include reposts, so they overstate the
-        # supply), the listed quantity fell by a fifth in a day, and what is left lasts less than half a day
+        # supply; the sure sales alone, without possible reposts, must outrun it: a market where hundreds a day are
+        # bought and as many listed again is deep, not drying up), the listed quantity fell by a fifth in a day, and
+        # what is left lasts less than half a day
         m = r['sold_raw']
         if m and r['qty'] and r not in sig['heiss'] and not r['stale']:
-            if m['per_day'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000                     and r['qty'] * r['price'] >= 10000:
+            if m['low'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000                     and r['qty'] * r['price'] >= 10000:
                 sig['squeeze'].append(r)
         elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
             sig['squeeze'].append(r)
@@ -305,8 +320,10 @@ def todo_items(rows, crafts, sig, cfg):
         acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(base * 1.5), limit_label='Mindestens',
                          why=f"Preis {money(r['price'])} ist mehr als doppelt so hoch wie {'der Median der letzten 24 Std.' if r['ref24'] else 'der 7-Tage-Median'} {money(base)}, Menge steigt wieder"))
     # the first weeks: no endgame recipes (skill 275+) in the daily list; the full list stays in its own tab
-    # no craft tip for a product whose price fell by a quarter in a day: the profit may be gone before it sells
-    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec') and not (c.get('fall') or 0) < -0.25][:3]:
+    # no craft tip for a product whose price fell by a quarter in a day (the profit may be gone before it sells) or
+    # whose listed stock alone covers more than 3 days of measured purchases (the new craft waits behind all of it)
+    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec') and not (c.get('fall') or 0) < -0.25
+              and not (c.get('cover') or 0) > 3][:3]:
         acts.append(dict(kind='craften', id=c.get('item_id'), name=c['name'], prof=PROF_DE.get(c['prof'], c['prof']), skill=c['learn'],
                          cost=round(c['cost']), revenue=round(c['revenue']), margin=c['margin'], limit=round(c['revenue'] - c['cost']),
                          limit_label='Gewinn', why=f"Kosten {money(c['cost'])} (Zutaten für {cfg.get('craft_serie', 5)} Crafts aus dem Orderbuch), "
