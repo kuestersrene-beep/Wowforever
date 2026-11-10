@@ -335,9 +335,11 @@ def main():
         if c:
             tier, n = c.rsplit(' x', 1)
             fills.setdefault(tier, []).append((r['item_id'], r['name'], int(n)))
+    # Angel-Radar (tools/fishing_model.py): its fish, products and reagents need live prices as well
+    fishing = load('fishing.json') if os.path.exists(os.path.join(ROOT, 'fishing.json')) else None
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
-              | {str(x['id']) for o in refine for x in o.get('inputs_list', [])})
-    payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref,
+              | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {})))
+    payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref, fishing=fishing,
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},

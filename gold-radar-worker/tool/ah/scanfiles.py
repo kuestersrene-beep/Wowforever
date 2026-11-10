@@ -123,8 +123,11 @@ def from_tradeskills(db, faction, out):
                 if isinstance(p, dict) and p.get('t'):
                     out.point(realm, item_id, int(p['t']), num(p.get('m')), num(p.get('q')))
         out.sources.append(f'Tradeskills {realm}')
-    # scans other guild members shared through the add-on: guildPrices[realm][item] = {sender, time, lowest buyout,
-    # second value, sender, ...} (the lowest buyout matches the own scans; no quantities)
+    # scans other guild members shared through the add-on: guildPrices[realm][item] = {sender, time, market value,
+    # lowest buyout, sender, ...}; no quantities. Checked 10.11.2026 against own readings within the same hour (9,562
+    # pairs): the 4th value is the lowest buyout (93 % within 10 %, median ratio 1.00), the 3rd a market value (median
+    # 1.06, the top tenth 1.65x and more). Before that the 3rd was read as the lowest price. An own reading at the same
+    # time stays: it carries the quantity.
     for realm, table in (db.get('guildPrices') or {}).items():
         if not isinstance(table, dict) or (faction and str(realm).endswith(('-Horde', '-Alliance')) and not str(realm).endswith('-' + faction)):
             continue
@@ -134,9 +137,9 @@ def from_tradeskills(db, faction, out):
             if not isinstance(item_id, int):
                 continue
             for i in range(0, len(vals) - 3, 4):
-                t, low = vals[i + 1], num(vals[i + 2])
-                if isinstance(t, (int, float)) and low:
-                    out.scan(realm, item_id, int(t), low, low, None, None)
+                t, market, low = vals[i + 1], num(vals[i + 2]), num(vals[i + 3])
+                if isinstance(t, (int, float)) and (low or market) and (item_id, int(t)) not in out.scans:
+                    out.scan(realm, item_id, int(t), market or low, low or market, None, None)
                     n += 1
         if n:
             out.sources.append(f'Tradeskills Gilde {realm}')

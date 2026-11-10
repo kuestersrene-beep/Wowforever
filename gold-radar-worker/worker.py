@@ -214,6 +214,40 @@ def parse(raw, ruleset, upload_id):
     return scans, history, p.sources
 
 
+def fix_guild_prices(cons):
+    """One-time repair (10.11.2026): Tradeskills guild prices were read with their market value as the lowest price
+    (tool/ah/scanfiles.py, now fixed). Re-reads every processed Tradeskills upload and overwrites its points in Supabase
+    and in the local copies. Newest upload first, so a point that several uploads carry ends up with the oldest one,
+    as before (ignore-duplicates kept the first)."""
+    ups = rest('GET', 'gold_radar_uploads', 'status=eq.done&select=id,ruleset,file_path,created_at&order=created_at.desc&limit=2000') or []
+    files = points = 0
+    for u in ups:
+        if u['ruleset'] not in cons:
+            continue
+        raw = storage_get(u['file_path'])
+        if raw is None:
+            continue
+        if raw[:2] == b'\x1f\x8b':
+            raw = gzip.decompress(raw)
+        if b'BlackthornesTSDB' not in raw[:300]:
+            continue
+        try:
+            scans, _, _ = parse(raw, u['ruleset'], u['id'])
+        except ValueError:
+            continue
+        guild = [s for s in scans if s['quantity'] is None]
+        for i in range(0, len(guild), BATCH):
+            rest('POST', 'gold_radar_scans', 'on_conflict=ruleset,item_id,seen', guild[i:i + BATCH],
+                 prefer='resolution=merge-duplicates,return=minimal')
+        con = cons[u['ruleset']]
+        con.executemany('UPDATE scans SET market=?, min=? WHERE realm=? AND item_id=? AND seen=? AND quantity IS NULL',
+                        [(s['market'], s['min_price'], s['ruleset'], s['item_id'], s['seen']) for s in guild])
+        con.commit()
+        files += 1
+        points += len(guild)
+    return files, points
+
+
 def store(table, rows, conflict):
     for i in range(0, len(rows), BATCH):
         rest('POST', table, f'on_conflict={conflict}', rows[i:i + BATCH],
@@ -334,6 +368,16 @@ def main():
             log.error('Supabase antwortet %s – ist supabase/schema.sql eingespielt? Neuer Versuch in %d s', e.code, INTERVAL)
             time.sleep(INTERVAL)
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
+    if not state.get('_guild_min_v1'):   # one-time repair of the guild prices (see fix_guild_prices)
+        try:
+            files, points = fix_guild_prices(cons)
+            log.info('Gildenpreise korrigiert: %d Tradeskills-Uploads, %d Punkte', files, points)
+            state['_guild_min_v1'] = now_iso()
+            json.dump(state, open(state_path, 'w', encoding='utf-8'))
+            for r in RULESETS:
+                build(r, cons[r])
+        except Exception:
+            log.exception('Korrektur der Gildenpreise fehlgeschlagen, nächster Versuch beim nächsten Start')
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
     census_next = 0.0

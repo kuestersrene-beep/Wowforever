@@ -108,6 +108,12 @@ def analyse(con, realm, cfg, now):
         price = last[2] or last[1]
         if not price:
             continue
+        # a reading without quantity (prices shared by guild members) that is far off our own full reading of the last
+        # 6 hours is one member's partial view: the own reading with quantities wins
+        if last[3] is None:
+            own = next((p for p in reversed(ser) if p[3] is not None and p[0] >= last[0] - 6 * 3600 and (p[2] or p[1])), None)
+            if own and not 1 / 1.5 <= price / (own[2] or own[1]) <= 1.5:
+                price = own[2] or own[1]
         # 7-day reference: scans with at least 5 listed, so a few lone listings cannot set the "normal" price;
         # thin markets (never 5 listed) fall back to all points
         week = [p[1] for p in ser if p[0] >= now - 7 * D and p[1] and (p[3] or 0) >= 5] \
