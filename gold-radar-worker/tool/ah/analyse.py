@@ -3,7 +3,7 @@
     python ah/analyse.py                 (newest data, realm from config.json or the one with most data)
     python ah/analyse.py --realm "Realmname-Alliance"
 """
-import argparse, json, os, sqlite3, statistics, html
+import argparse, html, json, math, os, sqlite3, statistics
 from datetime import datetime, date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -84,9 +84,9 @@ def analyse(con, realm, cfg, now):
     try:  # sales measured from AuctionDB's recorded full scans (ah/rawscan.py): single auctions bought between scans
         import rawscan
         measured, depth = rawscan.sold_per_day(con, realm, now), rawscan.latest_depth(con, realm)
-        book = rawscan.ladder(con, realm)[0] if con.execute('SELECT 1 FROM raw_scans WHERE realm=? LIMIT 1', (realm,)).fetchone() else None
+        book, book_ts = rawscan.ladder(con, realm) if con.execute('SELECT 1 FROM raw_scans WHERE realm=? LIMIT 1', (realm,)).fetchone() else (None, None)
     except (ImportError, sqlite3.OperationalError):
-        measured, depth, book = {}, {}, None
+        measured, depth, book, book_ts = {}, {}, None, None
 
     def vendor_take(r):
         """(units, profit) a buyer gets below 95 % of the vendor price: what the order book of the newest full scan
@@ -155,13 +155,37 @@ def analyse(con, realm, cfg, now):
     for r in rows.values():
         r['stale'] = r['seen'] < newest - 2 * H or (r['qty'] is not None and r['qty'] < 3)
 
-    def price_of(i):
-        r = rows.get(i)
+    def price_of(i, units=1):
+        """What `units` of a reagent cost per unit: the AH walked up its order book (the cheapest auction alone is
+        often a single unit), or the vendor when a vendor sells it for less; without a recorded full scan the
+        cheapest listing."""
+        r, vend = rows.get(i), cfg['vendor_kosten'].get(str(i))
+        ah = None
         if r and not r['stale']:
-            return r['price']
-        return cfg['vendor_kosten'].get(str(i))
+            ah = book_unit(i, units) or r['price']
+        cands = [p for p in (ah, vend) if p]
+        return min(cands) if cands else None
+
+    def book_unit(i, units):
+        steps = book.get(i) if book else None
+        # only when the full scan is as new as the item's price: a newer reading (Tradeskills, guild) beats an old book
+        if not steps or not book_ts or book_ts < rows[i]['seen'] - 2 * H:
+            return None
+        left, cost = units, 0
+        for u, q, _ in steps:
+            take = min(left, q)
+            cost, left = cost + take * u, left - take
+            if left <= 0:
+                break
+        if left > 0:   # more than the book holds: the rest at its dearest step
+            cost += left * steps[-1][0]
+        return cost / units
 
     fee = cfg.get('ah_gebuehr', 0.05)
+    batch = cfg.get('craft_serie', 5)                 # crafts in a row: reagents are bought for that many
+    share = cfg.get('flip_marktanteil', 0.15)         # what one seller can take of the measured daily purchases
+    dep_rate = cfg.get('einstellgebuehr', 0.15)       # deposit per listing as a share of the vendor price
+    cooldown = {int(k): v for k, v in (cfg.get('abklingzeit_tage') or {}).items() if not str(k).startswith('_')}
     crafts = []
     for rc in recipes:
         if cfg['meine_berufe'] and rc['prof'] not in cfg['meine_berufe']:
@@ -170,19 +194,29 @@ def analyse(con, realm, cfg, now):
         # a product with no current listing has no price, one nobody buys (measured) brings no revenue
         if not prod or prod['stale'] or (prod['gone_per_day'] is not None and prod['gone_per_day'] < 1):
             continue
-        costs = [price_of(i) for i, _ in rc['reagents']]
+        costs = [price_of(i, n * batch) for i, n in rc['reagents']]
         if any(c is None for c in costs):
             continue
         cost = sum(c * n for c, (_, n) in zip(costs, rc['reagents'])) / rc['count']
         avg_sale = (prod['tsm'] or {}).get('avg_sale')
         price = min(p for p in (prod['price'], prod['ref'], avg_sale) if p)   # one fantasy listing is no revenue
         revenue = price * (1 - fee)
+        # deposit risk: a listing that does not sell loses its deposit (gear with a high vendor price: tens of silver).
+        # Buyers clear the cheapest auctions first, so an undercut listing sells when the next buyer comes: chance of
+        # one within the 12-h listing at the measured rate, times 0.7 for being undercut in between
+        sold = prod['gone_per_day']
+        p_sell = 1.0 if sold is None else max(0.1, 0.7 * (1 - math.exp(-sold * 0.5)))
+        deposit = dep_rate * (prod['sell'] or 0) * (1 / p_sell - 1)
+        revenue -= deposit
         if cost > 0 and (revenue - cost) / cost >= cfg['min_craft_marge']:
+            cd = cooldown.get(rc['item_id']) if rc['prof'] in ('alchemy', 'tailoring', 'leatherworking') else None
+            # gold a day: a cooldown craft once per cooldown, others the seller's share of the measured purchases
+            units = (rc['count'] / cd) if cd else (max(share * sold, 1) if sold is not None else 1)
             crafts.append(dict(prof=rc['prof'], item_id=rc['item_id'], name=prod['name'], cost=cost, revenue=revenue,
                                margin=(revenue - cost) / cost, profit=revenue - cost, qty=prod['qty'], learn=rc['learn'],
-                               sold=prod['gone_per_day'], capped=price < prod['price'],
-                               spec=prod['name'].startswith(RECIPE_ITEM)))
-    crafts.sort(key=lambda c: -c['profit'])
+                               sold=sold, capped=price < prod['price'], deposit=deposit, cd=cd, fall=prod['p_d1'],
+                               per_day=(revenue - cost) * units, spec=prod['name'].startswith(RECIPE_ITEM)))
+    crafts.sort(key=lambda c: -c['per_day'])
 
     days = (date.fromtimestamp(now) - date.fromisoformat(cfg['launch'])).days
     sig = {k: [] for k in ('akku', 'unter', 'heiss', 'vendor', 'squeeze', 'welle')}
@@ -268,10 +302,13 @@ def todo_items(rows, crafts, sig, cfg):
         acts.append(dict(kind='verkaufen', id=r['item'], name=r['name'], limit=round(base * 1.5), limit_label='Mindestens',
                          why=f"Preis {money(r['price'])} ist mehr als doppelt so hoch wie {'der Median der letzten 24 Std.' if r['ref24'] else 'der 7-Tage-Median'} {money(base)}, Menge steigt wieder"))
     # the first weeks: no endgame recipes (skill 275+) in the daily list; the full list stays in its own tab
-    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec')][:3]:
+    # no craft tip for a product whose price fell by a quarter in a day: the profit may be gone before it sells
+    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec') and not (c.get('fall') or 0) < -0.25][:3]:
         acts.append(dict(kind='craften', id=c.get('item_id'), name=c['name'], prof=PROF_DE.get(c['prof'], c['prof']), skill=c['learn'],
                          cost=round(c['cost']), revenue=round(c['revenue']), margin=c['margin'], limit=round(c['revenue'] - c['cost']),
-                         limit_label='Gewinn', why=f"Kosten {money(c['cost'])}, Erlös nach Gebühr {money(c['revenue'])} (+{c['margin']:.0%})"))
+                         limit_label='Gewinn', why=f"Kosten {money(c['cost'])} (Zutaten für {cfg.get('craft_serie', 5)} Crafts aus dem Orderbuch), "
+                             f"Erlös nach Gebühr{' und Einstellrisiko' if c.get('deposit') else ''} {money(c['revenue'])} (+{c['margin']:.0%}), "
+                             f"ca. {money(c['per_day'])} am Tag" + (f" (Abklingzeit {c['cd']} Tage)" if c.get('cd') else '')))
     for a in acts:   # the name as the (German) game client shows it, for the page
         a['de'] = (rows.get(a['id']) or {}).get('de') if a.get('id') else None
     return acts[:10]

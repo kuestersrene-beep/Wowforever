@@ -166,23 +166,47 @@ TIERS = ['Apprentice', 'Journeyman', 'Expert', 'Artisan']
 
 
 def favor_index(live, fills):
-    """Silver per crate fill: every fill option of a Merchant's Favor crate tier priced at the current buyout.
-    The cheapest fill draws the crowd; its price has room up to the fill cost of the second cheapest."""
+    """Silver per crate fill: every fill option of a Merchant's Favor crate tier priced for a whole fill, walked up
+    the order book of the newest full scan (the cheapest auction is often one unit; a fill needs `count`).
+    The cheapest fill draws the crowd; its price has room up to the fill cost of the second cheapest, and `wall` is
+    how many units of it the AH holds below that price (what a buyer can take before the room is used up)."""
+    book = live.get('book') or {}
+
+    def fill_cost(iid, count, lowest):
+        steps = book.get(iid)
+        if not steps:
+            return lowest * count
+        left, cost = count, 0
+        for u, q, _ in steps:
+            take = min(left, q)
+            cost, left = cost + take * u, left - take
+            if left <= 0:
+                return cost
+        return None   # the book holds less than one fill
+
     out = []
     for tier in TIERS:
         rows = []
         for iid, name, count in fills.get(tier, []):
             lr = live['rows'].get(iid)
             if lr and lr['price'] and (lr['qty'] is None or lr['qty'] >= count):   # a full fill on the AH (unknown: TSM)
+                cost = fill_cost(iid, count, lr['price'])
+                if cost is None:
+                    continue
                 rows.append(dict(tier=tier, id=iid, name=name, count=count, price=lr['price'], qty=lr['qty'],
-                                 med7=lr['median7'], cost=lr['price'] * count))
+                                 med7=lr['median7'], cost=cost))
         rows.sort(key=lambda r: r['cost'])
         for k, r in enumerate(rows):
             r['rank'] = k + 1
             r['rel'] = r['cost'] / rows[0]['cost']
         if len(rows) >= 2:
-            rows[0]['room'] = rows[1]['cost'] / rows[0]['count']   # unit price at which it costs as much as the 2nd fill
-            rows[0]['gap'] = rows[1]['cost'] / rows[0]['cost']
+            first = rows[0]
+            first['room'] = rows[1]['cost'] / first['count']   # unit price at which it costs as much as the 2nd fill
+            first['gap'] = rows[1]['cost'] / first['cost']
+            steps = book.get(first['id'])
+            if steps:   # buyout wall: units listed below the room price, and as fills
+                first['wall'] = sum(q for u, q, _ in steps if u < first['room'])
+                first['wall_fills'] = first['wall'] // first['count']
         out += rows
     return out
 
@@ -284,7 +308,8 @@ def pack(live, cfg, wanted, fills):
                 flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows, best=best,
                 best_h=best[0]['h'] if best else None,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
-                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped'), spec=c.get('spec')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
+                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped'), spec=c.get('spec'),
+                             dep=round(c.get('deposit') or 0), cd=c.get('cd'), pd=round(c.get('per_day') or 0), fall=c.get('fall')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 
 
 def main():

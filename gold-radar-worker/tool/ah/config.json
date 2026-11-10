@@ -12,6 +12,12 @@
   "gold_gesamt": 0,
   "max_anteil_pro_position": 0.25,
   "min_craft_marge": 0.2,
+  "craft_serie": 5,
+  "_craft_serie": "Berufe-Gewinn: Zutaten werden für so viele Crafts am Stück gekauft und dafür im Orderbuch nach oben gerechnet (nicht nur das billigste Einzelstück)",
+  "einstellgebuehr": 0.15,
+  "_einstellgebuehr": "Einstellgebühr je Auktion als Anteil des Händlerpreises (Classic-Annahme, 12-Std.-Auktion). Berufe-Gewinn zieht davon die erwartet verlorenen Gebühren ab: je mehr im AH liegt gegen das, was am Tag gekauft wird, desto öfter läuft eine Auktion ungekauft aus",
+  "abklingzeit_tage": {"_hinweis": "Crafts mit Abklingzeit (Tage, Classic-Werte, für Forever nicht bestätigt): Gewinn/Tag = Gewinn je Craft ÷ Abklingzeit. Transmutationen (Alchemie), Mondstoff (Schneiderei), Gegerbter unverwüstlicher Balg (Lederverarbeitung)",
+    "12360": 2, "3577": 2, "6037": 2, "7076": 2, "7078": 2, "7080": 2, "7082": 2, "12803": 2, "12808": 2, "14342": 4, "15407": 3},
   "ah_gebuehr": 0.05,
   "vendor_kosten": {
     "_hinweis": "Ungefähre Händler-Einkaufspreise (Classic). Bitte in-game prüfen und korrigieren.",
