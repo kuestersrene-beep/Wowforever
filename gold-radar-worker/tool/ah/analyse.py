@@ -147,7 +147,9 @@ def analyse(con, realm, cfg, now):
             r['gone_per_day'] = 0.0
         r['ref24'], r['trend'], r['ref_points'] = recent(ser, last[0])
         # conservative "what it sells for now": lowest of the 24-h median, the 7-day median and the measured paid price
-        r['ref'] = min([v for v in (r['ref24'], r['median7'], (r['sold_raw'] or {}).get('avg')) if v] or [price])
+        # paid: the median paid per unit (robust against one dear sale), the average where no median is measured yet
+        paid = (r['sold_raw'] or {}).get('med') or (r['sold_raw'] or {}).get('avg')
+        r['ref'] = min([v for v in (r['ref24'], r['median7'], paid) if v] or [price])
         rows[item] = r
     # a price only counts while the item is listed: missing from the newest scan (older readings) or fewer than 3
     # listed is no market price, so no factor, profit or tip is built on it

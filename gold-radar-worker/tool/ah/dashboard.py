@@ -69,7 +69,7 @@ def bestsellers(con, rows):
         out_avg = m['avg'] > 3 * r['price']
         gold_price = min(m['avg'], max(r['price'], dp.get('median') or 3 * r['price'])) if out_avg else m['avg']
         out.append(dict(id=iid, name=name or r['name'], en=r['name'], cat=CLASS_DE.get(cls, 'ohne Angabe'),
-                        d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1), avg=round(m['avg']), top=m['top'],
+                        d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1), avg=round(m['avg']), med=m.get('med'), top=m['top'],
                         new=round(m['new'], 1), gold=round(m['per_day'] * gold_price), out=out_avg, u=units, lp=r['price'], h=round(m['hours'], 1),
                         reach=round(24 * units / m['per_day'], 1) if units is not None and m['per_day'] else None))
     out.sort(key=lambda b: -b['gold'])
@@ -113,9 +113,10 @@ def flips(live, cfg):
         if not price or not qty or r.get('stale'):
             continue
         ref24, trend, points = r['ref24'], r['trend'], r['ref_points']   # analyse.recent(): the price of the last 24 h
-        paid = (r.get('sold_raw') or {}).get('avg')
+        sr = r.get('sold_raw') or {}
+        paid = sr.get('med') or sr.get('avg')
         cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
-                                         (paid, 'Ø bezahlt')) if v]
+                                         (paid, 'Median bezahlt' if sr.get('med') else 'Ø bezahlt')) if v]
         if not cands:
             continue
         target, target_src = min(cands)
@@ -295,7 +296,7 @@ def pack(live, cfg, wanted, fills):
             m, dp = lr.get('sold_raw'), lr.get('depth')
             if m:   # measured from single auctions (ah/rawscan.py): bought per day, at which prices, restock
                 rows[str(iid)]['sd'] = dict(d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1),
-                                            avg=round(m['avg']) if m['avg'] else None, top=m['top'], new=round(m['new'], 1), h=round(m['hours'], 1))
+                                            avg=round(m['avg']) if m['avg'] else None, med=m.get('med'), top=m['top'], new=round(m['new'], 1), h=round(m['hours'], 1))
             if live.get('book', {}).get(iid):   # order book of the newest full scan: [unit price, units, auctions]
                 rows[str(iid)]['ob'] = live['book'][iid]
             if live.get('mv', {}).get(iid):     # market value (median of what is listed) per full scan

@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS depth (      -- market depth per item and scan
 CREATE TABLE IF NOT EXISTS sales (      -- what was bought between two consecutive full scans
     realm TEXT, item_id INTEGER, t0 INTEGER, t1 INTEGER, units0 INTEGER, gone INTEGER, sold_safe INTEGER,
     safe_units INTEGER, unsure_gone INTEGER, unsure_units INTEGER, relist INTEGER, new_units INTEGER,
-    pulled INTEGER, sold_value INTEGER, top_unit INTEGER, PRIMARY KEY (realm, item_id, t0, t1));
+    pulled INTEGER, sold_value INTEGER, top_unit INTEGER, med_unit INTEGER, PRIMARY KEY (realm, item_id, t0, t1));
 CREATE TABLE IF NOT EXISTS scan_pairs (realm TEXT, t0 INTEGER, t1 INTEGER, PRIMARY KEY (realm, t0, t1));
 CREATE TABLE IF NOT EXISTS item_meta (  -- from AuctionDB's item DB: name as the client shows it, vendor price, ...
     item_id INTEGER PRIMARY KEY, name TEXT, sell INTEGER, stack INTEGER, class INTEGER, subclass INTEGER,
@@ -208,18 +208,21 @@ def compare(a, b, dt):
         if fresh[k] > 0:
             fresh[k] -= 1
             relist += x[2]
-    # the price buyers still paid: 90th percentile of the sold units' unit prices (one odd sale is no price)
+    # the price buyers still paid: 90th percentile of the sold units' unit prices (one odd sale is no price), and the
+    # median (per unit): the typical paid price, which one dear sale (random-suffix gear under one id) cannot move
     paid = sorted((unit(x), x[2]) for x in sold_safe if x[4])
-    top, acc, total = 0, 0, sum(c for _, c in paid)
+    top, med, acc, total = 0, 0, 0, sum(c for _, c in paid)
     for pr, c in paid:
         acc += c
+        if not med and 2 * acc >= total:
+            med = pr
         if acc >= 0.9 * total:
             top = pr
             break
     return dict(units0=units0, gone=sum(x[2] for x in gone), sold_safe=sum(x[2] for x in sold_safe), safe_units=safe_units,
                 unsure_gone=sum(x[2] for x in unsure), unsure_units=units0 - safe_units, relist=relist,
                 new_units=sum(x[2] for x in new), pulled=sum(x[2] for x in pulled),
-                sold_value=sum(unit(x) * x[2] for x in sold_safe), top_unit=top)
+                sold_value=sum(unit(x) * x[2] for x in sold_safe), top_unit=top, med_unit=med or None)
 
 
 def ingest(con, raw, realm, faction):
@@ -271,8 +274,20 @@ def drop_scans(con, realm, stamps):
     return n
 
 
+def upgrade(con):
+    """Databases from before 11.11.2026 have no median paid price in sales: add the column and measure again every
+    pair whose single auctions are still stored (older pairs keep the average only)."""
+    if 'med_unit' in {c[1] for c in con.execute('PRAGMA table_info(sales)')}:
+        return
+    con.execute('ALTER TABLE sales ADD COLUMN med_unit INTEGER')
+    con.execute('DELETE FROM scan_pairs WHERE EXISTS (SELECT 1 FROM listings l WHERE l.realm=scan_pairs.realm AND l.ts=scan_pairs.t0) '
+                'AND EXISTS (SELECT 1 FROM listings l WHERE l.realm=scan_pairs.realm AND l.ts=scan_pairs.t1)')
+    con.commit()
+
+
 def measure(con, realm):
     """Sales for every pair of consecutive full scans that has not been measured yet (both scans' auctions stored)."""
+    upgrade(con)
     ts = [t for t, in con.execute('SELECT ts FROM raw_scans WHERE realm=? ORDER BY ts', (realm,))]
     done = {(a, b) for a, b in con.execute('SELECT t0, t1 FROM scan_pairs WHERE realm=?', (realm,))}
     n = 0
@@ -291,19 +306,23 @@ def measure(con, realm):
         for i in set(a) | set(b):
             c = compare(a.get(i, []), b.get(i, []), t1 - t0)
             rows.append((realm, i, t0, t1, *c.values()))
-        con.executemany('INSERT OR REPLACE INTO sales VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', rows)
+        con.executemany('INSERT OR REPLACE INTO sales VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', rows)
         con.execute('INSERT OR IGNORE INTO scan_pairs VALUES (?,?,?)', (realm, t0, t1))
         n += 1
     return n
 
 
 def sold_per_day(con, realm, now, days=3):
-    """item -> dict(per_day, low, high, avg, top, new, hours, pairs): bought units per day over the measured intervals
-    of the last days (new = units posted per day, reposts included). per_day counts the safe sales plus the unsure gone auctions at the item's safe sale rate; low
-    leaves out possible reposts; high counts every gone auction that cannot have expired plus all unsure ones."""
+    """item -> dict(per_day, low, high, avg, med, top, new, hours, pairs): bought units per day over the measured
+    intervals of the last days (new = units posted per day, reposts included). per_day counts the safe sales plus the
+    unsure gone auctions at the item's safe sale rate; low leaves out possible reposts; high counts every gone auction
+    that cannot have expired plus all unsure ones. avg = paid per unit on average (turnover: gold a day = per_day x
+    avg), med = the median paid per unit (the typical price; the units-weighted median of the intervals' medians)."""
     try:
+        has_med = 'med_unit' in {c[1] for c in con.execute('PRAGMA table_info(sales)')}
         q = con.execute('SELECT item_id, t0, t1, units0, gone, sold_safe, safe_units, unsure_gone, unsure_units, relist, '
-                        'sold_value, top_unit, new_units FROM sales WHERE realm=? AND t1 > ?', (realm, now - days * D)).fetchall()
+                        f'sold_value, top_unit, new_units, {"med_unit" if has_med else "NULL"} FROM sales WHERE realm=? AND t1 > ?',
+                        (realm, now - days * D)).fetchall()
         pairs = con.execute('SELECT t0, t1 FROM sales WHERE realm=? AND t1 > ? GROUP BY t0, t1', (realm, now - days * D)).fetchall()
     except sqlite3.OperationalError:
         return {}
@@ -311,7 +330,10 @@ def sold_per_day(con, realm, now, days=3):
     if span < 3600:
         return {}
     acc = defaultdict(lambda: [0.0, 0.0, 0.0, 0, 0, 0, 0])
-    for i, t0, t1, u0, gone, ss, su, ug, uu, rl, val, mx, nu in q:
+    meds = defaultdict(list)
+    for i, t0, t1, u0, gone, ss, su, ug, uu, rl, val, mx, nu, md in q:
+        if md and ss:
+            meds[i].append((md, ss))
         sure = max(0, ss - rl)
         r = acc[i]
         r[0] += ss + min(ug, (ss / su if su else 0) * uu)
@@ -322,8 +344,17 @@ def sold_per_day(con, realm, now, days=3):
         r[5] = max(r[5], mx)
         r[6] += nu
     f = D / span
-    return {i: dict(per_day=r[0] * f, low=r[1] * f, high=r[2] * f, avg=r[3] / r[4] if r[4] else None, top=r[5] or None,
-                    new=r[6] * f, hours=span / 3600, pairs=len(pairs)) for i, r in acc.items() if r[2] > 0}
+
+    def wmed(v):
+        if not v:
+            return None
+        v, half, run = sorted(v), sum(w for _, w in v) / 2, 0
+        for p, w in v:
+            run += w
+            if run >= half:
+                return p
+    return {i: dict(per_day=r[0] * f, low=r[1] * f, high=r[2] * f, avg=r[3] / r[4] if r[4] else None, med=wmed(meds.get(i)),
+                    top=r[5] or None, new=r[6] * f, hours=span / 3600, pairs=len(pairs)) for i, r in acc.items() if r[2] > 0}
 
 
 def latest_depth(con, realm):
@@ -337,8 +368,10 @@ def latest_depth(con, realm):
 
 def ladder(con, realm, levels=40):
     """(item -> [[unit price, units, auctions], ...] cheapest first, scan time) of the newest full scan: the order
-    book a buyer walks up. Far-off fantasy prices (above 8x the cheapest, after the first 5 steps) are left out;
-    more than `levels` price steps are merged into 2 % bands (price = the band's highest unit price)."""
+    book a buyer walks up. Far-off fantasy prices are left out: above 8x a robust floor, the unit price at which the
+    cheapest 3 units (or 2 % of all listed units, whichever is more) are reached, so one troll or mistake auction at
+    1c does not cut away the whole real market. More than `levels` price steps are merged into 2 % bands (price = the
+    band's highest unit price)."""
     try:
         ts = con.execute('SELECT MAX(ts) FROM raw_scans WHERE realm=?', (realm,)).fetchone()[0]
         rows = con.execute('SELECT item_id, data FROM listings WHERE realm=? AND ts=?', (realm, ts)).fetchall() if ts else []
@@ -356,7 +389,13 @@ def ladder(con, realm, levels=40):
         if not steps:
             continue
         lo = steps[0][0]
-        steps = [x for k, x in enumerate(steps) if k < 5 or x[0] <= 8 * lo]
+        need, run, floor = max(3, 0.02 * sum(q for _, q, _ in steps)), 0, steps[-1][0]
+        for u, q, _ in steps:
+            run += q
+            if run >= need:
+                floor = u
+                break
+        steps = [x for k, x in enumerate(steps) if k < 3 or x[0] <= 8 * floor]
         if len(steps) > levels:   # many 1c steps (mass goods): 2 % price bands, each shown at its highest price
             bands = {}
             for u, q, n in steps:
