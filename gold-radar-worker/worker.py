@@ -27,6 +27,9 @@ Loop (every INTERVAL_SECONDS):
 7. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
+8. Player census (tool/ah/census.py): every 6 hours the level counts of both factions of every ruleset from
+   classicarmory.gg (nightly snapshots) and forever.raider.io (daily) into DATA_DIR/census.json (history kept); the
+   pages show them in the tab "Spieler" next to the model's level curve.
 
 Only the Python standard library; the tool code in tool/ comes from WowForever-Gold (tools/export_worker.py).
 Environment: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, GOLD_RADAR_RULESETS
@@ -37,7 +40,7 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
-import dashboard, rawscan, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
+import census, dashboard, rawscan, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
 import blizzard  # noqa: E402
 from snapshot import SCHEMA  # noqa: E402
 
@@ -48,6 +51,7 @@ URL = (os.environ.get('SUPABASE_URL') or os.environ.get('NEXT_PUBLIC_SUPABASE_UR
 KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 RULESETS = [r.strip() for r in os.environ.get('GOLD_RADAR_RULESETS', os.environ.get('GOLD_RADAR_RULESET', 'pvp-eu-horde')).split(',') if r.strip()]
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
+CENSUS_PATH = os.path.join(DATA_DIR, 'census.json')
 INTERVAL = int(os.environ.get('INTERVAL_SECONDS', '60'))
 BUCKET = 'gold-radar'
 TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
@@ -328,6 +332,13 @@ def build(ruleset, con):
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
+    try:   # player census of this auction house (both factions), fetched in the main loop
+        cuts = census.cuts_for([ruleset])
+        cache = json.load(open(CENSUS_PATH, encoding='utf-8')) if os.path.exists(CENSUS_PATH) else {}
+        if cuts and cache:
+            data['census'] = census.payload(cache, cuts)
+    except Exception as e:
+        log.warning('%s: Census nicht eingebaut: %s', ruleset, e)
     page = head + start + json.dumps(data, ensure_ascii=False) + end + tail
     storage_put(f'{ruleset}/dashboard.html', page.encode('utf-8'), 'text/html; charset=utf-8')
     log.info('%s: Seite neu gebaut (%s)', ruleset, f'Stand {live["at"]}, {live["n_scans"]} Scan-Zeitpunkte' if live else 'ohne Scans')
@@ -357,6 +368,7 @@ def main():
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
     demo_next = 0.0
+    census_next = 0.0
     blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, BLIZZ_STATUS
     if BLIZZ_DEMO:
         DEMO['con'] = blizz_db('demo')
@@ -453,6 +465,15 @@ def main():
                                                                         'forever_realms': realms}).encode(), 'application/json')
                     except Exception as e:
                         log.warning('Blizzard-Status nicht gespeichert: %s', e)
+            if time.time() >= census_next:  # player census (classicarmory.gg nightly, raider.io daily): every 6 hours
+                census_next = time.time() + 6 * 3600
+                try:
+                    _, changed = census.update(CENSUS_PATH, census.cuts_for(RULESETS), max_age_h=5, log=log.warning)
+                    if changed:
+                        log.info('Census: neue Daten')
+                        dirty.update(RULESETS)
+                except Exception as e:
+                    log.warning('Census: Abruf fehlgeschlagen: %s', e)
             if TSM_DEMO and time.time() >= demo_next:  # demo archive: TSM updates region data once a day
                 demo_next = time.time() + 6 * 3600
                 try:

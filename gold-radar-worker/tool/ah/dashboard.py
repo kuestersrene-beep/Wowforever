@@ -435,6 +435,12 @@ def main():
     # the markers let the website's worker swap in DATA with live data from the members' scans
     if payload.get('live') and os.path.exists(os.path.join(HERE, 'ah.db')):  # where the local live numbers come from
         payload['live']['sources'] = sources_of(sqlite3.connect(os.path.join(HERE, 'ah.db')), payload['live']['realm'])
+    try:   # player census of the auction house (ah/census.py; at most every 12 hours, the website's worker keeps it current)
+        import census
+        cuts = census.cuts_for([cfg.get('ruleset', '')])
+        payload['census'] = census.payload(census.update(os.path.join(HERE, 'census.json'), cuts)[0], cuts)
+    except Exception as e:
+        print('Census nicht geladen:', e)
     data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False) + '/*__DATA_END__*/'
     open(out, 'w', encoding='utf-8').write(tpl.replace('/*__DATA__*/null', data))
     print(out)
