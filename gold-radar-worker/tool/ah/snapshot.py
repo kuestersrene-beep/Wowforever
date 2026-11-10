@@ -64,10 +64,13 @@ def ingest(con, path, sha1):
     realm, faction = house()
     p = scanfiles.read(open(path, 'rb').read(), faction)
     now = int(time.time())
+    # points from the future (wrong PC clock or an edited file) would sit at the end of every price line: drop them,
+    # as the website's worker does
+    cutoff = now + 2 * 3600
     con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)',
-                    [(realm, i, t, m, lo, None, q, n, now) for _, i, t, m, lo, q, n in p.scans.values()])
+                    [(realm, i, t, m, lo, None, q, n, now) for _, i, t, m, lo, q, n in p.scans.values() if t <= cutoff])
     con.executemany('INSERT OR IGNORE INTO history VALUES (?,?,?,?,?)',
-                    [(realm, i, t, m, q) for _, i, t, m, q in p.history.values()])
+                    [(realm, i, t, m, q) for _, i, t, m, q in p.history.values() if t <= cutoff])
     con.execute('INSERT OR REPLACE INTO snapshots VALUES (?,?,?,?)', (os.path.basename(path), sha1, now, len(p.scans)))
     con.commit()
     return len(p.scans), len(p.history), p.sources

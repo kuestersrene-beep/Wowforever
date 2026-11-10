@@ -236,7 +236,8 @@ def analyse(con, realm, cfg, now):
                 sig['vendor'].append(r)
             continue
         real = not r['stale'] and (r['qty'] or 0) >= 5 and r['price'] * (r['qty'] or 0) >= 10000   # at least 1g listed
-        if real and p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20:
+        # rising over 3 days with shrinking stock, but not if it is crashing today (a hold tip in a falling market)
+        if real and p3 is not None and q3 is not None and p3 > 0.10 and q3 < -0.20 and (r['p_d1'] or 0) > -0.2:
             sig['akku'].append(r)
         band = r['w'].get('band')
         if r['w'].get('score', 0) >= 40 and band in BAND_PEAK_DAYS:
