@@ -378,6 +378,16 @@ def main():
                 build(r, cons[r])
         except Exception:
             log.exception('Korrektur der Gildenpreise fehlgeschlagen, nächster Versuch beim nächsten Start')
+    if not state.get('_adb_house_v1'):   # one-time: AuctionDB files whose houses are keyed "realm Faction" failed before
+        try:   # tool/ah/scanfiles.py reads them since 10.11.2026; their uploads go back into the queue
+            failed = rest('GET', 'gold_radar_uploads', 'status=eq.error&message=like.keine%20Preise%20f*&select=id&limit=500') or []
+            for u in failed:
+                rest('PATCH', 'gold_radar_uploads', f'id=eq.{u["id"]}', {'status': 'pending', 'message': None}, prefer='return=minimal')
+            log.info('AuctionDB-Uploads mit „keine Preise für …“ erneut eingereiht: %d', len(failed))
+            state['_adb_house_v1'] = now_iso()
+            json.dump(state, open(state_path, 'w', encoding='utf-8'))
+        except Exception:
+            log.exception('Erneutes Einreihen fehlgeschlagen, nächster Versuch beim nächsten Start')
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
     census_next = 0.0

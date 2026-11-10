@@ -147,8 +147,10 @@ def from_tradeskills(db, faction, out):
 
 def from_auctiondb(sv, faction, out):
     """houses[faction] = {items = {[id] = "ts,min,median,qty ..."} (every full scan of the last days),
-    daily = {[id] = "ts,min,median,qty,scans ..."} (older days)}. Houses are per faction, no realm stored."""
-    houses = {h: v for h, v in (sv.get('houses') or {}).items() if isinstance(v, dict) and (not faction or h == faction)}
+    daily = {[id] = "ts,min,median,qty,scans ..."} (older days)}. Older versions key the houses by faction alone
+    ("Horde"), newer ones by realm and faction ("eu-forever-pvp Horde", seen 10.11.2026); the label stays the faction."""
+    side = lambda h: str(h).rsplit(' ', 1)[-1]
+    houses = {side(h): v for h, v in (sv.get('houses') or {}).items() if isinstance(v, dict) and (not faction or side(h) == faction)}
     for name, house in houses.items():
         for key in ('items', 'daily'):
             for item_id, entries in (house.get(key) or {}).items():
