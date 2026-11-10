@@ -112,25 +112,6 @@ def auctions(client, region, ns, cid, faction):
     return data.get('auctions', []), lm
 
 
-def find_demo(client, region='eu', faction='Horde', flavours=('classicann', 'classic1x', 'classic'), per=12):
-    """First Classic realm whose auction house the API really delivers: (target, label) or None."""
-    for ns in flavours:
-        try:
-            found = _connected(client, region, ns, per)
-        except LookupError:
-            continue
-        for cid, realms in found:
-            name = next((r.get('name') for r in realms if not TEST_REALM.search(r.get('name', ''))), None)
-            if not name:
-                continue
-            try:
-                if auctions(client, region, ns, cid, faction)[0]:
-                    return f'{ns}:{region}:{cid}:{faction}', f'{name} {faction}'
-            except LookupError:
-                continue
-    return None
-
-
 def snapshot(client, target, cids):
     """(time of Blizzard's dump, {item_id: (low unit buyout, median unit buyout, quantity)}, auction count).
     low = bait-safe lowest price (see below). Several connected realms (one ruleset) count as one market."""

@@ -10,15 +10,11 @@ Loop (every INTERVAL_SECONDS):
    the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again. Without
    GOLD_RADAR_TSM the worker checks once a day whether TSM offers WoW Forever data (tool/ah/tsm.py CANDIDATES) and
    then uses it for the first auction house; status/tsm.json in the bucket tells the admin page.
-4. Demo: once a day the TSM data behind the page's Demo button (GOLD_RADAR_TSM_DEMO, default classic/eu/region)
-   is archived in DATA_DIR/tsm_demo (one file per day: TSM publishes no history), and every page gets its demo built
-   from that archive, so the demo's price history grows on the server without anyone running anything locally.
+4. (The page's demo with Classic data is gone since 10.11.2026; the uploaded model page carries no demo either.)
 5. Blizzard Game Data API (BLIZZARD_CLIENT_ID/SECRET): every auction of the auction house, about hourly.
    Every ruleset like pvp-eu-horde reads its WoW Forever auction house by itself (forever:eu:pvp:Horde, all realms
    of that ruleset; GOLD_RADAR_BLIZZARD="<ruleset>=ns:region:realm[:faction]" overrides) and feeds the live page (lowest unit buyout + quantity per
-   item, so trends and sell-through come from Blizzard's own hourly dumps); GOLD_RADAR_BLIZZARD_DEMO (default
-   classicann:eu:Spineshatter:Horde; if its auction house is not in the API the worker looks for a Classic realm
-   that is) feeds the Demo button instead of TSM when available. Snapshots live only on the
+   item, so trends and sell-through come from Blizzard's own hourly dumps). Snapshots live only on the
    server (blizzard-*.db, last BLIZZARD_KEEP_DAYS days), not in Supabase; status/blizzard.json tells the admin page.
 6. Recorded full scans in uploaded AuctionDB files (every single auction, tool/ah/rawscan.py): kept on the server
    only (raw-<ruleset>.db, not in Supabase; single auctions 4 days, depth 30 days), consecutive scans of any
@@ -56,18 +52,13 @@ INTERVAL = int(os.environ.get('INTERVAL_SECONDS', '60'))
 BUCKET = 'gold-radar'
 TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
 TSM_HOURS = float(os.environ.get('TSM_HOURS', '6'))
-TSM_DEMO = os.environ.get('GOLD_RADAR_TSM_DEMO', 'classic/eu/region')
 BLIZZ = blizzard.Client(os.environ['BLIZZARD_CLIENT_ID'], os.environ['BLIZZARD_CLIENT_SECRET']) \
     if os.environ.get('BLIZZARD_CLIENT_ID') and os.environ.get('BLIZZARD_CLIENT_SECRET') else None
 BLIZZ_TARGETS = {r: blizzard.ruleset_target(r) for r in RULESETS if blizzard.ruleset_target(r)}  # one per ruleset
 BLIZZ_TARGETS.update(x.strip().split('=', 1) for x in os.environ.get('GOLD_RADAR_BLIZZARD', '').split(',') if '=' in x)
-BLIZZ_DEMO_SET = bool(os.environ.get('GOLD_RADAR_BLIZZARD_DEMO'))  # set by hand: no automatic search for another realm
-BLIZZ_DEMO = os.environ.get('GOLD_RADAR_BLIZZARD_DEMO', 'classicann:eu:Spineshatter:Horde') if BLIZZ else ''
 BLIZZ_MINUTES = float(os.environ.get('BLIZZARD_MINUTES', '60'))
 BLIZZ_KEEP_DAYS = float(os.environ.get('BLIZZARD_KEEP_DAYS', '10'))
-BLIZZ_STATUS = {}  # per ruleset/demo: last result of the hourly Blizzard import (also read when pages are built)
-DEMO = {'con': None, 'target': BLIZZ_DEMO,
-        'label': 'Blizzard ' + ' '.join(BLIZZ_DEMO.split(':')[2:]) if BLIZZ_DEMO else ''}
+BLIZZ_STATUS = {}  # per ruleset: last result of the hourly Blizzard import (also read when pages are built)
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
 
@@ -306,29 +297,7 @@ def build(ruleset, con):
             id='blizzard', name='Blizzard-API (ganzes AH)', t=int(datetime.fromisoformat(bz['dump']).timestamp()),
             items=bz.get('items'), auctions=bz.get('auctions'),
             note='Alle Auktionen des Auktionshauses, stündlich: Tiefstpreis und Menge je Item.'))
-    blizz_demo = tsm_demo = None
-    if DEMO['con'] is not None:  # demo from Blizzard's own hourly dumps (Classic), if there are any yet
-        try:
-            blizz_demo = dashboard.live_payload(DEMO['con'], DEMO['label'], CFG, data['ctx'])
-            if blizz_demo:
-                blizz_demo['realm'] = DEMO['label'] + ' (Classic)'
-        except Exception as e:
-            log.warning('Demo aus den Blizzard-Daten nicht gebaut: %s', e)
-    if TSM_DEMO:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
-        try:
-            fills = {tier: [tuple(f) for f in v] for tier, v in data['ctx']['fills'].items()}
-            tsm_demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
-                                      CFG, set(data['ctx']['wanted']), fills)
-        except Exception as e:
-            log.warning('Demo aus dem TSM-Archiv nicht gebaut: %s', e)
-    # Blizzard's Classic realm may be a later expansion with other items: only use it when it prices about as many of
-    # this page's items as the TSM demo does (or when there is no TSM demo)
-    if blizz_demo and (not tsm_demo or len(blizz_demo['rows']) >= 0.6 * len(tsm_demo['rows'])):
-        data['demo'] = blizz_demo
-    elif tsm_demo:
-        if blizz_demo:
-            log.info('Blizzard-Demo %s preist nur %d Items (TSM: %d), nehme TSM', DEMO['label'], len(blizz_demo['rows']), len(tsm_demo['rows']))
-        data['demo'] = tsm_demo
+    data['demo'] = None   # no demo any more (an older uploaded model page may still carry one)
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
@@ -367,11 +336,8 @@ def main():
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
-    demo_next = 0.0
     census_next = 0.0
     blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, BLIZZ_STATUS
-    if BLIZZ_DEMO:
-        DEMO['con'] = blizz_db('demo')
     arch = {r: blizz_db(r) for r in BLIZZ_TARGETS if r in RULESETS}
     while True:
         dirty = set()
@@ -408,8 +374,8 @@ def main():
                     tsm_next[RULESETS[0]] = 0.0
                 else:
                     log.info('TSM: noch keine WoW-Forever-Daten, nächste Prüfung in 24 Std.')
-            if BLIZZ:  # Blizzard: whole auction house about hourly (live targets, then the demo)
-                jobs = [(r, t) for r, t in BLIZZ_TARGETS.items() if r in RULESETS] + ([('demo', DEMO['target'])] if DEMO['target'] else [])
+            if BLIZZ:  # Blizzard: whole auction house about hourly
+                jobs = [(r, t) for r, t in BLIZZ_TARGETS.items() if r in RULESETS]
                 changed = False
                 if time.time() >= blizz_next.get('_realms', 0):  # Forever realm names for the admin page (which realms exist yet)
                     blizz_next['_realms'] = time.time() + 86400
@@ -434,28 +400,14 @@ def main():
                                   dump=datetime.fromtimestamp(ts, timezone.utc).isoformat())
                         if ts != blizz_last.get(key):
                             blizz_last[key] = ts
-                            if key == 'demo':
-                                blizz_put([DEMO['con']], DEMO['label'], ts, snap)
-                                dirty.update(RULESETS)
-                            else:
-                                blizz_put([cons[key], arch[key]], key, ts, snap)
-                                dirty.add(key)
+                            blizz_put([cons[key], arch[key]], key, ts, snap)
+                            dirty.add(key)
                             log.info('Blizzard %s: %d Auktionen, %d Items (Stand %s)', target, n, len(snap), st['dump'])
                     except Exception as e:  # not published yet, realm unknown, API down: report, try again later
                         st.update(ok=False, error=str(e)[:200])
                         if isinstance(e, LookupError) and 'nicht gefunden' in str(e):
                             st['realms'] = blizzard.realm_names(BLIZZ, t['region'], t['ns'])[:80]
                         log.info('Blizzard %s: %s', target, e)
-                        if key == 'demo' and not BLIZZ_DEMO_SET and time.time() >= blizz_next.get('_find', 0):
-                            blizz_next['_find'] = time.time() + 86400  # the default demo realm has no AH data: find one
-                            found = blizzard.find_demo(BLIZZ)
-                            if found:
-                                DEMO['target'], DEMO['label'] = found[0], 'Blizzard ' + found[1]
-                                blizz_cid.pop('demo', None)
-                                blizz_next['demo'] = 0.0
-                                log.info('Blizzard-Demo: nehme stattdessen %s (%s)', found[1], found[0])
-                            else:
-                                log.info('Blizzard-Demo: kein Classic-Auktionshaus in der API gefunden, Demo bleibt bei TSM')
                     changed = True
                 if changed:
                     try:
@@ -474,17 +426,6 @@ def main():
                         dirty.update(RULESETS)
                 except Exception as e:
                     log.warning('Census: Abruf fehlgeschlagen: %s', e)
-            if TSM_DEMO and time.time() >= demo_next:  # demo archive: TSM updates region data once a day
-                demo_next = time.time() + 6 * 3600
-                try:
-                    before = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo'))) if os.path.isdir(os.path.join(DATA_DIR, 'tsm_demo')) else 0
-                    tsm.archive(TSM_DEMO, os.path.join(DATA_DIR, 'tsm_demo'))
-                    after = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo')))
-                    if after != before:  # a new day in the archive: rebuild the pages with the longer demo history
-                        log.info('Demo-Archiv %s: neuer Tag, %d Dateien', TSM_DEMO, after)
-                        dirty.update(RULESETS)
-                except Exception as e:
-                    log.warning('Demo-Archiv %s: Abruf fehlgeschlagen: %s', TSM_DEMO, e)
             for r, when in tsm_next.items():  # TSM public data, every TSM_HOURS (also right after a resync)
                 if time.time() < when and r not in revoked:
                     continue

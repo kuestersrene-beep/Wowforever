@@ -336,11 +336,11 @@ export default async function GoldRadarAdminPage() {
           {blizz &&
             Object.entries(blizz.targets ?? {}).map(([key, t]) => (
               <div key={key} className={t.ok ? "text-green-300" : "text-slate-400"}>
-                {key === "demo" ? "Demo" : key}: <code>{t.target}</code> –{" "}
+                {key}: <code>{t.target}</code> –{" "}
                 {t.ok
                   ? `${t.auctions} Auktionen, ${t.items} Items, Stand ${t.dump ? fmt(t.dump) : "?"}`
                   : `noch keine Daten (${t.error ?? "?"})`}
-                {t.ok && key !== "demo" && t.realms_used?.length ? ` · gelesen: ${t.realms_used.join(", ")}` : ""}
+                {t.ok && t.realms_used?.length ? ` · gelesen: ${t.realms_used.join(", ")}` : ""}
               </div>
             ))}
           {blizz && (
@@ -370,7 +370,7 @@ export default async function GoldRadarAdminPage() {
         <DashboardUpload defaultRuleset={defaultRuleset()} />
         <p className="text-xs text-slate-500">
           Hochladen: <code>dashboard-teilen.html</code> aus <code>python ah/dashboard.py --teilen</code>{" "}
-          (enthält das Modell und die Demo, keine Preise). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
+          (enthält das Modell, keine Preise). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
           <code>pvp-eu-horde</code>. Die Datei wird als Vorlage gespeichert; gold-radar-worker setzt die
           gemeinsamen Scans der Mitglieder ein und baut die Seite innerhalb weniger Minuten neu.
         </p>

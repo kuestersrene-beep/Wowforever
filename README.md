@@ -382,14 +382,12 @@ nur Mitgliedern mit einer bestimmten Discord-Rolle.
    `docker compose logs -f gold-radar-worker`.
    TradeSkillMaster-Daten (tradeskillmaster.com/public-data): Der Dienst prüft einmal am Tag, ob TSM
    WoW-Forever-Daten anbietet, und nutzt sie dann automatisch alle 6 Stunden (Marktwert und Verkäufe pro
-   Tag). Den Stand zeigt `/admin/gold-radar` unter „Tool-Daten“. Außerdem archiviert der Dienst täglich die
-   TSM-Classic-EU-Daten für den Demo-Knopf (`GOLD_RADAR_TSM_DEMO`) und baut die Demo daraus, mit wachsendem Verlauf. Fest einstellen lässt es sich mit
+   Tag). Den Stand zeigt `/admin/gold-radar` unter „Tool-Daten“. Fest einstellen lässt es sich mit
    `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>`.
    **Blizzard-API:** Mit `BLIZZARD_CLIENT_ID`/`BLIZZARD_CLIENT_SECRET` (develop.battle.net) liest der Dienst
    stündlich das ganze Auktionshaus. Forever hat keine Realms, nur Rulesets: `pvp-eu-horde` liest von selbst alle
    PvP-Realms EU, Horde (`forever:eu:pvp:Horde`), sobald Blizzard sie freigibt; `GOLD_RADAR_BLIZZARD` nur zum
-   Überschreiben. Der Demo-Knopf nimmt Classic (Standard Spineshatter; liefert die API dessen AH nicht, sucht der
-   Dienst selbst ein Classic-AH; fest setzen mit `GOLD_RADAR_BLIZZARD_DEMO`). Die Stände bleiben auf dem Server (letzte 10 Tage).
+   Überschreiben. Die Stände bleiben auf dem Server (letzte 10 Tage).
    Prüfen: `docker compose exec gold-radar-worker python blizzard_probe.py`.
    Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
    *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.

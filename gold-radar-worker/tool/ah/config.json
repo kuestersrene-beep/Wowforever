@@ -59,7 +59,5 @@
   "tsm": "",
   "_tsm": "TSM-Public-Data für dein Auktionshaus (live, fließt in die Auswertung). Leer lassen: Solange es leer ist, prüft ah/tsm.py bei jedem Scan höchstens einmal am Tag, ob TSM WoW-Forever-Daten anbietet (Pfade aus tsm_kandidaten), und trägt den Pfad dann selbst ein.",
   "tsm_kandidaten": ["forever/eu/region", "wow-forever/eu/region", "classic-forever/eu/region", "forever-classic/eu/region"],
-  "tsm_demo": "classic/eu/region",
-  "_tsm_demo": "TSM-Daten für den Demo-Knopf im Dashboard (andere Spielversion, nur zum Ausprobieren, fließt nie in die Auswertung)",
   "_flip_exponent": "Gewichtung Gewinn/Tag im Flip-Score: höher = Massenware mit viel Umsatz zählt mehr als hohe Marge (0.35 Start, nach echten Scans prüfen)"
 }

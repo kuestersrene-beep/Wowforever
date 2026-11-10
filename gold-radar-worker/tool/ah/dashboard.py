@@ -3,20 +3,14 @@ in the page), item icons and tooltips, refining candidates, limited vendor recip
 
     python ah/dashboard.py            -> dashboard.html (with your own scan data, if any)
     python ah/dashboard.py --teilen   -> dashboard-teilen.html (model only, to give to guild mates)
-
-Both files also contain a demo data set from TradeSkillMaster's public Classic EU data (button "Demo" in the page,
-config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
-never part of the evaluation.
 """
-import math
-import random
-import base64, glob, json, os, sqlite3, sys, statistics
-from datetime import datetime, date
+import base64, json, os, sqlite3, sys
+from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import analyse, tsm
+import analyse
 from snapshot import SCHEMA
 
 
@@ -93,80 +87,6 @@ def live_data(cfg):
     realm = cfg.get('realm') or realms[0][0]
     now = con.execute('SELECT MAX(seen) FROM scans WHERE realm=?', (realm,)).fetchone()[0]
     return analysed(con, realm, cfg, now)
-
-
-def demo_data(cfg, snapdir=None):
-    """TSM public data (Classic EU by default) replayed as if it were our own scan on day 3.5 after launch, for
-    demonstration only. TSM publishes one state per item (no history, no AH quantities), so every build keeps one copy
-    per day in tsm_demo/ and the price history grows from those (up to 14 days). Sold per day stands in for
-    sell-through; while there are fewer than 3 days, the average sale price 3 days earlier gives trends a reference."""
-    path = cfg.get('tsm_demo') or 'classic/eu/region'
-    snapdir = snapdir or os.path.join(ROOT, 'tsm_demo')
-    try:
-        latest = tsm.archive(path, snapdir)  # on the website the worker keeps this archive (daily)
-    except OSError as e:
-        print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
-        return None
-    if not latest:
-        return None
-    snaps = [tsm.parse(open(f, encoding='utf-8').read()) for f in sorted(glob.glob(os.path.join(snapdir, '20*.csv')))[-14:]]
-    known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
-    snaps = [[r for r in rows if str(r['item_id']) in known] for rows in snaps]  # only items that exist in WoW Forever
-    launch = datetime.fromisoformat(cfg.get('launch', '2026-11-05'))
-    now = int(launch.timestamp() + 3.5 * 86400)
-    shift = now - max(r['t'] for r in snaps[-1])
-    con = sqlite3.connect(':memory:')
-    con.executescript(SCHEMA)
-    realm = 'TSM ' + path.split('/')[0].capitalize() + ' ' + path.split('/')[1].upper()
-    for rows in snaps:
-        for r in rows:
-            r['t'] += shift
-        tsm.store(con, realm, rows)
-    simulate_history(con, realm, snaps)
-    simulate_quantities(con, realm, snaps)
-    # the demo's quantities are simulated: sell-through comes from TSM's real sales, not from their noise
-    live = analysed(con, realm, dict(cfg, tsm_abverkauf_vorrang=True), now)
-    live['tsm_days'] = len(snaps)
-    live['qty_simulated'] = True
-    return live
-
-
-def simulate_history(con, realm, snaps, days=30):
-    """DEMO ONLY: TSM gives one state per item, so the demo has no 7- or 30-day price curve. Every item gets a plausible
-    daily history before its first real point: a mean-reverting walk that ends at today's price and drifts toward TSM's
-    60-day value, more restless for rarely sold items. Reproducible, marked as simulated on the page, never real data."""
-    first = min(r['t'] for r in snaps[0])
-    for r in snaps[-1]:
-        if not r['market']:
-            continue
-        ref = r.get('historical') or r.get('avg_sale') or r['market']
-        rng = random.Random(r['item_id'] * 104729)
-        sigma = 0.04 + 0.10 / (1 + (r.get('sold_per_day') or 0))
-        x, rows = math.log(r['market'] / ref), []
-        for k in range(1, days + 1):
-            x = 0.9 * x + rng.gauss(0, sigma)
-            price = max(1, int(ref * math.exp(x)))
-            rows.append((realm, r['item_id'], first - k * 86400, price, price, None, None, None, int(first)))
-        con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)', rows)
-    con.commit()
-
-
-def simulate_quantities(con, realm, snaps):
-    """DEMO ONLY: TSM publishes no AH quantities, which leaves the demo without the quantity chart, squeeze signal and
-    sell-through. So the demo gets plausible, reproducible quantities: about three days of sales listed, fewer when the
-    price is above its long-run value and more when below, with some day-to-day noise. Marked as simulated on the page;
-    never used for real data (the live database never goes through here)."""
-    sold = {r['item_id']: r for r in snaps[-1]}
-    for iid, seen, price in con.execute('SELECT item_id, seen, market FROM scans WHERE realm=?', (realm,)).fetchall():
-        r = sold.get(iid)
-        if not r or not price:
-            continue
-        ref = r.get('historical') or r.get('avg_sale') or price
-        rng = random.Random(iid * 7919 + seen // 86400)
-        q = max(2.0, (r.get('sold_per_day') or 0) * 3.0) * (ref / price) ** 0.5 * rng.uniform(0.8, 1.25)
-        con.execute('UPDATE scans SET quantity=? WHERE realm=? AND item_id=? AND seen=?',
-                    (int(max(1, min(q, 3000))), realm, iid, seen))
-    con.commit()
 
 
 def flips(live, cfg):
@@ -423,7 +343,6 @@ def main():
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
                    limited=limited, kk=load('kaufkraft.json'), de=de_names(), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
                    live=None if share else pack(live_data(cfg), cfg, wanted, fills),
-                   demo=pack(demo_data(cfg), cfg, wanted, fills),
                    # what live_payload() needs to add live data to this page later (website worker)
                    ctx=dict(wanted=sorted(wanted), fills=fills))
     tpl = open(os.path.join(HERE, 'dashboard_template.html'), encoding='utf-8').read()
