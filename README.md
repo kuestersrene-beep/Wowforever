@@ -1,424 +1,247 @@
-# WoW Forever Umfrage
+<p align="center">
+  <img src="public/images/factions/black-cocoon-wappen-512.png" alt="Wappen von Black Cocoon" width="160">
+</p>
 
-Kleine, schlanke Web-App für eine Umfrage unter Freunden zu "World of
-Warcraft Forever". Login per Discord, ein Fragebogen pro Person, ein
-Admin-Dashboard mit Auswertung.
+<h1 align="center">Black Cocoon · Gilden-Website für WoW Forever</h1>
 
-**Tech-Stack:** Next.js (App Router, TypeScript) + Tailwind CSS + Supabase
-(Auth & Datenbank) + Recharts. Läuft als Docker-Container auf deinem
-eigenen Server.
+<p align="center">
+  Website, Discord-Bot und Auktionshaus-Tool der Gilde <b>Black Cocoon</b> (Horde, PvP, EU).<br>
+  Mitglieder melden sich mit Discord an und finden alles an einem Ort: Umfragen, Raid-Planung,
+  Guides und mit <b>Blackwater Terminal</b> ein eigenes Gold-Tool.
+</p>
 
----
-
-## 0. Überblick, was du gleich tust
-
-1. Supabase-Projekt anlegen, SQL-Schema einspielen
-2. Discord-App anlegen, mit Supabase verbinden
-3. Deine eigene Discord-ID herausfinden und als Admin eintragen
-4. Lokal testen
-5. Auf deinem Server mit Docker deployen
-
----
-
-## 1. Supabase-Projekt anlegen
-
-1. Gehe zu [supabase.com](https://supabase.com) und erstelle einen kostenlosen
-   Account, dann ein neues Projekt (z. B. Name: `wowforever`).
-2. Warte, bis das Projekt fertig eingerichtet ist (ca. 2 Minuten).
-3. Gehe links im Menü auf **SQL Editor** → **New query**.
-4. Öffne die Datei [`supabase/schema.sql`](./supabase/schema.sql) aus diesem
-   Projekt, kopiere den kompletten Inhalt hinein und klicke **Run**.
-   - Das erstellt die Tabelle `responses`, aktiviert Row Level Security
-     (jede Person sieht nur ihre eigene Zeile) und legt die View
-     `participants_overview` an (zeigt allen eingeloggten Nutzer:innen eine
-     abgespeckte Übersicht ohne sensible Detailfelder).
-5. Gehe zu **Project Settings** (Zahnrad unten links) → **API**. Dort
-   findest du drei Werte, die du gleich brauchst:
-   - **Project URL** → wird zu `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** Key → wird zu `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - **service_role** Key (unter "Project API keys", eingeklappt, mit
-     Warnhinweis) → wird zu `SUPABASE_SERVICE_ROLE_KEY`.
-     ⚠️ **Diesen Key niemals öffentlich teilen oder ins Frontend einbauen** –
-     er hebelt Row Level Security komplett aus. Wir verwenden ihn nur
-     serverseitig im Admin-Dashboard.
+<p align="center">
+  <img alt="Next.js 15" src="https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3FCF8E?logo=supabase&logoColor=white">
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white">
+</p>
 
 ---
 
-## 2. Discord-App im Developer Portal anlegen
+## Inhalt
 
-1. Gehe zu <https://discord.com/developers/applications> und logge dich mit
-   deinem Discord-Account ein.
-2. Klicke **New Application**, gib einen Namen ein (z. B. "WoW Forever
-   Umfrage") und bestätige.
-3. Im Menü links: **OAuth2** → **General**. Dort findest du:
-   - **Client ID**
-   - **Client Secret** (Klick auf "Reset Secret" bzw. "Copy", falls noch
-     keins angezeigt wird)
-4. Diese beiden Werte brauchst du **nicht** in deiner `.env` – sie werden
-   direkt in Supabase eingetragen (siehe Schritt 3).
-5. Die **Redirect URL** trägst du hier noch nicht ein – die bekommst du erst
-   von Supabase, im nächsten Schritt.
+- [Funktionen](#funktionen)
+- [Aufbau](#aufbau)
+- [Schnellstart](#schnellstart)
+- [Deployment](#deployment)
+- [Umgebungsvariablen](#umgebungsvariablen)
+- [Rechte und Rollen](#rechte-und-rollen)
+- [Datenschutz](#datenschutz)
+- [Projektstruktur](#projektstruktur)
+- [Weitere Dokumentation](#weitere-dokumentation)
 
----
+## Funktionen
 
-## 3. Discord-Provider in Supabase aktivieren
+Alle Seiten außer der Startseite brauchen einen Discord-Login. Die Oberfläche gibt es auf Deutsch
+und Englisch.
 
-1. Gehe in deinem Supabase-Projekt zu **Authentication** → **Providers**.
-2. Suche **Discord** in der Liste und aktiviere ihn.
-3. Trage dort **Client ID** und **Client Secret** aus Schritt 2 ein und
-   speichere.
-4. Supabase zeigt dir jetzt eine **Callback URL** an, meist im Format:
-   `https://xxxxxxxxxxxx.supabase.co/auth/v1/callback`
-   Kopiere diese URL.
-5. Zurück im Discord Developer Portal → **OAuth2** → **General** → Abschnitt
-   **Redirects**: Füge genau diese URL als Redirect hinzu und speichere.
-6. Wichtig: Gehe in Supabase zu **Authentication** → **URL Configuration**
-   und trage dort ein:
-   - **Site URL**: die Adresse, unter der deine App später erreichbar ist
-     (z. B. `https://umfrage.deine-domain.de`, siehe Schritt 6). Lokal zum
-     Testen kannst du vorübergehend `http://localhost:3000` eintragen.
-   - **Redirect URLs**: zusätzlich `http://localhost:3000/auth/callback`
-     (für lokales Testen) und `https://umfrage.deine-domain.de/auth/callback`
-     (für den Live-Betrieb) hinzufügen.
+### Gilde
 
-Das Scope "identify" (kein E-Mail-Zugriff) ist bereits im Code fest
-hinterlegt (`components/LoginButton.tsx`) – du musst dafür in Discord
-nichts extra einstellen.
+| Seite | Was sie macht |
+|---|---|
+| `/umfrage` | Fragebogen pro Person: Klassen nach Priorität, zwei Berufe, Kommentar. Jede Antwort lässt sich jederzeit ändern oder löschen. |
+| `/uebersicht` | Übersicht aller Teilnehmer für eingeloggte Mitglieder, ohne sensible Detailfelder |
+| `/verfuegbarkeit` | Wochentage und Tageszeiten, an denen jemand meistens spielen kann |
+| `/charaktere` | Eigene Charaktere (Klasse, Rolle, Level, Main/Twink) und das Gilden-Roster nach Rollen |
+| `/termine` | Raids und Termine mit Anmeldung (*Dabei*, *Vorläufig*, *Abgemeldet*). Auf Wunsch wöchentlich wiederkehrend. Dieselben Anmeldungen gibt es auch im Discord. |
+| `/fraktionen` | Gildenabstimmung über die Gildenkonzepte |
+| `/gildenname` | Namensvorschläge und Abstimmung über den Gildennamen |
+| Startseite | Countdown zum Launch und kurze Abstimmungen |
+| `/guides` | Faktengeprüfte Guides zu WoW Forever mit Item-Tooltips |
+| `/downloads` | Dateien und Tools für die Gilde |
 
----
+### Blackwater Terminal
 
-## 4. Deine eigene Discord-User-ID herausfinden
+Das Auktionshaus-Tool der Gilde unter `/gold-radar`, nur für Mitglieder mit der passenden
+Discord-Rolle. Es zeigt in einer Ansicht:
 
-1. Öffne Discord (App oder Browser).
-2. Gehe zu **Benutzereinstellungen** (Zahnrad) → **Erweitert** →
-   Schalter **Entwicklermodus** aktivieren.
-3. Klicke irgendwo mit der rechten Maustaste auf deinen eigenen Namen/Avatar
-   (z. B. in einer Server-Mitgliederliste oder oben links auf dein
-   Profilbild) und wähle **"Benutzer-ID kopieren"**.
-4. Das ist eine lange Zahl (z. B. `297344597339529219`) – das ist deine
-   `ADMIN_DISCORD_IDS`.
+- welche Mats wann gefragt sind,
+- welche Mobs sich zum Kürschnern oder Angeln lohnen,
+- was im AH gerade zu billig ist,
+- welche Rezepte Gewinn bringen.
 
-Wiederhole das für jede Person, die auch Admin-Zugriff bekommen soll, und
-trage alle IDs kommagetrennt ein (siehe nächster Schritt).
+Die Preise kommen aus Scans, die Mitglieder hochladen, und aus der Blizzard-API. Ein eigener Worker
+misst daraus echte Verkäufe. Details: [docs/BLACKWATER-TERMINAL.md](docs/BLACKWATER-TERMINAL.md).
 
----
+### Admin-Bereich
 
-## 5. Umgebungsvariablen setzen
+- **`/admin`:** Auswertung der Umfrage mit Diagrammen, Tabelle, CSV-Export und Notizen.
+  Außerdem lassen sich hier kurze Abstimmungen, Downloads und das Logo verwalten.
+- **`/admin/texte`:** Texte der Website direkt im Browser bearbeiten.
+- **`/admin/fraktionen`:** Gildenkonzepte für die Abstimmung anlegen.
+- **`/admin/gold-radar`:** Nutzung, Uploads, Feedback und Tool-Daten des Blackwater Terminals.
 
-Kopiere `.env.local.example` zu `.env.local` (für lokales Testen):
+### Discord-Bot
+
+Ein Bot in [`discord-setup/`](discord-setup/README.md) verbindet den Discord-Server mit der Website:
+
+- Raid-Anmeldung im Discord, synchron mit `/termine`.
+- Rollen-Sync: Ränge und Zugangsrollen landen alle 2 Minuten in der Datenbank.
+- Bewerbungs-Tickets, Mod-Log und Willkommens-Nachricht.
+- Blizzard-Blueposts zu WoW Forever.
+
+## Aufbau
+
+```mermaid
+flowchart LR
+  M["Mitglieder<br/>(Browser)"] -->|HTTPS| N[nginx]
+  N --> A["app<br/>Next.js, Port 3001"]
+  A <-->|Auth + Daten| S[("Supabase<br/>Postgres, Auth, Storage")]
+  D["Discord"] <-->|OAuth-Login| S
+  BOT["discord-bot<br/>Python"] <--> D
+  BOT <-->|Rollen, Raid-Anmeldungen| S
+  W["gold-radar-worker<br/>Python"] <-->|Scans, Tool-Seite| S
+  BZ["Blizzard-API"] --> W
+```
+
+Drei Docker-Container laufen nebeneinander (`docker-compose.yml`):
+
+| Dienst | Aufgabe |
+|---|---|
+| `app` | Die Next.js-Website. Sie ist nur intern auf `127.0.0.1:3001` erreichbar, das vorhandene nginx leitet von außen weiter. |
+| `discord-bot` | Gilden-Bot (`discord-setup/`), eigene `.env` |
+| `gold-radar-worker` | Liest Scan-Uploads, die Blizzard-API und TSM ein und baut die Seite des Blackwater Terminals neu. Er nutzt dieselbe `.env` wie die App. |
+
+**Technik:**
+
+- Next.js 15 (App Router, Server Actions) mit TypeScript.
+- Tailwind CSS, Recharts für Diagramme, Tiptap als Texteditor.
+- Supabase für Discord-OAuth, Postgres mit Row Level Security und Storage.
+- Bot und Worker in Python 3.12. Der Worker nutzt nur die Standardbibliothek.
+
+## Schnellstart
+
+Voraussetzungen: Node.js 20, ein Supabase-Projekt und eine Discord-App. Wie man beides einrichtet,
+steht Schritt für Schritt in [docs/SETUP.md](docs/SETUP.md).
+
+1. Repository klonen:
+   ```bash
+   git clone https://github.com/kuestersrene-beep/Wowforever.git
+   ```
+2. In den Ordner wechseln:
+   ```bash
+   cd Wowforever
+   ```
+3. Die Vorlage für die Umgebungsvariablen kopieren:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+4. Supabase-URL, Keys und die eigene Discord-ID in `.env.local` eintragen.
+5. `supabase/schema.sql` im Supabase SQL Editor ausführen. Das Skript ist wiederholbar.
+6. Abhängigkeiten installieren:
+   ```bash
+   npm install
+   ```
+7. Den Entwicklungsserver starten:
+   ```bash
+   npm run dev
+   ```
+
+Danach läuft die Seite unter <http://localhost:3000>.
+
+## Deployment
+
+Die Website läuft per Docker Compose auf einem eigenen Server hinter nginx mit HTTPS über certbot.
+Die vollständige Anleitung steht in [docs/SETUP.md](docs/SETUP.md#6-deployment-auf-deinem-eigenen-server-hetzner-neben-einem-bestehenden-nginx).
+Ein Beispiel für die nginx-Seite liegt in [`deploy/nginx-wowforever.conf.example`](deploy/nginx-wowforever.conf.example).
+
+Ein Update auf dem Server holt den neuen Stand und baut alle Container neu:
 
 ```bash
-cp .env.local.example .env.local
+git pull && docker compose up -d --build
 ```
 
-Trage dort ein:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...       # aus Schritt 1
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...  # aus Schritt 1
-SUPABASE_SERVICE_ROLE_KEY=...      # aus Schritt 1
-ADMIN_DISCORD_IDS=deine-id,weitere-id
-```
-
-**Lokal testen:**
-
-```bash
-npm install
-npm run dev
-```
-
-Öffne <http://localhost:3000>, logge dich mit Discord ein, fülle die
-Umfrage aus und schau dir `/admin` an (funktioniert nur, wenn deine
-Discord-ID in `ADMIN_DISCORD_IDS` steht).
-
----
-
-## 6. Deployment auf deinem eigenen Server (Hetzner, neben einem bestehenden nginx)
-
-Dieses Setup geht davon aus, dass auf deinem Server bereits **nginx direkt
-installiert** läuft (kein Docker) und dort schon ein anderes Projekt bedient
-wird. Die Umfrage-App läuft deshalb als Docker-Container **nur intern** auf
-Port `3001` (nicht von außen erreichbar), und das vorhandene nginx bekommt
-eine zusätzliche Seite, die Anfragen von deiner DuckDNS-Adresse (z. B.
-`deine-id.duckdns.org`) an diesen internen Port weiterleitet. Für das
-HTTPS-Zertifikat nutzen wir `certbot`, der sich in nginx einklinkt.
-
-Alle Befehle führst du direkt in deiner SSH-Sitzung auf dem Server aus.
-
-### Voraussetzungen
-
-- Docker + Docker-Compose-Plugin installiert (falls noch nicht vorhanden):
-  ```bash
-  curl -fsSL https://get.docker.com | sh
-  ```
-- Deine DuckDNS-Adresse zeigt bereits auf die IP deines Servers (hast du
-  laut deinen Angaben schon eingerichtet).
-
-### Schritt 1: Projekt auf den Server holen
-
-```bash
-git clone -b claude/wow-forever-survey-app-0p0ka6 https://github.com/kuestersrene-beep/Wowforever.git wowforever
-cd wowforever
-```
-
-### Schritt 2: `.env` Datei anlegen
-
-Am einfachsten fügst du den ganzen Block in einem Rutsch ein (Werte vorher
-mit deinen echten Daten aus Supabase/Discord ersetzen), dann brauchst du
-keinen Editor wie `nano`:
-
-```bash
-cat > .env << 'EOF'
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=dein-anon-oder-publishable-key
-SUPABASE_SERVICE_ROLE_KEY=dein-service-role-oder-secret-key
-ADMIN_DISCORD_IDS=deine-discord-id
-EOF
-```
-
-Prüfen, ob alles richtig drinsteht:
-
-```bash
-cat .env
-```
-
-### Schritt 3: App bauen und starten (nur intern, Port 3001)
-
-```bash
-docker compose up -d --build
-```
-
-Testen, ob sie lokal auf dem Server antwortet (sollte HTML zurückgeben):
-
-```bash
-curl -I http://127.0.0.1:3001
-```
-
-### Schritt 4: Neue nginx-Seite für die DuckDNS-Adresse anlegen
-
-Konfigurationsdatei anlegen (ersetze `deine-id.duckdns.org` durch deine
-echte Adresse):
-
-```bash
-sudo tee /etc/nginx/sites-available/wowforever > /dev/null << 'EOF'
-server {
-    listen 80;
-    listen [::]:80;
-    server_name deine-id.duckdns.org;
-
-    location / {
-        proxy_pass http://127.0.0.1:3001;
-        # Beim Login setzt Supabase mehrere große Cookies auf einmal - mit den
-        # Standard-Puffern antwortet nginx sonst mit 502 ("upstream sent too big header").
-        proxy_buffer_size 128k;
-        proxy_buffers 4 256k;
-        proxy_busy_buffers_size 256k;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-EOF
-```
-
-Seite aktivieren und nginx neu laden:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/wowforever /etc/nginx/sites-enabled/wowforever
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-`nginx -t` prüft die Konfiguration auf Fehler, bevor irgendetwas
-angewendet wird – falls hier ein Fehler erscheint, nichts weiter
-ausführen und den Fehlertext genau lesen (meist ein Tippfehler in der
-Domain).
-
-Jetzt sollte `http://deine-id.duckdns.org` bereits die App zeigen (noch
-ohne HTTPS).
-
-### Schritt 5: HTTPS mit certbot einrichten
-
-Falls certbot noch nicht installiert ist:
-
-```bash
-sudo apt update && sudo apt install -y certbot python3-certbot-nginx
-```
-
-Zertifikat holen und nginx automatisch auf HTTPS umstellen lassen:
-
-```bash
-sudo certbot --nginx -d deine-id.duckdns.org
-```
-
-Certbot fragt nach einer E-Mail-Adresse (für Ablauf-Erinnerungen) und ob
-HTTP automatisch auf HTTPS umgeleitet werden soll – das kannst du
-bestätigen. Die automatische Zertifikats-Erneuerung richtet certbot
-selbstständig ein (Systemd-Timer), du musst dich um nichts weiter kümmern.
-
-Jetzt sollte `https://deine-id.duckdns.org` funktionieren.
-
-### Schritt 6: Redirect-URLs in Supabase finalisieren
-
-Gehe in Supabase zu **Authentication → URL Configuration** und trage ein:
-
-- **Site URL**: `https://deine-id.duckdns.org`
-- **Redirect URLs**: zusätzlich `https://deine-id.duckdns.org/auth/callback`
-
-Und im Discord Developer Portal unter **OAuth2 → General → Redirects**
-sicherstellen, dass dort weiterhin nur die Supabase-Callback-URL steht
-(die ändert sich durch dieses Setup nicht, siehe Abschnitt 3).
-
-### Updates einspielen
-
-```bash
-git pull
-docker compose up -d --build
-```
-
-### Logs ansehen
+Logs eines Dienstes:
 
 ```bash
 docker compose logs -f app
 ```
 
----
+> [!NOTE]
+> `NEXT_PUBLIC_*`-Werte baut Next.js beim Build fest ein. Wer sie ändert, muss die App neu bauen.
 
-## 7. Datenschutz & Datenminimierung
+## Umgebungsvariablen
 
-- Gespeichert werden ausschließlich: Discord-User-ID, Anzeigename,
-  Avatar-URL und die Umfrageantworten – keine E-Mail-Adresse, keine sonstigen
-  Discord-Daten.
-- Row Level Security sorgt dafür, dass jede Person nur ihre eigene Zeile
-  lesen, ändern oder löschen kann.
-- Über den "Antwort löschen"-Button auf der Umfrageseite kann jede Person
-  ihre Daten jederzeit vollständig entfernen.
-- Der `service_role`-Key (voller Datenbankzugriff) wird ausschließlich
-  serverseitig im Admin-Dashboard verwendet und ist nie im Browser sichtbar.
-- Es gibt keine Tracking-Skripte, Analytics oder Cookies außer den
-  technisch notwendigen Login-Session-Cookies von Supabase.
+Die Vorlage mit Erklärungen ist [`.env.local.example`](.env.local.example).
 
----
+| Variable | Pflicht | Wofür |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ja | Adresse des Supabase-Projekts |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ja | Öffentlicher Supabase-Key, durch Row Level Security abgesichert |
+| `SUPABASE_SERVICE_ROLE_KEY` | ja | Voller Datenbankzugriff, **nur serverseitig**, niemals mit `NEXT_PUBLIC_` |
+| `ADMIN_DISCORD_IDS` | ja | Feste Admins als Notfall-Zugang, kommagetrennt |
+| `DISCORD_WEBHOOK_URL` | nein | Benachrichtigungen zu Umfrage, Terminen und Aufstellungen |
+| `NEXT_PUBLIC_LAUNCH_DATE` | nein | Countdown auf der Startseite (`JJJJ-MM-TT`) |
+| `NEXT_PUBLIC_SURVEY_DEADLINE` | nein | Hinweis „Bitte antworte bis …“ |
+| `NEXT_PUBLIC_DISCORD_INVITE_URL`, `NEXT_PUBLIC_DISCORD_APPLY_URL` | nein | Links zum Discord und zur Bewerbung |
+| `NEXT_PUBLIC_TIME_ZONE` | nein | Zeitzone der Termine, Standard `Europe/Berlin` |
+| `GOLD_RADAR_ROLES` | nein | Discord-Rollen mit Zugang zum Blackwater Terminal, Standard `Gold-Radar,Beta-Tester` |
+| `GOLD_RADAR_ADMIN_IDS` | nein | Wer Nutzung und Uploads des Tools sieht und Daten hochladen darf |
+| `GOLD_RADAR_RULESET`, `GOLD_RADAR_RULESETS` | nein | Auktionshaus bzw. Auktionshäuser, z. B. `pvp-eu-horde` |
+| `GOLD_RADAR_FEEDBACK_WEBHOOK` | nein | Tool-Feedback zusätzlich in einen Discord-Kanal |
+| `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET` | nein | Blizzard-API für das ganze Auktionshaus, stündlich |
+| `GOLD_RADAR_TSM`, `GOLD_RADAR_BLIZZARD` | nein | Datenquellen des Workers fest einstellen |
 
-## 8. Gilden-Funktionen: Charaktere, Termine & Aufstellung
+Der Bot hat eine eigene `.env` in `discord-setup/`, siehe [discord-setup/README.md](discord-setup/README.md).
 
-Zusätzlich zur Umfrage gibt es eine kleine Raid-Planung (Idee und
-Funktionsumfang angelehnt an Gilden-Tools wie GuildKit, siehe
-[`docs/GUILDKIT-ANALYSIS.md`](./docs/GUILDKIT-ANALYSIS.md)):
+## Rechte und Rollen
 
-- **`/charaktere`**: Jede Person trägt ihre Charaktere ein (Name, Klasse,
-  Rolle, Level, Main/Twink). Für WoW Forever gibt es keine Armory, deshalb
-  von Hand. Klasse und Rolle werden beim ersten Charakter aus der
-  Umfrageantwort vorausgefüllt. Darunter steht das Gilden-Roster nach Rollen.
-- **`/termine`**: Kommende und vergangene Termine mit Anmeldezahlen pro
-  Rolle. Admins sehen oben ein Formular zum Anlegen, optional wöchentlich
-  wiederkehrend (bis zu 12 Wochen, jeder Abend mit eigenen Anmeldungen).
-- **`/termine/[id]`**: Anmeldung mit einem eigenen Charakter (*Dabei*,
-  *Vorläufig*, *Abgemeldet*, mit Kommentar). Admins setzen Angemeldete auf
-  *Bestätigt* oder *Bank*, posten die Aufstellung per Discord-Webhook und
-  löschen Termine oder ganze Serien.
+| Wer | Darf |
+|---|---|
+| Alle Eingeloggten | Eigene Umfrage, Verfügbarkeit, Charaktere und Anmeldungen bearbeiten. Roster, Termine und Übersicht sehen. |
+| **Offizier**, **Gildenmeister** (Discord-Rang) und `ADMIN_DISCORD_IDS` | Admin-Bereich, Termine anlegen, Aufstellungen setzen und posten |
+| Discord-Rolle aus `GOLD_RADAR_ROLES` | Blackwater Terminal nutzen und Scans hochladen |
+| `GOLD_RADAR_ADMIN_IDS` | Nutzung, Uploads und Feedback des Tools sehen, Tool-Daten hochladen |
 
-**Einrichtung:** `supabase/schema.sql` einfach erneut komplett im SQL
-Editor ausführen. Das Skript ist wiederholbar und legt die neuen Tabellen
-`characters`, `events`, `event_signups`, `event_roster` sowie die View
-`event_signups_overview` an, ohne bestehende Daten zu verändern.
+Die Discord-Ränge meldet der Bot (`discord-setup/rollensync.py`) alle 2 Minuten in die Tabelle
+`discord_members`. Row Level Security sorgt dafür, dass jede Person nur ihre eigenen Daten ändert.
+Alles, was Admins schreiben, läuft serverseitig über den `service_role`-Key.
 
-Neue Termine und gepostete Aufstellungen landen im selben Kanal wie die
-Umfrage-Benachrichtigungen (`DISCORD_WEBHOOK_URL`). Termine werden in
-`Europe/Berlin` angezeigt. Eine andere Zeitzone setzt du optional über
-`NEXT_PUBLIC_TIME_ZONE`, zum Beispiel `NEXT_PUBLIC_TIME_ZONE=Europe/Vienna`.
+## Datenschutz
 
-**Rechte (per Row Level Security):** Alle Eingeloggten sehen Roster,
-Termine und Anmeldungen. Jede Person ändert nur ihre eigenen Charaktere und
-Anmeldungen, und nur mit eigenen Charakteren. Termine und die Aufstellung
-schreiben ausschließlich Admins serverseitig über den `service_role`-Key.
-
-**Wer ist Admin?** Alle, die im Discord die Rolle **Offizier** oder
-**Gildenmeister** haben. Der Gilden-Bot meldet die Ränge alle 2 Minuten in
-die Tabelle `discord_members` (siehe `discord-setup/rollensync.py`).
-Zusätzlich gelten die IDs aus `ADMIN_DISCORD_IDS` immer als Admin – als
-Notfall-Zugang, falls der Bot einmal nicht läuft.
-
----
-
-## 9. Blackwater Terminal (Auktionshaus-Tool, nur mit Discord-Rolle)
-
-`/gold-radar` zeigt Blackwater Terminal (früher „Gold-Radar“) aus dem Projekt *WowForever-Gold* (eine einzelne HTML-Datei)
-nur Mitgliedern mit einer bestimmten Discord-Rolle.
-
-1. **Rolle anlegen:** im Discord eine Rolle `Gold-Radar` erstellen und den Leuten geben, die das
-   Tool nutzen dürfen. Der Gilden-Bot (`discord-setup/rollensync.py`) meldet sie alle 2 Minuten
-   in `discord_members` – Bot also neu starten, damit er die Rolle mitschickt. Anderer Rollenname:
-   `GOLD_RADAR_ROLES` (Website) und `ZUGANGSROLLEN` (Bot-`.env`) gleich setzen.
-   **Beta-Test:** Zugang geben standardmäßig die Rollen `Gold-Radar` **und** `Beta-Tester`. Für die
-   Testphase eine Rolle `Beta-Tester` anlegen und vergeben; nach dem Test einfach entziehen.
-   Feedback aus dem Tool (Knopf „Feedback“) landet in `gold_radar_feedback` und unter
-   `/admin/gold-radar`; mit `GOLD_RADAR_FEEDBACK_WEBHOOK` zusätzlich in einem Discord-Kanal.
-2. **Schema:** `supabase/schema.sql` erneut einspielen (legt `gold_radar_usage` und den privaten
-   Storage-Bucket `gold-radar` an, beide ohne Policies → nur serverseitig erreichbar).
-3. **Umgebung:** `GOLD_RADAR_ADMIN_IDS` = deine Discord-ID. Nur diese ID(s) sehen unter
-   `/admin/gold-radar`, wer das Tool wann benutzt hat, und dürfen neue Daten hochladen –
-   Offiziere/Admins ausdrücklich nicht. Du selbst hast immer Zugang zum Tool.
-4. **Daten hochladen:** lokal `python ah/dashboard.py --teilen` → `dashboard-teilen.html` unter
-   `/admin/gold-radar` hochladen (Ordner z. B. `pvp-eu-horde`). Die Datei enthält das
-   Nachfrage-Modell und die Beta-Demo, aber keine eigenen Scans.
-   nginx muss dafür Uploads über 1 MB erlauben: `client_max_body_size 50m;` im
-   `server`-Block (siehe `deploy/nginx-wowforever.conf.example`), danach `sudo nginx -t && sudo systemctl reload nginx`.
-
-5. **Gemeinsame Scans:** Mitglieder mit der Rolle laden unter `/gold-radar/upload` die
-   SavedVariables-Datei ihres AH-Addons hoch: `AuctionDB.lua` (AuctionDB, WoW-Forever-Ausgabe; am
-   besten), `Auctionator.lua`, `aux-addon.lua` oder `Blackthornes_TS.lua` (Tradeskills). Der Dienst
-   `gold-radar-worker` (eigener Container in `docker-compose.yml`, nutzt dieselbe `.env`) liest sie
-   jede Minute ein, speichert jeden Preis-Messpunkt einmal in `gold_radar_scans`/`gold_radar_history`
-   und baut `<ruleset>/dashboard.html` mit Live-Daten aus der hochgeladenen Vorlage neu. Unter
-   `/admin/gold-radar` siehst du alle Uploads und kannst einen zurücknehmen (entfernt seine Preise).
-   Auktionshäuser für Uploads: `GOLD_RADAR_RULESETS` (Standard `GOLD_RADAR_RULESET`).
-   Einmalig nach dem Pull: Schema einspielen, dann `docker compose up -d --build`. Log:
-   `docker compose logs -f gold-radar-worker`.
-   TradeSkillMaster-Daten (tradeskillmaster.com/public-data): Der Dienst prüft einmal am Tag, ob TSM
-   WoW-Forever-Daten anbietet, und nutzt sie dann automatisch alle 6 Stunden (Marktwert und Verkäufe pro
-   Tag). Den Stand zeigt `/admin/gold-radar` unter „Tool-Daten“. Fest einstellen lässt es sich mit
-   `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>`.
-   **Blizzard-API:** Mit `BLIZZARD_CLIENT_ID`/`BLIZZARD_CLIENT_SECRET` (develop.battle.net) liest der Dienst
-   stündlich das ganze Auktionshaus. Forever hat keine Realms, nur Rulesets: `pvp-eu-horde` liest von selbst alle
-   PvP-Realms EU, Horde (`forever:eu:pvp:Horde`), sobald Blizzard sie freigibt; `GOLD_RADAR_BLIZZARD` nur zum
-   Überschreiben. Die Stände bleiben auf dem Server (letzte 10 Tage).
-   Prüfen: `docker compose exec gold-radar-worker python blizzard_probe.py`.
-   Den Analyse-Code in `gold-radar-worker/tool/` kopiert `python tools/export_worker.py` aus
-   *WowForever-Gold* – nach Änderungen dort erneut ausführen, committen, pushen.
-
-Protokolliert werden nur Discord-ID, Anzeigename, Zeitpunkt, Ruleset und ob der Zugang abgelehnt
-wurde (wiederholte Aufrufe innerhalb von 15 Minuten zählen einmal). Alte Einträge lassen sich auf
-der Admin-Seite löschen. Für späteres Teilen von Daten ist pro Auktionshaus ein Ordner im Bucket
-vorgesehen (`<ruleset>/…`), Aufruf mit `/gold-radar/app?r=<ruleset>`.
+- Gespeichert werden nur Discord-ID, Anzeigename, Avatar und die Angaben, die jemand selbst einträgt.
+  E-Mail-Adressen und andere Discord-Daten werden nicht gespeichert.
+- Jede Person kann ihre Umfrageantwort jederzeit vollständig löschen.
+- Es gibt kein Tracking, keine Analytics und nur die technisch nötigen Login-Cookies von Supabase.
+- Das Blackwater Terminal protokolliert nur Discord-ID, Anzeigename, Zeitpunkt und Ruleset eines Aufrufs.
+- Hochgeladene Scans und die Tool-Seite liegen in einem privaten Storage-Bucket ohne öffentliche
+  Policies.
 
 ## Projektstruktur
 
 ```
-app/
-  page.tsx                  Startseite (Login, Datenschutzhinweis)
-  auth/callback/route.ts    OAuth-Callback von Discord/Supabase
-  umfrage/page.tsx           Fragebogen
-  umfrage/actions.ts         Server Actions: speichern & löschen
-  uebersicht/page.tsx        Übersicht für alle eingeloggten Teilnehmer:innen
-  admin/page.tsx              Admin-Dashboard
-  charaktere/                 Eigene Charaktere + Gilden-Roster
-  termine/                    Terminliste, Detailseite, Server Actions
-components/
-  CharacterManager.tsx        Charaktere anlegen/bearbeiten/löschen
-  events/                     Termin-Formular, Anmeldung, Aufstellung
-  LoginButton.tsx, LogoutButton.tsx, SurveyForm.tsx
-  admin/                      Charts, Tabelle, CSV-Export, Kacheln
-lib/
-  supabase/                   Browser-, Server- und Admin-Client
-  admin.ts                    Admin-Check: Discord-Rang (Offizier/Gildenmeister) oder ADMIN_DISCORD_IDS
-  constants.ts, types.ts
-supabase/schema.sql           Tabelle, RLS-Policies, Übersichts-View
-Dockerfile, docker-compose.yml     Deployment auf eigenem Server
-deploy/nginx-wowforever.conf.example   Beispiel für die nginx-Seite (Referenz)
+app/                        Seiten (Next.js App Router) und Server Actions
+  page.tsx                  Startseite mit Login, Countdown und kurzen Abstimmungen
+  umfrage/ uebersicht/      Fragebogen und Teilnehmer-Übersicht
+  verfuegbarkeit/           Verfügbarkeit
+  charaktere/ termine/      Charaktere, Roster, Raid-Termine und Anmeldung
+  fraktionen/ gildenname/   Gildenabstimmung und Namensumfrage
+  kurzabstimmung/           Server Actions der kurzen Abstimmungen
+  guides/ downloads/        Guides und Dateien
+  gold-radar/               Blackwater Terminal: Auslieferung, Scan-Upload, Feedback
+  admin/                    Auswertung, Texte, Gildenkonzepte, Tool-Verwaltung
+  auth/callback/            OAuth-Callback von Discord über Supabase
+components/                 UI-Komponenten (admin/, events/, factions/, guildname/, …)
+lib/                        Supabase-Clients, Rechte, Discord, Inhalte, i18n (de/en)
+supabase/schema.sql         Tabellen, RLS-Policies, Views, Storage-Bucket (wiederholbar)
+discord-setup/              Gilden-Bot und Skript zum Einrichten des Discord-Servers
+gold-radar-worker/          Worker für das Blackwater Terminal
+  worker.py, blizzard.py    Upload-Verarbeitung und Blizzard-API
+  tool/ah/                  Analyse-Code (Kopie aus dem Projekt WowForever-Gold)
+deploy/                     Beispiel-Konfiguration für nginx
+docs/                       Einrichtung, Blackwater Terminal, Analysen zu Gilden-Tools
+middleware.ts               Login-Pflicht für alle geschützten Seiten
+Dockerfile, docker-compose.yml
 ```
+
+## Weitere Dokumentation
+
+| Dokument | Inhalt |
+|---|---|
+| [docs/SETUP.md](docs/SETUP.md) | Einrichtung Schritt für Schritt: Supabase, Discord-App, lokale Entwicklung, Server mit nginx und HTTPS |
+| [docs/BLACKWATER-TERMINAL.md](docs/BLACKWATER-TERMINAL.md) | Auktionshaus-Tool: Datenfluss, Datenquellen, Einrichtung |
+| [discord-setup/README.md](discord-setup/README.md) | Discord-Bot und Server-Einrichtung |
+| [docs/GUILDKIT-ANALYSIS.md](docs/GUILDKIT-ANALYSIS.md), [docs/RAIDHELPER_ANALYSIS.md](docs/RAIDHELPER_ANALYSIS.md) | Vorbilder für die Raid-Planung |
