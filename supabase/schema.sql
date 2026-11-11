@@ -1105,3 +1105,44 @@ create index if not exists gold_radar_feedback_time
   on public.gold_radar_feedback (status, created_at desc);
 create index if not exists gold_radar_feedback_user
   on public.gold_radar_feedback (discord_id, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Blackwater Terminal: Neuigkeiten (11.11.2026)
+-- Was den Markt bewegen kann: neue Items im AH (kind 'item'), Blizzard-Blueposts
+-- ('blue'), foreverchanges-Patchnotes ('fc') und der KI-Wochenbericht ('ki').
+-- Der gold-radar-worker schreibt und liest sie (service_role). Nichts geht von
+-- selbst raus: unter /admin/gold-radar gibt der Betreiber jede Meldung getrennt
+-- frei, für die Tool-Seite (show_page, Goldkalender, letzte 30 Tage) und für
+-- Discord (post_discord, GOLD_RADAR_NEWS_WEBHOOK, sent_at = gepostet).
+-- reviewed = schon angesehen (auch verworfen). Ohne Policies: nur serverseitig.
+-- ---------------------------------------------------------------------------
+create table if not exists public.gold_radar_news (
+  id bigserial primary key,
+  key text not null unique check (char_length(key) between 1 and 200),
+  kind text not null check (kind in ('item', 'blue', 'fc', 'ki')),
+  ruleset text check (ruleset ~ '^[a-z0-9-]{1,40}$'),
+  title text not null check (char_length(title) between 1 and 300),
+  url text check (url is null or url ~ '^https://'),
+  body text check (body is null or char_length(body) <= 8000),
+  items jsonb not null default '[]'::jsonb,
+  tags text[] not null default '{}',
+  score integer not null default 0,
+  created_at timestamptz not null default now(),
+  sent_at timestamptz,
+  show_page boolean not null default false,
+  post_discord boolean not null default false,
+  reviewed boolean not null default false,
+  reviewed_at timestamptz
+);
+
+alter table public.gold_radar_news add column if not exists show_page boolean not null default false;
+alter table public.gold_radar_news add column if not exists post_discord boolean not null default false;
+alter table public.gold_radar_news add column if not exists reviewed boolean not null default false;
+alter table public.gold_radar_news add column if not exists reviewed_at timestamptz;
+
+alter table public.gold_radar_news enable row level security;
+
+create index if not exists gold_radar_news_time
+  on public.gold_radar_news (created_at desc);
+create index if not exists gold_radar_news_queue
+  on public.gold_radar_news (reviewed, score desc, created_at desc);

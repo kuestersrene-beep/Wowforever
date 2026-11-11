@@ -16,6 +16,7 @@ import {
 } from "@/lib/goldRadar";
 import { pruneUsage, revokeUpload, setFeedbackStatus } from "./actions";
 import DashboardUpload from "./DashboardUpload";
+import NewsReview, { type NewsRow } from "./NewsReview";
 
 interface UsageRow {
   discord_id: string;
@@ -67,6 +68,27 @@ export default async function GoldRadarAdminPage() {
       .returns<FeedbackRow[]>(),
   ]);
   const openFeedback = (feedback ?? []).filter((f) => f.status !== "erledigt").length;
+
+  // Neuigkeiten des Workers: offen (warten auf Freigabe) und zuletzt bearbeitet; fehlt die Tabelle noch, bleibt es leer
+  const newsCols = "id, kind, title, url, body, items, tags, score, created_at, sent_at, show_page, post_discord, reviewed";
+  const [{ data: newsOpen }, { data: newsDone }] = await Promise.all([
+    db
+      .from("gold_radar_news")
+      .select(newsCols)
+      .eq("reviewed", false)
+      .order("score", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(60)
+      .returns<NewsRow[]>(),
+    db
+      .from("gold_radar_news")
+      .select(newsCols)
+      .eq("reviewed", true)
+      .not("reviewed_at", "is", null)
+      .order("reviewed_at", { ascending: false })
+      .limit(30)
+      .returns<NewsRow[]>(),
+  ]);
 
   const rows = usage ?? [];
   const people = new Map<
@@ -203,6 +225,8 @@ export default async function GoldRadarAdminPage() {
           <button className="rounded border border-horde/60 px-3 py-1 text-horde hover:bg-horde/10">löschen</button>
         </form>
       </section>
+
+      <NewsReview open={newsOpen ?? []} done={newsDone ?? []} />
 
       <section className="panel flex flex-col gap-3 p-5">
         <h2 className="font-heading text-lg text-gold-light">

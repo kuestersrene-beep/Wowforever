@@ -99,6 +99,30 @@ Dort entstehen auch das Nachfrage-Modell, die Vorlage und die Plausibilitätspr�
 - **TradeSkillMaster:** Der Worker prüft einmal am Tag, ob TSM Forever-Daten anbietet, und nutzt sie
   dann alle 6 Stunden. Fest einstellen lässt es sich mit `GOLD_RADAR_TSM=pvp-eu-horde=<Pfad>`.
 
+### Neuigkeiten
+
+Der Worker (`gold-radar-worker/news.py`) sammelt, was den Markt bewegen kann, und zeigt die letzten 30 Tage oben im
+Reiter **Goldkalender**:
+
+| Quelle | Wie oft | Was |
+|---|---|---|
+| Neue Items im AH | bei jedem neuen Scan | Items, die zum ersten Mal in einem Scan oder im Blizzard-Dump auftauchen (der erste Lauf merkt sich nur den Bestand) |
+| Blizzard-Blueposts | alle 10 Minuten (`BLUE_MINUTES`) | dieselben Forum-Feeds wie der Discord-Bot, mit vollem Text |
+| foreverchanges.pro | alle 3 Stunden (`FC_HOURS`) | RSS der Patchnotes, dazu der Abschnitt mit den Item-Links |
+| KI-Wochenbericht | einmal pro Woche | ein geplanter Cloud-Agent über `/api/gold-radar-news` |
+
+Texte werden auf Item-Namen (Deutsch und Englisch) und Stichworte wie Droprate, Rezept, Händler, Auktionshaus,
+Händlergunst oder Event abgesucht. Gespeichert wird in der Tabelle `gold_radar_news` (ohne Policies, nur serverseitig).
+
+**Nichts geht von selbst raus.** Unter `/admin/gold-radar` steht jede neue Meldung in „Neuigkeiten freigeben“, sortiert
+nach Gold-Bezug. Dort gibst du sie getrennt frei: **auf die Seite** (Goldkalender) und **in Discord posten** (einmal, an
+den Kanal aus `GOLD_RADAR_NEWS_WEBHOOK`). „Verwerfen“ nimmt sie aus der Liste. Beim allerersten Lauf merkt sich der Dienst
+die vorhandenen Blueposts und Patchnotes nur, sie landen nicht in der Liste.
+
+Der KI-Wochenbericht braucht `GOLD_RADAR_NEWS_TOKEN` (mindestens 32 Zeichen, z. B. `openssl rand -hex 32`). Mit
+diesem Token liest `GET /api/gold-radar-news` die Neuigkeiten und `POST` speichert einen Bericht
+(`{title, body, tags?, items?}`, einer pro Tag).
+
 ### Feedback und Protokoll
 
 - Feedback aus dem Tool (Knopf „Feedback“) landet in `gold_radar_feedback` und unter

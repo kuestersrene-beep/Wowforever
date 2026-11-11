@@ -26,6 +26,10 @@ Loop (every INTERVAL_SECONDS):
 8. Player census (tool/ah/census.py): every 6 hours the level counts of both factions of every ruleset from
    classicarmory.gg (nightly snapshots) and forever.raider.io (daily) into DATA_DIR/census.json (history kept); the
    pages show them in the tab "Spieler" next to the model's level curve.
+9. News (news.py): items that show up in the auction house for the first time, Blizzard blue posts (every
+   BLUE_MINUTES) and foreverchanges patch notes (every FC_HOURS), searched for item names and keywords, into
+   gold_radar_news. Nothing goes out by itself: the owner releases each row under /admin/gold-radar, for the pages
+   (show_page) and for Discord (post_discord, GOLD_RADAR_NEWS_WEBHOOK) separately.
 
 Only the Python standard library; the tool code in tool/ comes from WowForever-Gold (tools/export_worker.py).
 Environment: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, GOLD_RADAR_RULESETS
@@ -38,6 +42,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
 import census, dashboard, rawscan, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
 import blizzard  # noqa: E402
+import news  # noqa: E402
 from snapshot import SCHEMA  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -61,6 +66,9 @@ BLIZZ_KEEP_DAYS = float(os.environ.get('BLIZZARD_KEEP_DAYS', '10'))
 BLIZZ_STATUS = {}  # per ruleset: last result of the hourly Blizzard import (also read when pages are built)
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
+NEWS_WEBHOOK = os.environ.get('GOLD_RADAR_NEWS_WEBHOOK', '')
+BLUE_MINUTES = float(os.environ.get('BLUE_MINUTES', '10'))
+FC_HOURS = float(os.environ.get('FC_HOURS', '3'))
 
 
 # ---------- Supabase (REST + Storage) ----------
@@ -335,6 +343,10 @@ def build(ruleset, con):
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
+    try:   # news of the last 30 days (news.py) for the gold calendar
+        data['news'] = news.page_rows(rest, ruleset)
+    except Exception as e:
+        log.warning('%s: Neuigkeiten nicht eingebaut: %s', ruleset, e)
     try:   # player census of this auction house (both factions), fetched in the main loop
         cuts = census.cuts_for([ruleset])
         cache = json.load(open(CENSUS_PATH, encoding='utf-8')) if os.path.exists(CENSUS_PATH) else {}
@@ -393,6 +405,7 @@ def main():
     census_next = 0.0
     blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, BLIZZ_STATUS
     arch = {r: blizz_db(r) for r in BLIZZ_TARGETS if r in RULESETS}
+    names, names_next, blue_next, fc_next, shown = None, 0.0, 0.0, 0.0, None
     while True:
         dirty = set()
         try:
@@ -499,6 +512,35 @@ def main():
                 if updated and updated != state.get(r):
                     state[r] = updated
                     dirty.add(r)
+            try:   # news: new items, blue posts, foreverchanges; Discord; the pages show them
+                if names is None or time.time() >= names_next:
+                    names, names_next = news.Names(os.path.join(HERE, 'tool', 'ah'), list(cons.values())), time.time() + 86400
+                rows = [x for r in sorted(dirty) for x in news.new_items(cons[r], r, DATA_DIR, names)]
+                if time.time() >= blue_next or time.time() >= fc_next:
+                    known = news.known_keys(rest)
+                    if time.time() >= blue_next:
+                        blue_next = time.time() + BLUE_MINUTES * 60
+                        base = not any(k.startswith('blue:') for k in known)
+                        got = news.blue_news(known, names, list(cons.values()), base)
+                        rows += [dict(x, reviewed=True) for x in got] if base else got   # first run: only remember
+                    if time.time() >= fc_next:
+                        fc_next = time.time() + FC_HOURS * 3600
+                        base = not any(k.startswith('fc:') for k in known)
+                        got = news.fc_news(known, names, list(cons.values()), base)
+                        rows += [dict(x, reviewed=True) for x in got] if base else got
+                news.save(rest, rows)
+                if rows:
+                    log.info('Neuigkeiten: %d neu, warten auf Freigabe unter /admin/gold-radar', len(rows))
+                sent = news.send(NEWS_WEBHOOK, news.unsent(rest), rest)   # only what the owner released for Discord
+                if sent:
+                    log.info('Neuigkeiten: %d in Discord gepostet', sent)
+                now_shown = news.released(rest)   # released for the pages: rebuild when that changes
+                if now_shown != shown:
+                    if shown is not None:
+                        dirty.update(RULESETS)
+                    shown = now_shown
+            except Exception:
+                log.exception('Neuigkeiten fehlgeschlagen, nächster Versuch beim nächsten Durchlauf')
             for r in sorted(dirty):
                 build(r, cons[r])
             if dirty:

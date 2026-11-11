@@ -182,6 +182,8 @@ Die Vorlage mit Erklärungen ist [`.env.local.example`](.env.local.example).
 | `GOLD_RADAR_ADMIN_IDS` | nein | Wer Nutzung und Uploads des Tools sieht und Daten hochladen darf |
 | `GOLD_RADAR_RULESET`, `GOLD_RADAR_RULESETS` | nein | Auktionshaus bzw. Auktionshäuser, z. B. `pvp-eu-horde` |
 | `GOLD_RADAR_FEEDBACK_WEBHOOK` | nein | Tool-Feedback zusätzlich in einen Discord-Kanal |
+| `GOLD_RADAR_NEWS_WEBHOOK` | nein | Neuigkeiten (neue Items, Blueposts, Patchnotes, KI-Bericht) in einen Discord-Kanal |
+| `GOLD_RADAR_NEWS_TOKEN` | nein | Token für `/api/gold-radar-news`, über das der KI-Wochenbericht kommt |
 | `BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET` | nein | Blizzard-API für das ganze Auktionshaus, stündlich |
 | `GOLD_RADAR_TSM`, `GOLD_RADAR_BLIZZARD` | nein | Datenquellen des Workers fest einstellen |
 
