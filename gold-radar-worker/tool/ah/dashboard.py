@@ -453,13 +453,27 @@ def main():
     kisten = load_kisten()   # Merchant's Favor crates with their fills: total cost per crate on the crate tab
     # Craftsman's Writs (ah/data/verfuegungen.json): requested items, hand-in NPCs with coordinates, daily route
     writs = json.load(open(os.path.join(HERE, 'data', 'verfuegungen.json'), encoding='utf-8'))         if os.path.exists(os.path.join(HERE, 'data', 'verfuegungen.json')) else None
+    # gold calendar (ah/data/events.json): Darkmoon Faire, holidays, battleground weekends with the items they move
+    events = json.load(open(os.path.join(HERE, 'data', 'events.json'), encoding='utf-8'))         if os.path.exists(os.path.join(HERE, 'data', 'events.json')) else None
+    if events:   # item names for the page: German (names_de.json, the scans' item DB), else English
+        names, meta = de_names(), {}
+        try:
+            meta = {str(i): n for i, n in sqlite3.connect(os.path.join(HERE, 'ah.db')).execute('SELECT item_id, name FROM item_meta') if n}
+        except sqlite3.Error:
+            pass
+        en = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+        for e in events['events']:
+            for x in e['items']:
+                k = str(x['id'])
+                x['name'] = names.get(k) or meta.get(k) or (en.get(k) or {}).get('name') or k
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
               | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {}))
               | set((skinning or {}).get('items', {}))
               | {str(k['id']) for k in kisten or []} | {str(f[0]) for k in kisten or [] for f in k['fills']}
-              | {str(v[k]) for v in (writs or {}).get('verfuegungen', []) for k in ('writ', 'item') if v.get(k)})
+              | {str(v[k]) for v in (writs or {}).get('verfuegungen', []) for k in ('writ', 'item') if v.get(k)}
+              | {str(x['id']) for e in (events or {}).get('events', []) for x in e['items']})
     payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref, fishing=fishing,
-                   skinning=skinning, writs=writs,
+                   skinning=skinning, writs=writs, events=events,
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
