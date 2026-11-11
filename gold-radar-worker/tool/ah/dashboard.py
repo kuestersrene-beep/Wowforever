@@ -212,6 +212,88 @@ def favor_index(live, fills):
     return out
 
 
+def crate_costs(live, kisten):
+    """What one Merchant's Favor crate costs in all (Forever): the crate itself on the AH (monsters drop it rarely, most
+    players buy it) plus the cheapest of its fills, walked up the order book for the whole fill, minus the coins the
+    turn-in pays; per favor where the favor is known (ah/data/kisten.json). Per crate the other fills too, and the room
+    of the cheapest fill: the unit price at which it costs as much as the second cheapest, with the units listed below."""
+    book, rows = live.get('book') or {}, live['rows']
+
+    def fill_cost(iid, count, lowest):
+        steps = book.get(iid)
+        if not steps:
+            return lowest * count
+        left, cost = count, 0
+        for u, q, _ in steps:
+            take = min(left, q)
+            cost, left = cost + take * u, left - take
+            if left <= 0:
+                return cost
+        return None   # the book holds less than one fill
+
+    sold = lambda lr: round(lr['sold_raw']['per_day'], 1) if lr.get('sold_raw') else None
+    out = []
+    for k in kisten:
+        fills = []
+        for iid, name, count in k['fills']:
+            lr = rows.get(iid)
+            if not lr or not lr['price'] or lr.get('stale') or (lr['qty'] is not None and lr['qty'] < count):
+                continue
+            cost = fill_cost(iid, count, lr['price'])
+            if cost is not None:
+                fills.append(dict(id=iid, name=name, count=count, price=lr['price'], qty=lr['qty'], cost=round(cost), sold=sold(lr)))
+        fills.sort(key=lambda f: f['cost'])
+        cr = rows.get(k['id'])
+        crate = None
+        if cr and cr['price']:
+            # a crate is often listed once or twice only: its price counts, marked thin, while it is in the newest scan
+            crate = dict(price=cr['price'], qty=cr['qty'], sold=sold(cr), ref=round(cr['ref']) if cr.get('ref') else None,
+                         thin=bool(cr.get('stale')), old=cr['seen'] < live['now'] - 2 * 3600)
+            if crate['old']:
+                crate = None
+        row = dict(id=k['id'], name=k['name'], tier=k['tier'], art=k['art'], farbe=k['farbe'], gunst=k['gunst'], geld=k['geld'],
+                   crate=crate, fills=fills[:4], n_fills=len(fills))
+        if fills:
+            best = fills[0]
+            if crate:
+                row['total'] = crate['price'] + best['cost'] - (k['geld'] or 0)
+                if k['gunst']:
+                    row['per_favor'] = row['total'] / k['gunst']
+            if len(fills) >= 2:
+                row['room'] = fills[1]['cost'] / best['count']
+                row['gap'] = fills[1]['cost'] / best['cost'] if best['cost'] else None
+                steps = book.get(best['id'])
+                if steps:
+                    row['wall'] = sum(q for u, q, _ in steps if u < row['room'])
+                    row['wall_fills'] = row['wall'] // best['count']
+        out.append(row)
+    return out
+
+
+def load_kisten():
+    """Merchant's Favor crates (ah/data/kisten.json) with item ids for the fill materials."""
+    p = os.path.join(HERE, 'data', 'kisten.json')
+    if not os.path.exists(p):
+        return None
+    K = json.load(open(p, encoding='utf-8'))
+    items = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+    by = {v.get('name'): int(i) for i, v in items.items() if v.get('name')}
+    prof_items = json.load(open(os.path.join(ROOT, 'data_prof.json'), encoding='utf-8'))['items']
+    for i, v in prof_items.items():
+        by.setdefault(v.get('n'), int(i))
+    out = []
+    for k in K['kisten']:
+        fills = []
+        for part in k['fills'].split(';'):
+            n, name = part.strip().split(' ', 1)
+            if name in by:
+                fills.append((by[name], name, int(n)))
+        g, m = (K['gunst'].get(k['tier']) or {}), (K['geld'].get(k['tier']) or {})
+        out.append(dict(id=k['id'], name=(items.get(str(k['id'])) or {}).get('name') or f"Waylaid Crate: {k['tier']} {k['art']}",
+                        tier=k['tier'], art=k['art'], farbe=k['farbe'], gunst=g.get(k['farbe']), geld=m.get(k['farbe']), fills=fills))
+    return out
+
+
 def live_payload(con, realm, cfg, ctx):
     """Live part of the page from a scan database; ctx = the page's own DATA.ctx (used by the website's worker,
     which merges the members' uploaded scans and puts this into the shared page)."""
@@ -220,7 +302,8 @@ def live_payload(con, realm, cfg, ctx):
     if not now:
         return None
     fills = {tier: [tuple(f) for f in v] for tier, v in ctx['fills'].items()}
-    out = pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills)
+    kisten = [dict(k, fills=[tuple(f) for f in k['fills']]) for k in ctx['kisten']] if ctx.get('kisten') else None
+    out = pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills, kisten)
     if out:
         out['sources'] = sources_of(con, realm)
     return out
@@ -269,8 +352,10 @@ def thin(series):
     return out[::-1]
 
 
-def pack(live, cfg, wanted, fills):
-    """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows."""
+def pack(live, cfg, wanted, fills, kisten=None):
+    """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows.
+    kisten (pages from 11.11.2026 on): the crate tab gets total costs per crate (crate_costs); older pages keep the
+    fills per tier (favor_index)."""
     if not live:
         return None
     best = [dict(b) for b in (live.get('best') or [])[:400]]
@@ -306,7 +391,7 @@ def pack(live, cfg, wanted, fills):
                                             c150=dp['cost150'], fr=dp['fresh'], sh=dp['short'])
     return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
                 qsim=bool(live.get('qty_simulated')), days=live['days'], ob_at=live.get('book_ts'), n_scans=live['n_scans'], todo=live['todo'],
-                flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows, best=best,
+                flips=flips(live, cfg), favor=crate_costs(live, kisten) if kisten else favor_index(live, fills), rows=rows, best=best,
                 best_h=best[0]['h'] if best else None,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
                              margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped'), spec=c.get('spec'),
@@ -365,18 +450,20 @@ def main():
     fishing = load('fishing.json') if os.path.exists(os.path.join(ROOT, 'fishing.json')) else None
     # Kürschner-Radar (tools/skinning_model.py): leathers and by-catch of the skinnable mobs
     skinning = load('skinning.json') if os.path.exists(os.path.join(ROOT, 'skinning.json')) else None
+    kisten = load_kisten()   # Merchant's Favor crates with their fills: total cost per crate on the crate tab
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
               | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {}))
-              | set((skinning or {}).get('items', {})))
+              | set((skinning or {}).get('items', {}))
+              | {str(k['id']) for k in kisten or []} | {str(f[0]) for k in kisten or [] for f in k['fills']})
     payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref, fishing=fishing,
                    skinning=skinning,
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
                    limited=limited, kk=load('kaufkraft.json'), de=de_names(), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
-                   live=None if share else pack(live_data(cfg), cfg, wanted, fills),
+                   live=None if share else pack(live_data(cfg), cfg, wanted, fills, kisten),
                    # what live_payload() needs to add live data to this page later (website worker)
-                   ctx=dict(wanted=sorted(wanted), fills=fills))
+                   ctx=dict(wanted=sorted(wanted), fills=fills, kisten=kisten))
     tpl = open(os.path.join(HERE, 'dashboard_template.html'), encoding='utf-8').read()
     # header artwork is embedded, so the single file also works behind the website login
     banner = os.path.join(HERE, 'header-banner.webp')
