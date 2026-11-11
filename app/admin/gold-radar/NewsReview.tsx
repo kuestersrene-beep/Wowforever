@@ -113,8 +113,9 @@ export default function NewsReview({ open, done }: { open: NewsRow[]; done: News
       <p className="text-xs text-slate-500">
         Der Dienst sammelt neue Items im AH, Blueposts, foreverchanges-Patchnotes und den KI-Wochenbericht. Nichts
         erscheint von selbst: <b>auf die Seite</b> zeigt eine Meldung im Goldkalender des Tools, <b>in Discord
-        posten</b> schickt sie einmal an den Kanal aus <code>GOLD_RADAR_NEWS_WEBHOOK</code> (innerhalb einer Minute).
-        Beides ist unabhängig voneinander. Sortiert nach Gold-Bezug.
+        posten</b> lässt sie Marin einmal in den Gold-News-Kanal posten (innerhalb einer Minute;{" "}
+        <code>GOLD_NEWS_KANAL_ID</code> in der Bot-<code>.env</code>, sonst 💰│gold-news). Beides ist unabhängig
+        voneinander. Sortiert nach Gold-Bezug.
       </p>
       <div className="flex flex-col gap-2">
         {open.map((n) => (

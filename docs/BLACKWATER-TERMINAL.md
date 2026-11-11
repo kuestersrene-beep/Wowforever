@@ -115,8 +115,10 @@ Texte werden auf Item-Namen (Deutsch und Englisch) und Stichworte wie Droprate, 
 Händlergunst oder Event abgesucht. Gespeichert wird in der Tabelle `gold_radar_news` (ohne Policies, nur serverseitig).
 
 **Nichts geht von selbst raus.** Unter `/admin/gold-radar` steht jede neue Meldung in „Neuigkeiten freigeben“, sortiert
-nach Gold-Bezug. Dort gibst du sie getrennt frei: **auf die Seite** (Goldkalender) und **in Discord posten** (einmal, an
-den Kanal aus `GOLD_RADAR_NEWS_WEBHOOK`). „Verwerfen“ nimmt sie aus der Liste. Beim allerersten Lauf merkt sich der Dienst
+nach Gold-Bezug. Dort gibst du sie getrennt frei: **auf die Seite** (Goldkalender) und **in Discord posten**: dann
+postet der Gilden-Bot Marin sie einmal als Embed (`discord-setup/goldnews.py`, Kanal aus `GOLD_NEWS_KANAL_ID` in
+`discord-setup/.env`, sonst `💰│gold-news`). `GOLD_RADAR_NEWS_WEBHOOK` bleibt dafür leer; er ist nur der Weg ohne Bot.
+„Verwerfen“ nimmt sie aus der Liste. Beim allerersten Lauf merkt sich der Dienst
 die vorhandenen Blueposts und Patchnotes nur, sie landen nicht in der Liste.
 
 Der KI-Wochenbericht braucht `GOLD_RADAR_NEWS_TOKEN` (mindestens 32 Zeichen, z. B. `openssl rand -hex 32`). Mit

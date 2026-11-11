@@ -176,3 +176,15 @@ als Text. Aktuelle Infos für Neue gehören also in `👋│willkommen`.
   „🎉 WoW Forever ist live!“ und danach „Spielt WoW Forever“.
 - Hat jemand Direktnachrichten von Server-Mitgliedern abgeschaltet, steht ein Hinweis im `🧾│mod-log`.
 
+## Gold-Neuigkeiten (`goldnews.py`)
+
+Der gold-radar-worker der Website sammelt neue Items im AH, Blueposts, foreverchanges-Patchnotes und den
+KI-Wochenbericht. Nichts davon geht von selbst raus: unter `/admin/gold-radar` gibt der Betreiber jede Meldung für
+Discord frei. Marin schaut jede Minute nach und postet jede freigegebene Meldung einmal als Embed, mit den betroffenen
+Items, ihren Preisen und Links zu Wowhead.
+
+- Zielkanal: der Gold-News-Kanal der Gilde (ID `1566824983471198360`, fest in `goldnews.py`). Ein anderer Kanal:
+  `GOLD_NEWS_KANAL_ID=<Kanal-ID>` in `discord-setup/.env`. Findet Marin keinen von beiden, nimmt er `💰│gold-news`.
+- Braucht wie die Raid-Anmeldung `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`; `SITE_URL` setzt einen Link zum
+  Goldkalender darunter.
+- In der `.env` der Website bleibt `GOLD_RADAR_NEWS_WEBHOOK` leer, sonst postet zusätzlich der Worker.
