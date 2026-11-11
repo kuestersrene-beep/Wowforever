@@ -451,12 +451,15 @@ def main():
     # Kürschner-Radar (tools/skinning_model.py): leathers and by-catch of the skinnable mobs
     skinning = load('skinning.json') if os.path.exists(os.path.join(ROOT, 'skinning.json')) else None
     kisten = load_kisten()   # Merchant's Favor crates with their fills: total cost per crate on the crate tab
+    # Craftsman's Writs (ah/data/verfuegungen.json): requested items, hand-in NPCs with coordinates, daily route
+    writs = json.load(open(os.path.join(HERE, 'data', 'verfuegungen.json'), encoding='utf-8'))         if os.path.exists(os.path.join(HERE, 'data', 'verfuegungen.json')) else None
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
               | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {}))
               | set((skinning or {}).get('items', {}))
-              | {str(k['id']) for k in kisten or []} | {str(f[0]) for k in kisten or [] for f in k['fills']})
+              | {str(k['id']) for k in kisten or []} | {str(f[0]) for k in kisten or [] for f in k['fills']}
+              | {str(v[k]) for v in (writs or {}).get('verfuegungen', []) for k in ('writ', 'item') if v.get(k)})
     payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref, fishing=fishing,
-                   skinning=skinning,
+                   skinning=skinning, writs=writs,
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
