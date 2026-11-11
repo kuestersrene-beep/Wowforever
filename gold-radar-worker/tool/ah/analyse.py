@@ -258,7 +258,11 @@ def analyse(con, realm, cfg, now):
         if r['w'].get('score', 0) >= 40 and band in BAND_PEAK_DAYS:
             start = BAND_PEAK_DAYS[band][0]
             end = r['w'].get('end')
-            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05) and real and (r['trend'] is None or r['trend'] >= 0.85)                     and (end is None or end >= 1) and r['price'] <= r['ref'] * 1.05:
+            # not while it crashes today, and not when measured sales say nobody buys it (a buy tip needs buyers later
+            # and a price that holds now)
+            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05) and real and (r['trend'] is None or r['trend'] >= 0.85) \
+                    and (end is None or end >= 1) and r['price'] <= r['ref'] * 1.05 and (r['p_d1'] or 0) > -0.2 \
+                    and not (measured and r['gone_per_day'] == 0):
                 sig['unter'].append(r)
         base = r['ref24'] or r['median7']
         if real and base and r['price'] > 2 * base and (r['q_d1'] or 0) > 0:
