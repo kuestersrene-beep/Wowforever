@@ -465,7 +465,7 @@ def main():
         for e in events['events']:
             for x in e['items']:
                 k = str(x['id'])
-                x['name'] = names.get(k) or meta.get(k) or (en.get(k) or {}).get('name') or k
+                x['name'] = names.get(k) or meta.get(k) or (en.get(k) or {}).get('name') or x.get('name') or k
     wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
               | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {}))
               | set((skinning or {}).get('items', {}))
