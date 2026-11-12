@@ -1,0 +1,4 @@
+{
+ "_hinweis": "Händlerpreise (Kupfer pro Stück), die in Forever anders sind als in den statischen Classic-Daten (items.json, AuctionDB). Quelle: Verkaufspreis im Spiel-Tooltip. Gilt vor items.json; analyse.py und tools/build_ah_data.py übernehmen es.",
+ "4390": {"sell": 125, "name": "Eisengranate", "quelle": "Spiel-Tooltip 12.11.2026 (Classic-Daten: 5s)"}
+}

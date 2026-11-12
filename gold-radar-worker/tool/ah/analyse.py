@@ -68,6 +68,11 @@ def recent(ser, last):
 
 def analyse(con, realm, cfg, now):
     items = json.load(open(os.path.join(DATA, 'items.json'), encoding='utf-8'))
+    # Forever changed some vendor prices: what the game tooltip says beats the static Classic data
+    fix_path = os.path.join(DATA, 'haendlerpreise.json')
+    for k, v in (json.load(open(fix_path, encoding='utf-8')) if os.path.exists(fix_path) else {}).items():
+        if not k.startswith('_') and isinstance(v, dict) and v.get('sell') is not None:
+            items.setdefault(k, {'name': v.get('name') or k})['sell'] = v['sell']
     watch = json.load(open(os.path.join(DATA, 'watchlist.json'), encoding='utf-8'))
     recipes = json.load(open(os.path.join(DATA, 'recipes.json'), encoding='utf-8'))
     crates_path = os.path.join(DATA, 'crates.json')
@@ -98,6 +103,16 @@ def analyse(con, realm, cfg, now):
         steps = book.get(r['item'], []) if book is not None else [[r['price'], 1, 1]]
         units = sum(q for u, q, _ in steps if u <= lim)
         return units, sum((lim - u) * q for u, q, _ in steps if u <= lim)
+
+    def vendor_doubt(r):
+        """A real buy below the vendor price is cleared within hours: hundreds of units sitting below it over two
+        scans 6+ hours apart mean the vendor price we know is wrong (Forever changed it), not that nobody noticed."""
+        if not r['sell']:
+            return False
+        lim = r['sell'] * 0.95
+        pts = [p for p in r['series'] if p[0] >= r['seen'] - D and p[3] is not None and p[3] >= 100
+               and (p[2] or p[1]) and (p[2] or p[1]) <= lim]
+        return len(pts) >= 2 and pts[-1][0] - pts[0][0] >= 6 * 3600
     try:  # names as the game client shows them (AuctionDB's item DB): for items the model's lists do not know
         meta = {i: n for i, n in con.execute('SELECT item_id, name FROM item_meta') if n}
     except sqlite3.OperationalError:
@@ -244,8 +259,9 @@ def analyse(con, realm, cfg, now):
             continue
         # worth the trip only from 20s total profit on, counted over the auctions that really sit below the limit
         r['v_units'], r['v_profit'] = vendor_take(r)
+        r['v_doubt'] = vendor_doubt(r)
         if r['name'] in vendor_goods:
-            if r['v_profit'] >= 2000:
+            if r['v_profit'] >= 2000 and not r['v_doubt']:
                 sig['vendor'].append(r)
             continue
         real = not r['stale'] and (r['qty'] or 0) >= 5 and r['price'] * (r['qty'] or 0) >= 10000   # at least 1g listed
@@ -278,7 +294,7 @@ def analyse(con, realm, cfg, now):
                 sig['squeeze'].append(r)
         elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
             sig['squeeze'].append(r)
-        if r['v_profit'] >= 2000:
+        if r['v_profit'] >= 2000 and not r['v_doubt']:
             sig['vendor'].append(r)
     by_band = {}
     for r in rows.values():
