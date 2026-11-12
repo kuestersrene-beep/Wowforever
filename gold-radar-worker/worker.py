@@ -354,7 +354,7 @@ def build(ruleset, con):
             data['census'] = census.payload(cache, cuts)
     except Exception as e:
         log.warning('%s: Census nicht eingebaut: %s', ruleset, e)
-    page = head + start + json.dumps(data, ensure_ascii=False) + end + tail
+    page = head + start + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + end + tail
     storage_put(f'{ruleset}/dashboard.html', page.encode('utf-8'), 'text/html; charset=utf-8')
     log.info('%s: Seite neu gebaut (%s)', ruleset, f'Stand {live["at"]}, {live["n_scans"]} Scan-Zeitpunkte' if live else 'ohne Scans')
 

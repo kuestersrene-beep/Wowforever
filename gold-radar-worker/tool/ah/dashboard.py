@@ -399,7 +399,23 @@ def pack(live, cfg, wanted, fills, kisten=None):
             if dp:  # depth of the newest full scan: units near the cheapest one, fresh listings
                 rows[str(iid)]['dp'] = dict(u=dp['units'], a=dp['auctions'], u110=dp['u110'], u125=dp['u125'], u150=dp['u150'],
                                             c150=dp['cost150'], fr=dp['fresh'], sh=dp['short'])
-    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
+    # search index over every scanned item (the page's item search): [id, English name, German name or '', cheapest,
+    # units, vendor sell, 7-day median, change 24 h / 3 d / 7 d, stale, bought per day, average paid, median paid]
+    r2 = lambda v: None if v is None else round(v, 2)
+    DE = de_names()
+    idx = []
+    for iid, lr in live['rows'].items():
+        if lr.get('price') is None:
+            continue
+        m = lr.get('sold_raw') or {}
+        de = lr.get('de') or ''
+        if de == lr.get('name') or DE.get(str(iid)) == de:   # the page has the German names of names_de.json already
+            de = ''
+        idx.append([iid, lr.get('name') or '', de, lr['price'], lr.get('qty'), lr.get('sell') or 0,
+                    round(lr['median7']) if lr.get('median7') else None, r2(lr.get('p_d1')), r2(lr.get('p_d3')), r2(lr.get('p_d7')),
+                    1 if lr.get('stale') else 0, round(m['per_day'], 1) if m else None,
+                    round(m['avg']) if m.get('avg') else None, m.get('med')])
+    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'), idx=idx,
                 qsim=bool(live.get('qty_simulated')), days=live['days'], ob_at=live.get('book_ts'), n_scans=live['n_scans'], todo=live['todo'],
                 flips=flips(live, cfg), favor=crate_costs(live, kisten) if kisten else favor_index(live, fills), rows=rows, best=best,
                 best_h=best[0]['h'] if best else None,
@@ -506,7 +522,7 @@ def main():
         payload['census'] = census.payload(census.update(os.path.join(HERE, 'census.json'), cuts)[0], cuts)
     except Exception as e:
         print('Census nicht geladen:', e)
-    data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False) + '/*__DATA_END__*/'
+    data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False, separators=(',', ':')) + '/*__DATA_END__*/'
     open(out, 'w', encoding='utf-8').write(tpl.replace('/*__DATA__*/null', data))
     print(out)
 
