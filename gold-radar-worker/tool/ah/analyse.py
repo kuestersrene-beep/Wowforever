@@ -321,10 +321,12 @@ def analyse(con, realm, cfg, now):
         # bought and as many listed again is deep, not drying up), the listed quantity fell by a fifth in a day, and
         # what is left lasts less than half a day
         m = r['sold_raw']
-        if m and r['qty'] and r not in sig['heiss'] and not r['stale']:
+        # not while the price crashes (a buy-out tip into a falling market) or steps down reading after reading
+        falling = (r['p_d1'] or 0) <= -0.2 or r['stairs']
+        if m and r['qty'] and r not in sig['heiss'] and not r['stale'] and not falling:
             if m['low'] > m['new'] and (r['q_d1'] or 0) < -0.2 and r['qty'] < 0.5 * m['per_day'] and m['per_day'] * r['price'] >= 5000                     and r['qty'] * r['price'] >= 10000:
                 sig['squeeze'].append(r)
-        elif r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
+        elif not falling and r['gone_per_day'] and r['qty'] and r['gone_per_day'] >= r['qty'] and r not in sig['heiss'] and r['qty'] * r['price'] >= 10000                 and not r['stale']:
             sig['squeeze'].append(r)
         if r['v_profit'] >= 2000 and not r['v_doubt']:
             sig['vendor'].append(r)

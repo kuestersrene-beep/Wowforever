@@ -114,6 +114,10 @@ def flips(live, cfg):
             continue
         ref24, trend, points = r['ref24'], r['trend'], r['ref_points']   # analyse.recent(): the price of the last 24 h
         sr = r.get('sold_raw') or {}
+        # measured, but not even one sure sale a day (only auctions that may have expired or been pulled): the
+        # listed prices are a wall nobody pays, no flip on them
+        if sr and (sr.get('low') or 0) < 1:
+            continue
         paid = sr.get('med') or sr.get('avg')
         # medians and paid prices lag behind a falling market: the cheapest price of the reading before caps the target
         cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
