@@ -39,7 +39,8 @@ import lua_sv
 BAND_MIN = {1: 0, 2: 0, 3: 30 * 60, 4: 2 * 3600, 5: 8 * 3600}   # stored time-left value -> seconds left at least
 FRESH = 5                    # very long: posted in the last hours
 PULL_FACTOR = 2.0            # gone at more than this times a cheaper one that stayed: pulled, not bought
-MAX_GAP = 12 * 3600          # scans further apart: nearly every auction may have expired in between, no measurement
+MAX_GAP = max(BAND_MIN.values())   # scans further apart (8 h): every auction may have expired in between, so not one
+                             # sale is safe; such a pair only adds hours without sales and pushes per_day down
 KEEP_LISTINGS = 4 * 86400    # single auctions kept in ah.db
 KEEP_DEPTH = 30 * 86400      # depth per scan kept this long (sales stay)
 D = 86400
@@ -321,9 +322,10 @@ def sold_per_day(con, realm, now, days=3):
     try:
         has_med = 'med_unit' in {c[1] for c in con.execute('PRAGMA table_info(sales)')}
         q = con.execute('SELECT item_id, t0, t1, units0, gone, sold_safe, safe_units, unsure_gone, unsure_units, relist, '
-                        f'sold_value, top_unit, new_units, {"med_unit" if has_med else "NULL"} FROM sales WHERE realm=? AND t1 > ?',
-                        (realm, now - days * D)).fetchall()
-        pairs = con.execute('SELECT t0, t1 FROM sales WHERE realm=? AND t1 > ? GROUP BY t0, t1', (realm, now - days * D)).fetchall()
+                        f'sold_value, top_unit, new_units, {"med_unit" if has_med else "NULL"} FROM sales WHERE realm=? AND t1 > ? AND t1 - t0 <= ?',
+                        (realm, now - days * D, MAX_GAP)).fetchall()
+        pairs = con.execute('SELECT t0, t1 FROM sales WHERE realm=? AND t1 > ? AND t1 - t0 <= ? GROUP BY t0, t1',
+                            (realm, now - days * D, MAX_GAP)).fetchall()
     except sqlite3.OperationalError:
         return {}
     span = sum(t1 - t0 for t0, t1 in pairs)

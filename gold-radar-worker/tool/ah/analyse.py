@@ -307,9 +307,11 @@ def analyse(con, realm, cfg, now):
             start = BAND_PEAK_DAYS[band][0]
             end = r['w'].get('end')
             # not while it crashes today, and not when measured sales say nobody buys it (a buy tip needs buyers later
-            # and a price that holds now)
-            if 3 <= start - days <= 10 and (p3 is None or p3 < 0.05) and real and (r['trend'] is None or r['trend'] >= 0.85) \
-                    and (end is None or end >= 1) and r['price'] <= r['ref'] * 1.05 and (r['p_d1'] or 0) > -0.2 \
+            # and a price that holds now). Flat means flat over 3 days, not a crash that paused for a day: measured
+            # 10.-13.11., the first-mover premium of goods whose level few players have reached decays for days
+            # (-22 % to -78 % in 3 days), so a quiet day after -77 % (Firebloom 12.11.) is no floor yet
+            if 3 <= start - days <= 10 and (p3 is None or -0.25 < p3 < 0.05) and real and (r['trend'] is None or r['trend'] >= 0.85) \
+                    and not r['stairs'] and (end is None or end >= 1) and r['price'] <= r['ref'] * 1.05 and (r['p_d1'] or 0) > -0.2 \
                     and not (measured and r['gone_per_day'] == 0):
                 sig['unter'].append(r)
         base = r['ref24'] or r['median7']
