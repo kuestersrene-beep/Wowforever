@@ -66,6 +66,13 @@ def recent(ser, last):
     return ref, (ref / statistics.median(before) if ref and before else None), len(day) + len(before)
 
 
+def newest_scan(rows):
+    """When the newest real scan ended: the 200th most recent reading. Single items looked up in the AH afterwards
+    (a few dozen readings) must not make the whole full scan before them look outdated."""
+    seen = sorted((r['seen'] for r in rows), reverse=True)
+    return seen[min(199, len(seen) - 1)] if seen else 0
+
+
 def analyse(con, realm, cfg, now):
     items = json.load(open(os.path.join(DATA, 'items.json'), encoding='utf-8'))
     # Forever changed some vendor prices: what the game tooltip says beats the static Classic data
@@ -168,7 +175,7 @@ def analyse(con, realm, cfg, now):
         rows[item] = r
     # a price only counts while the item is listed: missing from the newest scan (older readings) or fewer than 3
     # listed is no market price, so no factor, profit or tip is built on it
-    newest = max((r['seen'] for r in rows.values()), default=0)
+    newest = newest_scan(rows.values())
     for r in rows.values():
         r['stale'] = r['seen'] < newest - 2 * H or (r['qty'] is not None and r['qty'] < 3)
 
