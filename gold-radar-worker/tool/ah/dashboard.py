@@ -115,8 +115,10 @@ def flips(live, cfg):
         ref24, trend, points = r['ref24'], r['trend'], r['ref_points']   # analyse.recent(): the price of the last 24 h
         sr = r.get('sold_raw') or {}
         paid = sr.get('med') or sr.get('avg')
+        # medians and paid prices lag behind a falling market: the cheapest price of the reading before caps the target
         cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
-                                         (paid, 'Median bezahlt' if sr.get('med') else 'Ø bezahlt')) if v]
+                                         (paid, 'Median bezahlt' if sr.get('med') else 'Ø bezahlt'),
+                                         (r.get('low_prev'), 'Tiefstpreis davor')) if v]
         if not cands:
             continue
         target, target_src = min(cands)
@@ -124,6 +126,10 @@ def flips(live, cfg):
         below_vendor = bool(vendor) and price < vendor * 0.95
         falling = trend is not None and trend < fall
         if falling and not below_vendor:
+            continue
+        # the price held at this level for 4+ hours over the readings: that is where the market is now, no dip
+        # ... and a price that stepped down reading after reading (30 %+ in 24 h) is still falling
+        if ((r.get('hold_h') or 0) >= 4 or r.get('stairs')) and not below_vendor:
             continue
         unit = max(net - price, (vendor - price) if below_vendor else 0)
         margin = (price + unit) / price

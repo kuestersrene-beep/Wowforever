@@ -66,6 +66,30 @@ def recent(ser, last):
     return ref, (ref / statistics.median(before) if ref and before else None), len(day) + len(before)
 
 
+def price_level(ser, price, last):
+    """(hours the cheapest price has stood at about today's level, median of the cheapest prices read in the 24 h
+    before the newest reading). Market values and medians lag behind a falling market by days; the cheapest listing
+    of every reading (own scans and the guild's shared ones) does not. A price that held over several readings for
+    hours is the market, not a dip someone overlooked; a price that stepped down reading after reading is a falling
+    market. Returns (hours at this level, cheapest price of the last reading an hour or more before, falling)."""
+    lows = []
+    for p in ser:   # one reading per half hour (a full scan is read in many small parts)
+        if p[2] and p[0] >= last - D:
+            if lows and p[0] - lows[-1][0] < 1800:
+                lows[-1] = (p[0], p[2])
+            else:
+                lows.append((p[0], p[2]))
+    since = last
+    for t, lo in reversed(lows):
+        if lo > 1.15 * price:
+            break
+        since = t
+    prev = next((lo for t, lo in reversed(lows) if t <= last - H), None)
+    tail = [lo for _, lo in lows[-3:]]
+    falling = len(lows) >= 3 and all(b <= a for a, b in zip(tail, tail[1:])) and price < 0.7 * lows[0][1]
+    return (last - since) / H, prev, falling
+
+
 def newest_scan(rows):
     """When the newest real scan ended: the 200th most recent reading. Single items looked up in the AH afterwards
     (a few dozen readings) must not make the whole full scan before them look outdated."""
@@ -168,6 +192,7 @@ def analyse(con, realm, cfg, now):
         elif measured and r['depth']:   # measured intervals, listed, but nothing of it bought
             r['gone_per_day'] = 0.0
         r['ref24'], r['trend'], r['ref_points'] = recent(ser, last[0])
+        r['hold_h'], r['low_prev'], r['stairs'] = price_level(ser, price, last[0])
         # conservative "what it sells for now": lowest of the 24-h median, the 7-day median and the measured paid price
         # paid: the median paid per unit (robust against one dear sale), the average where no median is measured yet
         paid = (r['sold_raw'] or {}).get('med') or (r['sold_raw'] or {}).get('avg')
