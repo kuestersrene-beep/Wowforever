@@ -39,6 +39,7 @@ import lua_sv
 BAND_MIN = {1: 0, 2: 0, 3: 30 * 60, 4: 2 * 3600, 5: 8 * 3600}   # stored time-left value -> seconds left at least
 FRESH = 5                    # very long: posted in the last hours
 PULL_FACTOR = 2.0            # gone at more than this times a cheaper one that stayed: pulled, not bought
+THIN = 10                    # at most this many auctions of a variant: single pieces, the dearer of two is not bought
 MAX_GAP = max(BAND_MIN.values())   # scans further apart (8 h): every auction may have expired in between, so not one
                              # sale is safe; such a pair only adds hours without sales and pushes per_day down
 KEEP_LISTINGS = 4 * 86400    # single auctions kept in ah.db
@@ -192,8 +193,39 @@ def compare(a, b, dt):
     for x in kept:
         if x[4]:
             cheapest_kept[x[0]] = min(cheapest_kept.get(x[0], unit(x)), unit(x))
-    pulled = [x for x in gone if x[4] and x[0] in cheapest_kept and unit(x) > PULL_FACTOR * cheapest_kept[x[0]]]
-    gone_ok = [x for x in gone if not (x[4] and x[0] in cheapest_kept and unit(x) > PULL_FACTOR * cheapest_kept[x[0]])]
+    # single pieces in a thin market (gear, recipes, plans): of two identical pieces nobody buys the dearer one while
+    # the cheaper stays; the dearer one gone was taken down to undercut (13.11.2026: Plans: Lionheart Helm, 2,900 g
+    # gone, 2,499 g stayed unbought, 2,199 g posted fresh). Mass goods keep the 2x rule: buyers clear whole pages there.
+    n_var = defaultdict(int)
+    for x in a:
+        n_var[x[0]] += 1
+    cheapest_one = {}
+    for x in kept:
+        if x[4] and x[2] == 1:
+            cheapest_one[x[0]] = min(cheapest_one.get(x[0], x[4]), x[4])
+    # ... and a single piece gone while the same piece is posted fresh for less in the same interval is that seller's
+    # undercut, not a sale (each fresh repost explains one gone piece)
+    reposts = defaultdict(list)
+    for x in new:
+        if x[1] == FRESH and x[2] == 1 and x[4]:
+            reposts[x[0]].append(x[4])
+    def was_pulled(x):
+        if not x[4]:
+            return False
+        if x[0] in cheapest_kept and unit(x) > PULL_FACTOR * cheapest_kept[x[0]]:
+            return True
+        if x[2] != 1 or n_var[x[0]] > THIN:
+            return False
+        if x[0] in cheapest_one and x[4] > cheapest_one[x[0]]:
+            return True
+        cheaper = [p for p in reposts[x[0]] if p < x[4]]
+        if cheaper:
+            reposts[x[0]].remove(max(cheaper))
+            return True
+        return False
+    flags = [was_pulled(x) for x in gone]
+    pulled = [x for x, f in zip(gone, flags) if f]
+    gone_ok = [x for x, f in zip(gone, flags) if not f]
     units0 = sum(x[2] for x in a)
     safe_units = sum(x[2] for x in a if BAND_MIN[x[1]] > dt)
     sold_safe = [x for x in gone_ok if BAND_MIN[x[1]] > dt or x[5]]   # with a bid it went to the bidder in any case
