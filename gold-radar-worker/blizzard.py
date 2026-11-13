@@ -62,11 +62,36 @@ def realm_names(client, region, ns):
     return sorted(r['name'] for r in (data or {}).get('realms', [])) if code == 200 else []
 
 
+def _connected_via_realms(client, region, ns):
+    """The way around a missing connected-realm index (WoW Forever, 13.11.2026: index 404 while the realm list is
+    there): every realm's own page names its connected realm. [(connected-realm id, its realms)], [] if none does."""
+    code, data, _ = client.get(region, '/data/wow/realm/index', ns)
+    if code != 200 or not data:
+        return []
+    groups, notes = {}, set()
+    for r in data.get('realms', []):
+        if TEST_REALM.search(r.get('name', '')) or not r.get('slug'):
+            continue
+        code, d, _ = client.get(region, f"/data/wow/realm/{r['slug']}", ns)
+        href = ((d or {}).get('connected_realm') or {}).get('href', '')
+        if code != 200 or '/connected-realm/' not in href:
+            notes.add(code)
+            continue
+        cid = int(href.split('/connected-realm/')[1].split('?')[0].split('/')[0])
+        groups.setdefault(cid, []).append(dict(name=d.get('name') or r.get('name'), slug=r['slug'], type=d.get('type') or {}))
+    return sorted(groups.items())
+
+
 def _connected(client, region, ns, limit=None):
-    """[(connected-realm id, its realms)]; LookupError while the namespace has none."""
+    """[(connected-realm id, its realms)]; LookupError while the namespace has none (neither the index nor, as a way
+    around it, the realms' own pages)."""
     code, data, _ = client.get(region, '/data/wow/connected-realm/index', ns)
     if code != 200:
-        raise LookupError(f'Realm-Verbünde von {ns}-{region} noch nicht veröffentlicht (Status {code})')
+        via = _connected_via_realms(client, region, ns)
+        if via:
+            return via[:limit]
+        raise LookupError(f'Realm-Verbünde von {ns}-{region} noch nicht veröffentlicht (Status {code}; '
+                          'auch die einzelnen Realms nennen keinen Verbund)')
     out = []
     for c in data.get('connected_realms', [])[:limit]:
         cid = int(c['href'].split('/connected-realm/')[1].split('?')[0])

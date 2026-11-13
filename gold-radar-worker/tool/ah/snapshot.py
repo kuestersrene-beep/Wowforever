@@ -12,7 +12,7 @@ from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import scanfiles, rawscan
+import scanfiles, rawscan, blackthornes
 
 DEFAULT_WOW = r'C:\Program Files (x86)\World of Warcraft\_forever_'
 SV_NAMES = ('AuctionDB.lua', 'Auctionator.lua', 'aux-addon.lua', 'Blackthornes_TS.lua')
@@ -122,6 +122,12 @@ def main():
     s, p = raw_backfill(con, sorted(glob.glob(os.path.join(SNAP_DIR, '*.lua'))) + ([a.file] if a.file else []))
     if s or p:
         print(f'Rohscans (einzelne Auktionen): {s} neue Scans, {p} neue Scan-Paare mit Verkäufen gemessen (python ah/rawscan.py)')
+    try:   # vendor prices, deposits, own professions from the Tradeskills add-on (ah/blackthornes.py)
+        msg = blackthornes.export(a.wow)
+        if msg:
+            print(msg)
+    except Exception as e:
+        print(f'Blackthornes nicht gelesen: {e}')
     total = con.execute('SELECT COUNT(*), COUNT(DISTINCT item_id), COUNT(DISTINCT seen) FROM scans').fetchone()
     print(f'ah.db: {total[0]} Messungen, {total[1]} Items, {total[2]} Scan-Zeitpunkte')
 

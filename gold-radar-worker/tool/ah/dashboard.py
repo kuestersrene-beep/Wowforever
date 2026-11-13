@@ -10,7 +10,7 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import analyse
+import analyse, spieldaten
 from snapshot import SCHEMA
 
 
@@ -307,6 +307,7 @@ def load_kisten():
 def live_payload(con, realm, cfg, ctx):
     """Live part of the page from a scan database; ctx = the page's own DATA.ctx (used by the website's worker,
     which merges the members' uploaded scans and puts this into the shared page)."""
+    cfg = spieldaten.apply(cfg)   # vendor prices and deposit as read in game (ah/data/spieldaten.json)
     now = max(con.execute('SELECT MAX(seen) FROM scans WHERE realm=?', (realm,)).fetchone()[0] or 0,
               con.execute('SELECT MAX(t) FROM history WHERE realm=?', (realm,)).fetchone()[0] or 0)
     if not now:
@@ -426,7 +427,7 @@ def pack(live, cfg, wanted, fills, kisten=None):
 
 def main():
     share = '--teilen' in sys.argv
-    cfg = json.load(open(os.path.join(HERE, 'config.json'), encoding='utf-8'))
+    cfg = spieldaten.apply(json.load(open(os.path.join(HERE, 'config.json'), encoding='utf-8')))
     prof = load('data_prof.json')
     gap = load('gap_model.json')
     detail = load('demand_detail.json')

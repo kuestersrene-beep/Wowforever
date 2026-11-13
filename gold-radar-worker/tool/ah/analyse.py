@@ -5,6 +5,7 @@
 """
 import argparse, html, json, math, os, sqlite3, statistics
 from datetime import datetime, date
+import spieldaten
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROF_DE = {'alchemy': 'Alchemie', 'blacksmithing': 'Schmiedekunst', 'enchanting': 'Verzauberkunst', 'engineering': 'Ingenieurskunst', 'leatherworking': 'Lederverarbeitung', 'tailoring': 'Schneiderei', 'cooking': 'Kochen', 'first-aid': 'Erste Hilfe'}
@@ -97,8 +98,33 @@ def newest_scan(rows):
     return seen[min(199, len(seen) - 1)] if seen else 0
 
 
+def own_profs(cfg):
+    """Own professions with their skill and the products your characters know (ah/blackthornes.py ->
+    data/eigene_daten.json) for the report's craft tips; None when config.json lists professions by hand (they filter
+    the recipes already) or nothing is known."""
+    if cfg.get('meine_berufe'):
+        return None
+    try:
+        d = json.load(open(os.path.join(DATA, 'eigene_daten.json'), encoding='utf-8'))
+    except (OSError, ValueError):
+        return None
+    return dict(skill=d.get('berufe') or {}, known=set(d.get('rezepte') or [])) if d.get('berufe') else None
+
+
+def skill_ok(c, own):
+    return own is None or (c['prof'] in own['skill'] and (c['learn'] or 0) <= own['skill'][c['prof']])
+
+
+def can_craft(c, own):
+    """Skill high enough and the recipe known (when the add-on listed your recipes)."""
+    return skill_ok(c, own) and (own is None or not own['known'] or c.get('item_id') in own['known'])
+
+
 def analyse(con, realm, cfg, now):
+    cfg = spieldaten.apply(cfg)   # vendor prices and deposit as read in game, not the estimates
     items = json.load(open(os.path.join(DATA, 'items.json'), encoding='utf-8'))
+    for k, v in spieldaten.sell_values().items():   # what vendors pay, from the game's item tooltips
+        items.setdefault(k, {})['sell'] = v   # no name: the scans' item names stay in charge
     # Forever changed some vendor prices: what the game tooltip says beats the static Classic data
     fix_path = os.path.join(DATA, 'haendlerpreise.json')
     for k, v in (json.load(open(fix_path, encoding='utf-8')) if os.path.exists(fix_path) else {}).items():
@@ -378,8 +404,10 @@ def todo_items(rows, crafts, sig, cfg):
     # the first weeks: no endgame recipes (skill 275+) in the daily list; the full list stays in its own tab
     # no craft tip for a product whose price fell by a quarter in a day (the profit may be gone before it sells) or
     # whose listed stock alone covers more than 3 days of measured purchases (the new craft waits behind all of it)
-    for c in [c for c in crafts if (c['learn'] or 0) < 275 and not c.get('spec') and not (c.get('fall') or 0) < -0.25
-              and not (c.get('cover') or 0) > 3][:3]:
+    # with known own professions (Blackthornes): only what you can craft, endgame recipes included once your skill has them
+    own = own_profs(cfg)
+    for c in [c for c in crafts if can_craft(c, own) and ((c['learn'] or 0) < 275 or own) and not c.get('spec')
+              and not (c.get('fall') or 0) < -0.25 and not (c.get('cover') or 0) > 3][:3]:
         acts.append(dict(kind='craften', id=c.get('item_id'), name=c['name'], prof=PROF_DE.get(c['prof'], c['prof']), skill=c['learn'],
                          cost=round(c['cost']), revenue=round(c['revenue']), margin=c['margin'], limit=round(c['revenue'] - c['cost']),
                          limit_label='Gewinn', why=f"Kosten {money(c['cost'])} (Zutaten für {cfg.get('craft_serie', 5)} Crafts aus dem Orderbuch), "
@@ -492,11 +520,19 @@ def main():
           [('Item', lambda r: r['name']), ('Buyout', lambda r: money(r['price'])),
            ('Händler zahlt', lambda r: money(r['sell'])), ('Stück unter der Grenze', lambda r: r['v_units']),
            ('Gewinn', lambda r: money(r['v_profit']))])
-    table(f"Craft-Arbitrage (Marge ≥ {cfg['min_craft_marge']:.0%}, {', '.join(cfg['meine_berufe']) or 'alle Berufe'})",
-          crafts[:25], [('Item', lambda c: c['name']), ('Beruf', lambda c: c['prof']), ('Skill', lambda c: c['learn']),
+    own = own_profs(cfg)
+    table(f"Craft-Arbitrage (Marge ≥ {cfg['min_craft_marge']:.0%}, "
+          + (', '.join(cfg['meine_berufe']) or (', '.join(f'{PROF_DE.get(k, k)} {v}' for k, v in own['skill'].items() if k in PROF_DE) + ', bekannte Rezepte' if own else 'alle Berufe')) + ')',
+          [c for c in crafts if can_craft(c, own)][:25], [('Item', lambda c: c['name']), ('Beruf', lambda c: c['prof']), ('Skill', lambda c: c['learn']),
                         ('Kosten', lambda c: money(c['cost'])), ('Erlös netto', lambda c: money(c['revenue'])),
                         ('Gewinn', lambda c: money(c['profit'])), ('Marge', lambda c: f"{c['margin']:.0%}"),
                         ('im AH', lambda c: c['qty'])])
+    if own and own['known']:   # skill is there, the recipe is not: worth buying or learning?
+        table('Rezept fehlt: dein Skill reicht, das Rezept kennt noch kein Charakter',
+              [c for c in crafts if skill_ok(c, own) and not can_craft(c, own)][:10],
+              [('Item', lambda c: c['name']), ('Beruf', lambda c: c['prof']), ('Skill', lambda c: c['learn']),
+               ('Gewinn', lambda c: money(c['profit'])), ('Marge', lambda c: f"{c['margin']:.0%}"),
+               ('am Tag', lambda c: money(c['per_day']) + (f" (Abklingzeit {c['cd']} T.)" if c.get('cd') else '')), ('im AH', lambda c: c['qty'])])
     L.extend(['', '## Welle läuft an', ''])
     if sig['welle']:
         for band, rs in sig['welle'].items():
