@@ -4,6 +4,8 @@ Aufruf:
     python server_einrichten.py --probelauf      zeigt nur an, was passieren würde
     python server_einrichten.py                  legt alles an
     python server_einrichten.py --aufraeumen     löscht zusätzlich Kanäle, die nicht in der Struktur stehen
+    python server_einrichten.py --boost          nur die Boost-Vorteile (Banner, Einladungsbild, Rollen-Icons,
+                                                 Emojis, Sprachqualität); Kanäle und Rechte bleiben unberührt
 
 Das Skript ist wiederholbar: Vorhandene Rollen/Kanäle mit gleichem Namen werden übersprungen.
 Token und optional GUILD_ID stehen in der Datei .env neben diesem Skript.
@@ -22,6 +24,22 @@ GILDENNAME = "Black Cocoon"   # leer lassen = Servername bleibt wie er ist
 # Server-Icon (leer lassen = Icon bleibt): Pfad relativ zu diesem Skript
 SERVER_ICON = "../public/images/factions/black-cocoon-icon-1024.png"
 AKZENTFARBE = 0x8BE04E   # Farbe der Info-Boxen (Giftgrün wie die Website)
+
+# Boost-Vorteile: werden nur gesetzt, wenn der Server die Stufe dafür hat (sonst übersprungen)
+SERVER_BANNER = "../public/images/factions/black-cocoon-discord-banner.jpg"   # über der Kanalliste, ab Stufe 2
+EINLADUNG_BILD = "../public/images/factions/black-cocoon-discord-splash.jpg"  # Hintergrund der Einladungsseite, ab Stufe 1
+SPRACHQUALITAET = 256000   # Bitrate der Sprachkanäle (Stufe 0: 96000, 1: 128000, 2: 256000, 3: 384000)
+AFK_QUALITAET = 64000      # im AFK-Kanal redet niemand
+# Symbol neben dem Namen im Chat (ab Stufe 2); Discord zeigt nur das der höchsten Rolle mit Symbol
+ROLLEN_ICONS = {
+    "Gildenmeister": "👑", "Offizier": "🛡️", "Raidleiter": "📯", "Class-Leader": "📘",
+    "Raider": "⚔️", "Mitglied": "🕷️", "Trial": "🔰", "Hatchling": "🥚",
+}
+# Eigene Emojis: Name -> Bild (PNG, 128 x 128)
+EMOJIS = {
+    "cocoon": "../public/images/factions/black-cocoon-emoji-cocoon.png",
+    "wappen": "../public/images/factions/black-cocoon-emoji-wappen.png",
+}
 
 # Berechtigungs-Bits laut Discord-API
 P = {
@@ -274,6 +292,7 @@ API = "https://discord.com/api/v10"
 HIER = Path(__file__).resolve().parent
 PROBELAUF = "--probelauf" in sys.argv
 AUFRAEUMEN = "--aufraeumen" in sys.argv
+NUR_BOOST = "--boost" in sys.argv
 TOKEN = ""
 _fake_id = 0
 
@@ -381,6 +400,53 @@ def rollen_sortieren(gid, rollen_ids):
         print("  ! Reihenfolge konnte nicht gesetzt werden – die Bot-Rolle muss ganz oben stehen")
 
 
+def bild(pfad):
+    datei = HIER / pfad
+    art = "jpeg" if datei.suffix.lower() in (".jpg", ".jpeg") else "png"
+    return f"data:image/{art};base64," + base64.b64encode(datei.read_bytes()).decode()
+
+
+def boost_vorteile(gid):
+    """Banner, Einladungsbild, Rollen-Icons, Emojis und Sprachqualität, soweit die Boost-Stufe sie erlaubt."""
+    guild = api("GET", f"/guilds/{gid}")
+    f = set(guild.get("features", []))
+    stufe = guild.get("premium_tier", 0)
+    print(f"\nBoost-Vorteile (Stufe {stufe}, {guild.get('premium_subscription_count', 0)} Boosts):")
+
+    bilder = {}
+    if SERVER_BANNER and "BANNER" in f:
+        bilder["banner"] = bild(SERVER_BANNER)
+    if EINLADUNG_BILD and "INVITE_SPLASH" in f:
+        bilder["splash"] = bild(EINLADUNG_BILD)
+    if bilder:
+        api("PATCH", f"/guilds/{gid}", bilder)
+        namen = {"banner": "Server-Banner", "splash": "Einladungsbild"}
+        print("  ~ " + " und ".join(namen[k] for k in bilder) + " gesetzt")
+
+    if ROLLEN_ICONS and "ROLE_ICONS" in f:
+        for r in api("GET", f"/guilds/{gid}/roles"):
+            soll = ROLLEN_ICONS.get(r["name"])
+            if soll and (r.get("unicode_emoji") != soll or r.get("icon")):
+                api("PATCH", f"/guilds/{gid}/roles/{r['id']}", {"unicode_emoji": soll, "icon": None}, optional=True)
+                print(f"  ~ {soll} {r['name']}")
+
+    vorhandene = {e["name"] for e in api("GET", f"/guilds/{gid}/emojis")}
+    for name, pfad in EMOJIS.items():
+        if name not in vorhandene:
+            api("POST", f"/guilds/{gid}/emojis", {"name": name, "image": bild(pfad)}, optional=True)
+            print(f"  + Emoji :{name}:")
+
+    erlaubt = {0: 96000, 1: 128000, 2: 256000}.get(stufe, 384000)
+    afk = guild.get("afk_channel_id")
+    for c in api("GET", f"/guilds/{gid}/channels"):
+        if c["type"] != 2:
+            continue
+        soll = min(AFK_QUALITAET if c["id"] == afk else SPRACHQUALITAET, erlaubt)
+        if c.get("bitrate") != soll:
+            api("PATCH", f"/channels/{c['id']}", {"bitrate": soll}, optional=True)
+            print(f"  ~ 🔊 {c['name']}: {c.get('bitrate', 0) // 1000} → {soll // 1000} kbps")
+
+
 def main():
     global TOKEN
     env = env_lesen()
@@ -400,6 +466,10 @@ def main():
     gid = guild["id"]
     gilde = GILDENNAME or guild["name"]
     print(f"{'PROBELAUF – es wird nichts geändert' if PROBELAUF else 'Einrichtung'} für Server: {guild['name']}\n")
+    if NUR_BOOST:
+        boost_vorteile(gid)
+        print("\nFertig." if not PROBELAUF else "\nProbelauf beendet – nichts wurde geändert.")
+        return
 
     # Rollen: von unten nach oben anlegen, damit die oberste zuletzt (= ganz oben) landet
     vorhandene_rollen = {r["name"]: r["id"] for r in api("GET", f"/guilds/{gid}/roles")}
@@ -489,6 +559,7 @@ def main():
         einstellungen["icon"] = "data:image/png;base64," + base64.b64encode(icon.read_bytes()).decode()
     api("PATCH", f"/guilds/{gid}", einstellungen)
     print("\nServer-Einstellungen: Name, Icon, Verifizierung, Benachrichtigungen, Inhaltsfilter, AFK-Kanal gesetzt.")
+    boost_vorteile(gid)
 
     # Infotexte posten bzw. die eigene, bereits gepostete Nachricht aktualisieren
     texte = infotexte(gilde, kanal_ids, rollen_ids)
