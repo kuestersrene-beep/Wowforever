@@ -30,7 +30,7 @@ export default function DashboardUpload({ defaultRuleset }: { defaultRuleset: st
       } else if (res.status === 413) {
         setMsg({
           ok: false,
-          text: "Der Server lehnt die Datei als zu groß ab (Status 413). In der nginx-Konfiguration client_max_body_size 10m setzen und nginx neu laden.",
+          text: "Der Server lehnt die Datei als zu groß ab (Status 413). In der nginx-Konfiguration client_max_body_size 50m setzen und nginx neu laden.",
         });
       } else {
         setMsg({ ok: false, text: `Hochladen fehlgeschlagen (Status ${res.status}). Details: docker compose logs app` });

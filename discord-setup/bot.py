@@ -10,6 +10,7 @@
 - Willkommens-Nachricht per DM an neue Mitglieder bis zum Release (siehe willkommen.py).
 - Hinweis-Liste im Mod-Log, wer die Umfrage ausgefüllt hat, aber noch nicht im Server ist
   (siehe einladung.py).
+- Gold-Neuigkeiten des Blackwater Terminals, die der Betreiber für Discord freigegeben hat (siehe goldnews.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
 Im Developer Portal muss der "Message Content Intent" an sein (für das Protokoll).
@@ -30,6 +31,7 @@ from discord.ext import tasks
 
 import einladung
 import fraktion
+import goldnews
 import modlog
 import raid
 import rollensync
@@ -107,6 +109,7 @@ class GildenBot(discord.Client):
         await rollensync.starten(self)
         await willkommen.starten(self)
         await einladung.starten(self)
+        await goldnews.starten(self)
 
 
 bot = GildenBot(intents=intents)

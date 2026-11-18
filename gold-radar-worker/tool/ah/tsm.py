@@ -3,12 +3,10 @@
 TSM publishes per realm / region a CSV with market value, 60-day historical value, average sale price, sale rate and
 sold per day, updated every few hours, free and without a key. No AH quantities and no lowest buyout.
 
-Two uses, kept strictly apart:
+Live use only:
 - Live (config.json "tsm"): your own auction house. Prices and sold per day go into ah.db next to your own scans.
   There is no WoW Forever data at TSM yet (as of 01.11.2026). While "tsm" is empty, every run checks (at most once a
   day) whether TSM offers Forever data under one of "tsm_kandidaten" and, if so, enters the path itself.
-- Demo ("tsm_demo", e.g. classic/eu/region): the "Demo" button of the page. Another game's economy: never part of the
-  evaluation, never written to ah.db.
 
     python ah/tsm.py                      -> live import (or the Forever check while "tsm" is empty)
     python ah/tsm.py forever/eu/realm/x   -> that path once

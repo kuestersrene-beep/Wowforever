@@ -10,31 +10,39 @@ Loop (every INTERVAL_SECONDS):
    the local copy (prices + sold per day); nothing is stored in Supabase, it can always be fetched again. Without
    GOLD_RADAR_TSM the worker checks once a day whether TSM offers WoW Forever data (tool/ah/tsm.py CANDIDATES) and
    then uses it for the first auction house; status/tsm.json in the bucket tells the admin page.
-4. Demo: once a day the TSM data behind the page's Demo button (GOLD_RADAR_TSM_DEMO, default classic/eu/region)
-   is archived in DATA_DIR/tsm_demo (one file per day: TSM publishes no history), and every page gets its demo built
-   from that archive, so the demo's price history grows on the server without anyone running anything locally.
+4. (The page's demo with Classic data is gone since 10.11.2026; the uploaded model page carries no demo either.)
 5. Blizzard Game Data API (BLIZZARD_CLIENT_ID/SECRET): every auction of the auction house, about hourly.
    Every ruleset like pvp-eu-horde reads its WoW Forever auction house by itself (forever:eu:pvp:Horde, all realms
    of that ruleset; GOLD_RADAR_BLIZZARD="<ruleset>=ns:region:realm[:faction]" overrides) and feeds the live page (lowest unit buyout + quantity per
-   item, so trends and sell-through come from Blizzard's own hourly dumps); GOLD_RADAR_BLIZZARD_DEMO (default
-   classicann:eu:Spineshatter:Horde; if its auction house is not in the API the worker looks for a Classic realm
-   that is) feeds the Demo button instead of TSM when available. Snapshots live only on the
+   item, so trends and sell-through come from Blizzard's own hourly dumps). Snapshots live only on the
    server (blizzard-*.db, last BLIZZARD_KEEP_DAYS days), not in Supabase; status/blizzard.json tells the admin page.
-6. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
+6. Recorded full scans in uploaded AuctionDB files (every single auction, tool/ah/rawscan.py): kept on the server
+   only (raw-<ruleset>.db, not in Supabase; single auctions 4 days, depth 30 days), consecutive scans of any
+   members within 12 hours measure what was bought per day and at which prices. A withdrawn upload takes its scans
+   (and what was measured from them) along, unless another upload brought the same scan.
+7. For every auction house that changed (new points, new model page): take <ruleset>/model.html (the page from
    ah/dashboard.py --teilen), compute the live part with the tool's own analysis (tool/ah) and write
    <ruleset>/dashboard.html, which /gold-radar serves.
+8. Player census (tool/ah/census.py): every 6 hours the level counts of both factions of every ruleset from
+   classicarmory.gg (nightly snapshots) and forever.raider.io (daily) into DATA_DIR/census.json (history kept); the
+   pages show them in the tab "Spieler" next to the model's level curve.
+9. News (news.py): items that show up in the auction house for the first time, Blizzard blue posts (every
+   BLUE_MINUTES) and foreverchanges patch notes (every FC_HOURS), searched for item names and keywords, into
+   gold_radar_news. Nothing goes out by itself: the owner releases each row under /admin/gold-radar, for the pages
+   (show_page) and for Discord (post_discord, GOLD_RADAR_NEWS_WEBHOOK) separately.
 
 Only the Python standard library; the tool code in tool/ comes from WowForever-Gold (tools/export_worker.py).
 Environment: SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL), SUPABASE_SERVICE_ROLE_KEY, GOLD_RADAR_RULESETS
 (default pvp-eu-horde), DATA_DIR (default /data), INTERVAL_SECONDS (default 60).
 """
-import json, logging, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
+import gzip, json, logging, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, 'tool', 'ah'))
-import dashboard, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
+import census, dashboard, rawscan, scanfiles, tsm  # noqa: E402  (tool code from WowForever-Gold)
 import blizzard  # noqa: E402
+import news  # noqa: E402
 from snapshot import SCHEMA  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
@@ -44,24 +52,23 @@ URL = (os.environ.get('SUPABASE_URL') or os.environ.get('NEXT_PUBLIC_SUPABASE_UR
 KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 RULESETS = [r.strip() for r in os.environ.get('GOLD_RADAR_RULESETS', os.environ.get('GOLD_RADAR_RULESET', 'pvp-eu-horde')).split(',') if r.strip()]
 DATA_DIR = os.environ.get('DATA_DIR', '/data')
+CENSUS_PATH = os.path.join(DATA_DIR, 'census.json')
 INTERVAL = int(os.environ.get('INTERVAL_SECONDS', '60'))
 BUCKET = 'gold-radar'
 TSM = dict(x.split('=', 1) for x in os.environ.get('GOLD_RADAR_TSM', '').split(',') if '=' in x)
 TSM_HOURS = float(os.environ.get('TSM_HOURS', '6'))
-TSM_DEMO = os.environ.get('GOLD_RADAR_TSM_DEMO', 'classic/eu/region')
 BLIZZ = blizzard.Client(os.environ['BLIZZARD_CLIENT_ID'], os.environ['BLIZZARD_CLIENT_SECRET']) \
     if os.environ.get('BLIZZARD_CLIENT_ID') and os.environ.get('BLIZZARD_CLIENT_SECRET') else None
 BLIZZ_TARGETS = {r: blizzard.ruleset_target(r) for r in RULESETS if blizzard.ruleset_target(r)}  # one per ruleset
 BLIZZ_TARGETS.update(x.strip().split('=', 1) for x in os.environ.get('GOLD_RADAR_BLIZZARD', '').split(',') if '=' in x)
-BLIZZ_DEMO_SET = bool(os.environ.get('GOLD_RADAR_BLIZZARD_DEMO'))  # set by hand: no automatic search for another realm
-BLIZZ_DEMO = os.environ.get('GOLD_RADAR_BLIZZARD_DEMO', 'classicann:eu:Spineshatter:Horde') if BLIZZ else ''
 BLIZZ_MINUTES = float(os.environ.get('BLIZZARD_MINUTES', '60'))
 BLIZZ_KEEP_DAYS = float(os.environ.get('BLIZZARD_KEEP_DAYS', '10'))
-BLIZZ_STATUS = {}  # per ruleset/demo: last result of the hourly Blizzard import (also read when pages are built)
-DEMO = {'con': None, 'target': BLIZZ_DEMO,
-        'label': 'Blizzard ' + ' '.join(BLIZZ_DEMO.split(':')[2:]) if BLIZZ_DEMO else ''}
+BLIZZ_STATUS = {}  # per ruleset: last result of the hourly Blizzard import (also read when pages are built)
 BATCH = 500
 CFG = json.load(open(os.path.join(HERE, 'tool', 'ah', 'config.json'), encoding='utf-8'))
+NEWS_WEBHOOK = os.environ.get('GOLD_RADAR_NEWS_WEBHOOK', '')
+BLUE_MINUTES = float(os.environ.get('BLUE_MINUTES', '10'))
+FC_HOURS = float(os.environ.get('FC_HOURS', '3'))
 
 
 # ---------- Supabase (REST + Storage) ----------
@@ -116,6 +123,18 @@ def local(ruleset, suffix=''):
     os.makedirs(DATA_DIR, exist_ok=True)
     con = sqlite3.connect(os.path.join(DATA_DIR, f'{ruleset}.db{suffix}'))
     con.executescript(SCHEMA)
+    if not suffix:  # the measured sales (raw-<ruleset>.db) for the analysis; its tables are not in the main schema
+        raw_db(ruleset).close()
+        con.execute('ATTACH DATABASE ? AS raw', (os.path.join(DATA_DIR, f'raw-{ruleset}.db'),))
+    return con
+
+
+def raw_db(ruleset):
+    """Recorded full scans of the members' AuctionDB files: survives a resync, as it is not in Supabase."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    con = sqlite3.connect(os.path.join(DATA_DIR, f'raw-{ruleset}.db'))
+    con.executescript(rawscan.SCHEMA)
+    con.execute('CREATE TABLE IF NOT EXISTS raw_owner (realm TEXT, ts INTEGER, upload_id TEXT, PRIMARY KEY (realm, ts, upload_id))')
     return con
 
 
@@ -203,25 +222,89 @@ def parse(raw, ruleset, upload_id):
     return scans, history, p.sources
 
 
+def fix_guild_prices(cons):
+    """One-time repair (10.11.2026): Tradeskills guild prices were read with their market value as the lowest price
+    (tool/ah/scanfiles.py, now fixed). Re-reads every processed Tradeskills upload and overwrites its points in Supabase
+    and in the local copies. Newest upload first, so a point that several uploads carry ends up with the oldest one,
+    as before (ignore-duplicates kept the first)."""
+    ups = rest('GET', 'gold_radar_uploads', 'status=eq.done&select=id,ruleset,file_path,created_at&order=created_at.desc&limit=2000') or []
+    files = points = 0
+    for u in ups:
+        if u['ruleset'] not in cons:
+            continue
+        raw = storage_get(u['file_path'])
+        if raw is None:
+            continue
+        if raw[:2] == b'\x1f\x8b':
+            raw = gzip.decompress(raw)
+        if b'BlackthornesTSDB' not in raw[:300]:
+            continue
+        try:
+            scans, _, _ = parse(raw, u['ruleset'], u['id'])
+        except ValueError:
+            continue
+        guild = [s for s in scans if s['quantity'] is None]
+        for i in range(0, len(guild), BATCH):
+            rest('POST', 'gold_radar_scans', 'on_conflict=ruleset,item_id,seen', guild[i:i + BATCH],
+                 prefer='resolution=merge-duplicates,return=minimal')
+        con = cons[u['ruleset']]
+        con.executemany('UPDATE scans SET market=?, min=? WHERE realm=? AND item_id=? AND seen=? AND quantity IS NULL',
+                        [(s['market'], s['min_price'], s['ruleset'], s['item_id'], s['seen']) for s in guild])
+        con.commit()
+        files += 1
+        points += len(guild)
+    return files, points
+
+
 def store(table, rows, conflict):
     for i in range(0, len(rows), BATCH):
         rest('POST', table, f'on_conflict={conflict}', rows[i:i + BATCH],
              prefer='resolution=ignore-duplicates,return=minimal')
 
 
-def process(u, con):
+def process(u, con, rawcon=None):
     raw = storage_get(u['file_path'])
     if raw is None:
         raise ValueError('Datei nicht im Speicher gefunden')
+    if raw[:2] == b'\x1f\x8b':   # the upload form packs the file (gzip) before sending it
+        raw = gzip.decompress(raw)
     scans, history, realms = parse(raw, u['ruleset'], u['id'])
     store('gold_radar_scans', scans, 'ruleset,item_id,seen')
     store('gold_radar_history', history, 'ruleset,item_id,t')
     put_local(con, u['ruleset'], scans, history)
+    full = raw_put(rawcon, u, raw) if rawcon is not None else ''
     rest('PATCH', 'gold_radar_uploads', f'id=eq.{u["id"]}',
-         {'status': 'done', 'items': len(scans), 'realms': realms, 'message': None, 'processed_at': now_iso()},
-         prefer='return=minimal')
+         {'status': 'done', 'items': len(scans), 'realms': realms + ([full] if full else []), 'message': None,
+          'processed_at': now_iso()}, prefer='return=minimal')
     log.info('Upload %s (%s): %d Preise, %d Verlaufspunkte, Quellen %s', u['id'], u.get('display_name'),
-             len(scans), len(history), ', '.join(realms))
+             len(scans), len(history), ', '.join(realms + ([full] if full else [])))
+
+
+def raw_put(rawcon, u, raw):
+    """The single auctions of an AuctionDB file's recorded full scans (option "Record full scans"), if any; a broken
+    or odd part never fails the upload, its prices are in already. Returns a note for the upload's sources."""
+    if not raw.lstrip()[:40].startswith(b'AuctionDB') or b'["dataFormatVersion"]' not in raw:
+        return ''
+    try:
+        added, pairs, stamps = rawscan.ingest(rawcon, raw, u['ruleset'], faction_of(u['ruleset']))
+        rawcon.executemany('INSERT OR IGNORE INTO raw_owner VALUES (?,?,?)', [(u['ruleset'], t, u['id']) for t in stamps])
+        rawcon.commit()
+    except Exception as e:
+        log.warning('Upload %s: Rohscans nicht gelesen: %s', u['id'], e)
+        return ''
+    log.info('Upload %s: %d Rohscans (%d neu), %d Scan-Paare mit Verkäufen gemessen', u['id'], len(stamps), added, pairs)
+    return f'AuctionDB-Rohscans ({len(stamps)} Scans, einzelne Auktionen)' if stamps else ''
+
+
+def raw_revoke(rawcon, u):
+    """Removes the full scans only this upload brought, with the sales measured from them."""
+    stamps = [t for t, in rawcon.execute('SELECT ts FROM raw_owner WHERE realm=? AND upload_id=?', (u['ruleset'], u['id']))]
+    rawcon.execute('DELETE FROM raw_owner WHERE upload_id=?', (u['id'],))
+    orphans = [t for t in stamps if not rawcon.execute('SELECT 1 FROM raw_owner WHERE realm=? AND ts=?', (u['ruleset'], t)).fetchone()]
+    rawscan.drop_scans(rawcon, u['ruleset'], orphans)
+    rawcon.commit()
+    if orphans:
+        log.info('Upload %s: %d Rohscans entfernt', u['id'], len(orphans))
 
 
 def revoke(u):
@@ -256,33 +339,22 @@ def build(ruleset, con):
             id='blizzard', name='Blizzard-API (ganzes AH)', t=int(datetime.fromisoformat(bz['dump']).timestamp()),
             items=bz.get('items'), auctions=bz.get('auctions'),
             note='Alle Auktionen des Auktionshauses, stündlich: Tiefstpreis und Menge je Item.'))
-    blizz_demo = tsm_demo = None
-    if DEMO['con'] is not None:  # demo from Blizzard's own hourly dumps (Classic), if there are any yet
-        try:
-            blizz_demo = dashboard.live_payload(DEMO['con'], DEMO['label'], CFG, data['ctx'])
-            if blizz_demo:
-                blizz_demo['realm'] = DEMO['label'] + ' (Classic)'
-        except Exception as e:
-            log.warning('Demo aus den Blizzard-Daten nicht gebaut: %s', e)
-    if TSM_DEMO:  # demo from the server's own TSM archive (falls back to the demo in the uploaded page)
-        try:
-            fills = {tier: [tuple(f) for f in v] for tier, v in data['ctx']['fills'].items()}
-            tsm_demo = dashboard.pack(dashboard.demo_data(dict(CFG, tsm_demo=TSM_DEMO), os.path.join(DATA_DIR, 'tsm_demo')),
-                                      CFG, set(data['ctx']['wanted']), fills)
-        except Exception as e:
-            log.warning('Demo aus dem TSM-Archiv nicht gebaut: %s', e)
-    # Blizzard's Classic realm may be a later expansion with other items: only use it when it prices about as many of
-    # this page's items as the TSM demo does (or when there is no TSM demo)
-    if blizz_demo and (not tsm_demo or len(blizz_demo['rows']) >= 0.6 * len(tsm_demo['rows'])):
-        data['demo'] = blizz_demo
-    elif tsm_demo:
-        if blizz_demo:
-            log.info('Blizzard-Demo %s preist nur %d Items (TSM: %d), nehme TSM', DEMO['label'], len(blizz_demo['rows']), len(tsm_demo['rows']))
-        data['demo'] = tsm_demo
+    data['demo'] = None   # no demo any more (an older uploaded model page may still carry one)
     if live:
         live['realm'] = f'{ruleset} (Gilden-Scans)'
     data['live'] = live
-    page = head + start + json.dumps(data, ensure_ascii=False) + end + tail
+    try:   # news of the last 30 days (news.py) for the gold calendar
+        data['news'] = news.page_rows(rest, ruleset)
+    except Exception as e:
+        log.warning('%s: Neuigkeiten nicht eingebaut: %s', ruleset, e)
+    try:   # player census of this auction house (both factions), fetched in the main loop
+        cuts = census.cuts_for([ruleset])
+        cache = json.load(open(CENSUS_PATH, encoding='utf-8')) if os.path.exists(CENSUS_PATH) else {}
+        if cuts and cache:
+            data['census'] = census.payload(cache, cuts)
+    except Exception as e:
+        log.warning('%s: Census nicht eingebaut: %s', ruleset, e)
+    page = head + start + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + end + tail
     storage_put(f'{ruleset}/dashboard.html', page.encode('utf-8'), 'text/html; charset=utf-8')
     log.info('%s: Seite neu gebaut (%s)', ruleset, f'Stand {live["at"]}, {live["n_scans"]} Scan-Zeitpunkte' if live else 'ohne Scans')
 
@@ -297,6 +369,7 @@ def main():
     except (OSError, ValueError):
         state = {}
     cons = {}
+    raws = {r: raw_db(r) for r in RULESETS}
     while True:  # without the tables nothing works: wait for the schema instead of crashing in a loop
         try:
             for r in RULESETS:
@@ -307,13 +380,32 @@ def main():
             log.error('Supabase antwortet %s – ist supabase/schema.sql eingespielt? Neuer Versuch in %d s', e.code, INTERVAL)
             time.sleep(INTERVAL)
     log.info('läuft für %s, alle %d s', ', '.join(RULESETS), INTERVAL)
+    if not state.get('_guild_min_v1'):   # one-time repair of the guild prices (see fix_guild_prices)
+        try:
+            files, points = fix_guild_prices(cons)
+            log.info('Gildenpreise korrigiert: %d Tradeskills-Uploads, %d Punkte', files, points)
+            state['_guild_min_v1'] = now_iso()
+            json.dump(state, open(state_path, 'w', encoding='utf-8'))
+            for r in RULESETS:
+                build(r, cons[r])
+        except Exception:
+            log.exception('Korrektur der Gildenpreise fehlgeschlagen, nächster Versuch beim nächsten Start')
+    if not state.get('_adb_house_v1'):   # one-time: AuctionDB files whose houses are keyed "realm Faction" failed before
+        try:   # tool/ah/scanfiles.py reads them since 10.11.2026; their uploads go back into the queue
+            failed = rest('GET', 'gold_radar_uploads', 'status=eq.error&message=like.keine%20Preise%20f*&select=id&limit=500') or []
+            for u in failed:
+                rest('PATCH', 'gold_radar_uploads', f'id=eq.{u["id"]}', {'status': 'pending', 'message': None}, prefer='return=minimal')
+            log.info('AuctionDB-Uploads mit „keine Preise für …“ erneut eingereiht: %d', len(failed))
+            state['_adb_house_v1'] = now_iso()
+            json.dump(state, open(state_path, 'w', encoding='utf-8'))
+        except Exception:
+            log.exception('Erneutes Einreihen fehlgeschlagen, nächster Versuch beim nächsten Start')
     tsm_next = {r: 0.0 for r in TSM if r in RULESETS}
     probe_next = 0.0
-    demo_next = 0.0
+    census_next = 0.0
     blizz_next, blizz_cid, blizz_last, blizz_status = {}, {}, {}, BLIZZ_STATUS
-    if BLIZZ_DEMO:
-        DEMO['con'] = blizz_db('demo')
     arch = {r: blizz_db(r) for r in BLIZZ_TARGETS if r in RULESETS}
+    names, names_next, blue_next, fc_next, shown = None, 0.0, 0.0, 0.0, None
     while True:
         dirty = set()
         try:
@@ -321,7 +413,7 @@ def main():
                 if u['ruleset'] not in RULESETS:
                     continue
                 try:
-                    process(u, cons[u['ruleset']])
+                    process(u, cons[u['ruleset']], raws[u['ruleset']])
                     dirty.add(u['ruleset'])
                 except Exception as e:  # a broken file must not stop the others
                     log.warning('Upload %s fehlgeschlagen: %s', u['id'], e)
@@ -329,6 +421,8 @@ def main():
                          {'status': 'error', 'message': str(e)[:200], 'processed_at': now_iso()}, prefer='return=minimal')
             revoked = set()
             for u in rest('GET', 'gold_radar_uploads', 'status=eq.revoke&limit=50') or []:
+                if u['ruleset'] in raws:
+                    raw_revoke(raws[u['ruleset']], u)
                 revoke(u)
                 revoked.add(u['ruleset'])
             for r in revoked & set(RULESETS):
@@ -347,8 +441,8 @@ def main():
                     tsm_next[RULESETS[0]] = 0.0
                 else:
                     log.info('TSM: noch keine WoW-Forever-Daten, nächste Prüfung in 24 Std.')
-            if BLIZZ:  # Blizzard: whole auction house about hourly (live targets, then the demo)
-                jobs = [(r, t) for r, t in BLIZZ_TARGETS.items() if r in RULESETS] + ([('demo', DEMO['target'])] if DEMO['target'] else [])
+            if BLIZZ:  # Blizzard: whole auction house about hourly
+                jobs = [(r, t) for r, t in BLIZZ_TARGETS.items() if r in RULESETS]
                 changed = False
                 if time.time() >= blizz_next.get('_realms', 0):  # Forever realm names for the admin page (which realms exist yet)
                     blizz_next['_realms'] = time.time() + 86400
@@ -373,28 +467,14 @@ def main():
                                   dump=datetime.fromtimestamp(ts, timezone.utc).isoformat())
                         if ts != blizz_last.get(key):
                             blizz_last[key] = ts
-                            if key == 'demo':
-                                blizz_put([DEMO['con']], DEMO['label'], ts, snap)
-                                dirty.update(RULESETS)
-                            else:
-                                blizz_put([cons[key], arch[key]], key, ts, snap)
-                                dirty.add(key)
+                            blizz_put([cons[key], arch[key]], key, ts, snap)
+                            dirty.add(key)
                             log.info('Blizzard %s: %d Auktionen, %d Items (Stand %s)', target, n, len(snap), st['dump'])
                     except Exception as e:  # not published yet, realm unknown, API down: report, try again later
                         st.update(ok=False, error=str(e)[:200])
                         if isinstance(e, LookupError) and 'nicht gefunden' in str(e):
                             st['realms'] = blizzard.realm_names(BLIZZ, t['region'], t['ns'])[:80]
                         log.info('Blizzard %s: %s', target, e)
-                        if key == 'demo' and not BLIZZ_DEMO_SET and time.time() >= blizz_next.get('_find', 0):
-                            blizz_next['_find'] = time.time() + 86400  # the default demo realm has no AH data: find one
-                            found = blizzard.find_demo(BLIZZ)
-                            if found:
-                                DEMO['target'], DEMO['label'] = found[0], 'Blizzard ' + found[1]
-                                blizz_cid.pop('demo', None)
-                                blizz_next['demo'] = 0.0
-                                log.info('Blizzard-Demo: nehme stattdessen %s (%s)', found[1], found[0])
-                            else:
-                                log.info('Blizzard-Demo: kein Classic-Auktionshaus in der API gefunden, Demo bleibt bei TSM')
                     changed = True
                 if changed:
                     try:
@@ -404,17 +484,15 @@ def main():
                                                                         'forever_realms': realms}).encode(), 'application/json')
                     except Exception as e:
                         log.warning('Blizzard-Status nicht gespeichert: %s', e)
-            if TSM_DEMO and time.time() >= demo_next:  # demo archive: TSM updates region data once a day
-                demo_next = time.time() + 6 * 3600
+            if time.time() >= census_next:  # player census (classicarmory.gg nightly, raider.io daily): every 6 hours
+                census_next = time.time() + 6 * 3600
                 try:
-                    before = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo'))) if os.path.isdir(os.path.join(DATA_DIR, 'tsm_demo')) else 0
-                    tsm.archive(TSM_DEMO, os.path.join(DATA_DIR, 'tsm_demo'))
-                    after = len(os.listdir(os.path.join(DATA_DIR, 'tsm_demo')))
-                    if after != before:  # a new day in the archive: rebuild the pages with the longer demo history
-                        log.info('Demo-Archiv %s: neuer Tag, %d Dateien', TSM_DEMO, after)
+                    _, changed = census.update(CENSUS_PATH, census.cuts_for(RULESETS), max_age_h=5, log=log.warning)
+                    if changed:
+                        log.info('Census: neue Daten')
                         dirty.update(RULESETS)
                 except Exception as e:
-                    log.warning('Demo-Archiv %s: Abruf fehlgeschlagen: %s', TSM_DEMO, e)
+                    log.warning('Census: Abruf fehlgeschlagen: %s', e)
             for r, when in tsm_next.items():  # TSM public data, every TSM_HOURS (also right after a resync)
                 if time.time() < when and r not in revoked:
                     continue
@@ -434,6 +512,35 @@ def main():
                 if updated and updated != state.get(r):
                     state[r] = updated
                     dirty.add(r)
+            try:   # news: new items, blue posts, foreverchanges; Discord; the pages show them
+                if names is None or time.time() >= names_next:
+                    names, names_next = news.Names(os.path.join(HERE, 'tool', 'ah'), list(cons.values())), time.time() + 86400
+                rows = [x for r in sorted(dirty) for x in news.new_items(cons[r], r, DATA_DIR, names)]
+                if time.time() >= blue_next or time.time() >= fc_next:
+                    known = news.known_keys(rest)
+                    if time.time() >= blue_next:
+                        blue_next = time.time() + BLUE_MINUTES * 60
+                        base = not any(k.startswith('blue:') for k in known)
+                        got = news.blue_news(known, names, list(cons.values()), base)
+                        rows += [dict(x, reviewed=True) for x in got] if base else got   # first run: only remember
+                    if time.time() >= fc_next:
+                        fc_next = time.time() + FC_HOURS * 3600
+                        base = not any(k.startswith('fc:') for k in known)
+                        got = news.fc_news(known, names, list(cons.values()), base)
+                        rows += [dict(x, reviewed=True) for x in got] if base else got
+                news.save(rest, rows)
+                if rows:
+                    log.info('Neuigkeiten: %d neu, warten auf Freigabe unter /admin/gold-radar', len(rows))
+                sent = news.send(NEWS_WEBHOOK, news.unsent(rest), rest)   # only what the owner released for Discord
+                if sent:
+                    log.info('Neuigkeiten: %d in Discord gepostet', sent)
+                now_shown = news.released(rest)   # released for the pages: rebuild when that changes
+                if now_shown != shown:
+                    if shown is not None:
+                        dirty.update(RULESETS)
+                    shown = now_shown
+            except Exception:
+                log.exception('Neuigkeiten fehlgeschlagen, nächster Versuch beim nächsten Durchlauf')
             for r in sorted(dirty):
                 build(r, cons[r])
             if dirty:

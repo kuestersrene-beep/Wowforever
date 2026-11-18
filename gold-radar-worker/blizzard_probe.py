@@ -7,7 +7,7 @@ Needs BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET in .env (develop.battle.net, c
 the realm list of every candidate namespace in EU and US, and for realms that look like WoW Forever the auction
 house index plus one auction house (how many auctions, which fields). Prints a short report to copy back.
 """
-import base64, json, os, sys, urllib.error, urllib.parse, urllib.request
+import base64, json, os, re, sys, urllib.error, urllib.parse, urllib.request
 
 ID, SECRET = os.environ.get('BLIZZARD_CLIENT_ID', ''), os.environ.get('BLIZZARD_CLIENT_SECRET', '')
 # known: dynamic (retail), dynamic-classic (progression), dynamic-classic1x (Era), dynamic-classicann (Anniversary);
@@ -66,6 +66,16 @@ def main():
         code, data = get(tok, region, '/data/wow/connected-realm/index', kind)
         hrefs = [c['href'] for c in (data or {}).get('connected_realms', [])]
         print(f'{kind}-{region}: {len(hrefs)} Realm-Verbünde (connected realms), Status {code}')
+        if not hrefs:   # the way around a missing index: each realm's own page names its connected realm
+            _, idx = get(tok, region, '/data/wow/realm/index', kind)
+            for r in [r for r in (idx or {}).get('realms', []) if not re.search(r'GMSS|Web|Partner', r.get('name', ''))][:4]:
+                code, d = get(tok, region, f"/data/wow/realm/{r['slug']}", kind)
+                href = ((d or {}).get('connected_realm') or {}).get('href', '')
+                typ = ((d or {}).get('type') or {}).get('type')
+                print(f"  Realm {r['name']}: Status {code}, Typ {typ}, Verbund {href.split('/connected-realm/')[1].split('?')[0] if '/connected-realm/' in href else '-'}")
+                if '/connected-realm/' in href:
+                    hrefs.append(href)
+            hrefs = list(dict.fromkeys(hrefs))
         for href in hrefs[:3]:
             cid = href.split('/connected-realm/')[1].split('?')[0]
             code, cr = get(tok, region, f'/data/wow/connected-realm/{cid}', kind)

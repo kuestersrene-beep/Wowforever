@@ -3,20 +3,14 @@ in the page), item icons and tooltips, refining candidates, limited vendor recip
 
     python ah/dashboard.py            -> dashboard.html (with your own scan data, if any)
     python ah/dashboard.py --teilen   -> dashboard-teilen.html (model only, to give to guild mates)
-
-Both files also contain a demo data set from TradeSkillMaster's public Classic EU data (button "Demo" in the page,
-config.json "tsm_demo"). It runs through exactly the same analysis as real scans, but it is another game's economy:
-never part of the evaluation.
 """
-import math
-import random
-import base64, glob, json, os, sqlite3, sys, statistics
-from datetime import datetime, date
+import base64, json, os, sqlite3, sys
+from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
-import analyse, tsm
+import analyse, spieldaten
 from snapshot import SCHEMA
 
 
@@ -40,8 +34,46 @@ def analysed(con, realm, cfg, now):
                        ('vendor', 'Vendor-Flip')):
         for r in sig[key]:
             flags.setdefault(r['item'], []).append(label)
+    try:  # order book and market value line from the recorded full scans (ah/rawscan.py), if there are any
+        import rawscan
+        book, book_ts = rawscan.ladder(con, realm)
+        mv = rawscan.market_series(con, realm, now)
+    except Exception as e:
+        print(f'Rohscans: Orderbuch nicht gebaut ({e})')
+        book, book_ts, mv = {}, None, {}
     return dict(realm=realm, now=now, days=days, n_scans=n_scans, rows=rows, crafts=crafts, flags=flags,
-                todo=analyse.todo_items(rows, crafts, sig, cfg))
+                todo=analyse.todo_items(rows, crafts, sig, cfg), book=book, book_ts=book_ts, mv=mv, best=bestsellers(con, rows))
+
+
+# item classes as AuctionDB stores them (classic class ids) -> the page's category filter
+CLASS_DE = {0: 'Verbrauchbar', 1: 'Behälter', 2: 'Waffe', 3: 'Edelstein', 4: 'Rüstung', 5: 'Reagenz', 6: 'Projektil',
+            7: 'Handwerkswaren', 9: 'Rezept', 11: 'Köcher', 12: 'Quest', 13: 'Schlüssel', 15: 'Verschiedenes'}
+
+
+def bestsellers(con, rows):
+    """Every item with sales measured from the recorded full scans (ah/rawscan.py), any item, not only the model's:
+    bought per day, gold per day at the average paid price, restock, how long the listed stock lasts."""
+    try:
+        meta = {i: (n, c) for i, n, c in con.execute('SELECT item_id, name, class FROM item_meta')}
+    except sqlite3.OperationalError:
+        meta = {}
+    out = []
+    for iid, r in rows.items():
+        m, dp = r.get('sold_raw'), r.get('depth') or {}
+        if not m or not m.get('avg') or m['per_day'] < 0.5:
+            continue
+        name, cls = meta.get(iid, (None, None))
+        units = dp.get('units', r.get('qty'))
+        # a few dear sales (random-suffix gear shares one item id) must not set the gold per day: above 3x the
+        # cheapest listing the paid average is capped at the median of what is listed now
+        out_avg = m['avg'] > 3 * r['price']
+        gold_price = min(m['avg'], max(r['price'], dp.get('median') or 3 * r['price'])) if out_avg else m['avg']
+        out.append(dict(id=iid, name=name or r['name'], en=r['name'], cat=CLASS_DE.get(cls, 'ohne Angabe'),
+                        d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1), avg=round(m['avg']), med=m.get('med'), top=m['top'],
+                        new=round(m['new'], 1), gold=round(m['per_day'] * gold_price), out=out_avg, u=units, lp=r['price'], h=round(m['hours'], 1),
+                        reach=round(24 * units / m['per_day'], 1) if units is not None and m['per_day'] else None))
+    out.sort(key=lambda b: -b['gold'])
+    return out
 
 
 def live_data(cfg):
@@ -57,119 +89,86 @@ def live_data(cfg):
     return analysed(con, realm, cfg, now)
 
 
-def demo_data(cfg, snapdir=None):
-    """TSM public data (Classic EU by default) replayed as if it were our own scan on day 3.5 after launch, for
-    demonstration only. TSM publishes one state per item (no history, no AH quantities), so every build keeps one copy
-    per day in tsm_demo/ and the price history grows from those (up to 14 days). Sold per day stands in for
-    sell-through; while there are fewer than 3 days, the average sale price 3 days earlier gives trends a reference."""
-    path = cfg.get('tsm_demo') or 'classic/eu/region'
-    snapdir = snapdir or os.path.join(ROOT, 'tsm_demo')
-    try:
-        latest = tsm.archive(path, snapdir)  # on the website the worker keeps this archive (daily)
-    except OSError as e:
-        print(f'Demo: TSM-Daten nicht erreichbar ({e}), Demo bleibt leer')
-        return None
-    if not latest:
-        return None
-    snaps = [tsm.parse(open(f, encoding='utf-8').read()) for f in sorted(glob.glob(os.path.join(snapdir, '20*.csv')))[-14:]]
-    known = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
-    snaps = [[r for r in rows if str(r['item_id']) in known] for rows in snaps]  # only items that exist in WoW Forever
-    launch = datetime.fromisoformat(cfg.get('launch', '2026-11-05'))
-    now = int(launch.timestamp() + 3.5 * 86400)
-    shift = now - max(r['t'] for r in snaps[-1])
-    con = sqlite3.connect(':memory:')
-    con.executescript(SCHEMA)
-    realm = 'TSM ' + path.split('/')[0].capitalize() + ' ' + path.split('/')[1].upper()
-    for rows in snaps:
-        for r in rows:
-            r['t'] += shift
-        tsm.store(con, realm, rows)
-    simulate_history(con, realm, snaps)
-    simulate_quantities(con, realm, snaps)
-    # the demo's quantities are simulated: sell-through comes from TSM's real sales, not from their noise
-    live = analysed(con, realm, dict(cfg, tsm_abverkauf_vorrang=True), now)
-    live['tsm_days'] = len(snaps)
-    live['qty_simulated'] = True
-    return live
-
-
-def simulate_history(con, realm, snaps, days=30):
-    """DEMO ONLY: TSM gives one state per item, so the demo has no 7- or 30-day price curve. Every item gets a plausible
-    daily history before its first real point: a mean-reverting walk that ends at today's price and drifts toward TSM's
-    60-day value, more restless for rarely sold items. Reproducible, marked as simulated on the page, never real data."""
-    first = min(r['t'] for r in snaps[0])
-    for r in snaps[-1]:
-        if not r['market']:
-            continue
-        ref = r.get('historical') or r.get('avg_sale') or r['market']
-        rng = random.Random(r['item_id'] * 104729)
-        sigma = 0.04 + 0.10 / (1 + (r.get('sold_per_day') or 0))
-        x, rows = math.log(r['market'] / ref), []
-        for k in range(1, days + 1):
-            x = 0.9 * x + rng.gauss(0, sigma)
-            price = max(1, int(ref * math.exp(x)))
-            rows.append((realm, r['item_id'], first - k * 86400, price, price, None, None, None, int(first)))
-        con.executemany('INSERT OR IGNORE INTO scans VALUES (?,?,?,?,?,?,?,?,?)', rows)
-    con.commit()
-
-
-def simulate_quantities(con, realm, snaps):
-    """DEMO ONLY: TSM publishes no AH quantities, which leaves the demo without the quantity chart, squeeze signal and
-    sell-through. So the demo gets plausible, reproducible quantities: about three days of sales listed, fewer when the
-    price is above its long-run value and more when below, with some day-to-day noise. Marked as simulated on the page;
-    never used for real data (the live database never goes through here)."""
-    sold = {r['item_id']: r for r in snaps[-1]}
-    for iid, seen, price in con.execute('SELECT item_id, seen, market FROM scans WHERE realm=?', (realm,)).fetchall():
-        r = sold.get(iid)
-        if not r or not price:
-            continue
-        ref = r.get('historical') or r.get('avg_sale') or price
-        rng = random.Random(iid * 7919 + seen // 86400)
-        q = max(2.0, (r.get('sold_per_day') or 0) * 3.0) * (ref / price) ** 0.5 * rng.uniform(0.8, 1.25)
-        con.execute('UPDATE scans SET quantity=? WHERE realm=? AND item_id=? AND seen=?',
-                    (int(max(1, min(q, 3000))), realm, iid, seen))
-    con.commit()
-
-
 def flips(live, cfg):
     """AH flip score from live scans (any item, mass goods included, vendor goods excluded):
     (profit per day)^0.35 x margin x safety near the vendor floor x confidence.
-    profit per day = (target after fee - price) x units the market absorbs per day (observed sell-through, capped by
-    what is listed). Target = 7-day median. Confidence damps thin markets so one listing cannot fake a price."""
+    Target = the lowest of: median of the last 24 h, 7-day median, average price actually paid (measured raw scans).
+    On a young realm the 7-day median still holds the launch prices; a price that stood unchanged with an unchanged
+    quantity over several scans (one seller nobody buys from) counts once. Markets whose 24-h median is clearly below
+    the day(s) before are falling, not dipping, and are left out (vendor-floor buys excepted).
+    profit per day = (target after fee - price) x units you can flip per day: a share of the measured sales
+    (flip_marktanteil), at most what is listed up to the buy limit."""
     fee = cfg.get('ah_gebuehr', 0.05)
     min_unit, min_day = cfg.get('flip_min_gewinn_stueck', 20), cfg.get('flip_min_gewinn_tag', 2000)
+    share, fall = cfg.get('flip_marktanteil', 0.15), cfg.get('flip_trend_grenze', 0.85)
     vendor_goods = set(load('vendor_items.json'))
     vendor_ids = {int(k) for k in cfg['vendor_kosten'] if not k.startswith('_')}
     out = []
     for iid, r in live['rows'].items():
         if iid in vendor_ids or r['name'] in vendor_goods:
             continue
-        price, target, vendor, qty = r['price'], r['median7'] or r['market'], r['sell'], r['qty'] or 0
+        price, vendor, qty = r['price'], r['sell'], r['qty'] or 0
         if not qty and r.get('tsm_sold'):  # no AH quantity (TSM data): about two days of sales
             qty = max(1, round(2 * r['tsm_sold']))
-        if not price or not target or not qty:
+        if not price or not qty or r.get('stale'):
             continue
+        ref24, trend, points = r['ref24'], r['trend'], r['ref_points']   # analyse.recent(): the price of the last 24 h
+        sr = r.get('sold_raw') or {}
+        # measured, but not even one sure sale a day (only auctions that may have expired or been pulled): the
+        # listed prices are a wall nobody pays, no flip on them
+        if sr and (sr.get('low') or 0) < 1:
+            continue
+        paid = sr.get('med') or sr.get('avg')
+        # medians and paid prices lag behind a falling market: the cheapest price of the reading before caps the target
+        cands = [(v, src) for v, src in ((ref24, '24-Std.-Median'), (r['median7'] or r['market'], '7-Tage-Median'),
+                                         (paid, 'Median bezahlt' if sr.get('med') else 'Ø bezahlt'),
+                                         (r.get('low_prev'), 'Tiefstpreis davor')) if v]
+        if not cands:
+            continue
+        target, target_src = min(cands)
         net = target * (1 - fee)
         below_vendor = bool(vendor) and price < vendor * 0.95
+        falling = trend is not None and trend < fall
+        if falling and not below_vendor:
+            continue
+        # the price held at this level for 4+ hours over the readings: that is where the market is now, no dip
+        # ... and a price that stepped down reading after reading (30 %+ in 24 h) is still falling
+        if ((r.get('hold_h') or 0) >= 4 or r.get('stairs')) and not below_vendor:
+            continue
         unit = max(net - price, (vendor - price) if below_vendor else 0)
         margin = (price + unit) / price
-        liq = r['gone_per_day'] if r['gone_per_day'] is not None else 0.2 * qty
-        per_day = unit * min(max(liq, 1), qty)
+        buy_max = (price + unit) / 1.15 if below_vendor and unit > net - price else net / 1.15
+        # units you can buy up to the limit (order book of the newest full scan), else everything listed
+        d = r.get('depth')
+        if d and d.get('min'):
+            lim = buy_max / d['min']
+            buyable = 0 if lim < 1 else d['u110'] if lim < 1.25 else d['u125'] if lim < 1.5 else d['u150']
+        else:
+            buyable = qty
+        liq = r['gone_per_day']
+        # measured sales: your share of them, at least one sale a day; under one sale a day it is luck, not trade;
+        # unknown: 1 a day
+        units = min(max(share * liq, 1) if liq is not None and liq >= 1 else (1 if liq is None else 0), buyable or 0)
+        per_day = unit * units
         if unit < min_unit or per_day < min_day or (margin < 1.15 and not below_vendor):
             continue
         floor = price / vendor if vendor else None          # 1.0 = price equals what the vendor pays
         safety = 3.0 if below_vendor else (1.0 + 2.0 * max(0.0, (1.3 - floor) / 1.3) if floor else 1.0)
-        points = len([p for p in r['series'] if p[1]])
-        conf = min(1.0, qty / 20) * min(1.0, points / 4)
+        conf = min(1.0, qty / 20) * min(1.0, points / 4) * (1.0 if trend is not None else 0.6)
         score = (per_day ** cfg.get('flip_exponent', 0.35)) * margin * safety * conf
         note = []
         if qty < 10:
             note.append('dünner Markt')
         if points < 4:
             note.append('wenig Messpunkte')
-        out.append(dict(id=iid, name=r['name'], price=price, target=target, margin=margin, vendor=vendor, floor=floor,
-                        qty=qty, liq=r['gone_per_day'], unit=unit, per_day=per_day, conf=conf, score=score,
-                        below_vendor=below_vendor, buy_max=net / 1.15, note=', '.join(note)))
+        if trend is None:
+            note.append('Trend unbekannt')
+        elif falling:
+            note.append(f'Markt fällt ({round((trend - 1) * 100)} % in 24 Std.), nur wegen Händlerpreis drin')
+        out.append(dict(id=iid, name=r['name'], de=r.get('de'), price=price, target=target, target_src=target_src, ref24=ref24,
+                        med7=r['median7'], paid=paid, trend=trend, margin=margin, vendor=vendor, floor=floor,
+                        qty=qty, liq=liq, units=units, unit=unit, per_day=per_day, conf=conf, score=score,
+                        below_vendor=below_vendor, buy_max=buy_max, note=', '.join(note)))
     out.sort(key=lambda x: -x['score'])
     return out[:150]
 
@@ -178,36 +177,144 @@ TIERS = ['Apprentice', 'Journeyman', 'Expert', 'Artisan']
 
 
 def favor_index(live, fills):
-    """Silver per crate fill: every fill option of a Merchant's Favor crate tier priced at the current buyout.
-    The cheapest fill draws the crowd; its price has room up to the fill cost of the second cheapest."""
+    """Silver per crate fill: every fill option of a Merchant's Favor crate tier priced for a whole fill, walked up
+    the order book of the newest full scan (the cheapest auction is often one unit; a fill needs `count`).
+    The cheapest fill draws the crowd; its price has room up to the fill cost of the second cheapest, and `wall` is
+    how many units of it the AH holds below that price (what a buyer can take before the room is used up)."""
+    book = live.get('book') or {}
+
+    def fill_cost(iid, count, lowest):
+        steps = book.get(iid)
+        if not steps:
+            return lowest * count
+        left, cost = count, 0
+        for u, q, _ in steps:
+            take = min(left, q)
+            cost, left = cost + take * u, left - take
+            if left <= 0:
+                return cost
+        return None   # the book holds less than one fill
+
     out = []
     for tier in TIERS:
         rows = []
         for iid, name, count in fills.get(tier, []):
             lr = live['rows'].get(iid)
             if lr and lr['price'] and (lr['qty'] is None or lr['qty'] >= count):   # a full fill on the AH (unknown: TSM)
+                cost = fill_cost(iid, count, lr['price'])
+                if cost is None:
+                    continue
                 rows.append(dict(tier=tier, id=iid, name=name, count=count, price=lr['price'], qty=lr['qty'],
-                                 med7=lr['median7'], cost=lr['price'] * count))
+                                 med7=lr['median7'], cost=cost))
         rows.sort(key=lambda r: r['cost'])
         for k, r in enumerate(rows):
             r['rank'] = k + 1
             r['rel'] = r['cost'] / rows[0]['cost']
         if len(rows) >= 2:
-            rows[0]['room'] = rows[1]['cost'] / rows[0]['count']   # unit price at which it costs as much as the 2nd fill
-            rows[0]['gap'] = rows[1]['cost'] / rows[0]['cost']
+            first = rows[0]
+            first['room'] = rows[1]['cost'] / first['count']   # unit price at which it costs as much as the 2nd fill
+            first['gap'] = rows[1]['cost'] / first['cost']
+            steps = book.get(first['id'])
+            if steps:   # buyout wall: units listed below the room price, and as fills
+                first['wall'] = sum(q for u, q, _ in steps if u < first['room'])
+                first['wall_fills'] = first['wall'] // first['count']
         out += rows
+    return out
+
+
+def crate_costs(live, kisten):
+    """What one Merchant's Favor crate costs in all (Forever): the crate itself on the AH (monsters drop it rarely, most
+    players buy it) plus the cheapest of its fills, walked up the order book for the whole fill, minus the coins the
+    turn-in pays; per favor where the favor is known (ah/data/kisten.json). Per crate the other fills too, and the room
+    of the cheapest fill: the unit price at which it costs as much as the second cheapest, with the units listed below."""
+    book, rows = live.get('book') or {}, live['rows']
+
+    def fill_cost(iid, count, lowest):
+        steps = book.get(iid)
+        if not steps:
+            return lowest * count
+        left, cost = count, 0
+        for u, q, _ in steps:
+            take = min(left, q)
+            cost, left = cost + take * u, left - take
+            if left <= 0:
+                return cost
+        return None   # the book holds less than one fill
+
+    sold = lambda lr: round(lr['sold_raw']['per_day'], 1) if lr.get('sold_raw') else None
+    out = []
+    for k in kisten:
+        fills = []
+        for iid, name, count in k['fills']:
+            lr = rows.get(iid)
+            if not lr or not lr['price'] or lr.get('stale') or (lr['qty'] is not None and lr['qty'] < count):
+                continue
+            cost = fill_cost(iid, count, lr['price'])
+            if cost is not None:
+                fills.append(dict(id=iid, name=name, count=count, price=lr['price'], qty=lr['qty'], cost=round(cost), sold=sold(lr)))
+        fills.sort(key=lambda f: f['cost'])
+        cr = rows.get(k['id'])
+        crate = None
+        if cr and cr['price']:
+            # a crate is often listed once or twice only: its price counts, marked thin, while it is in the newest scan
+            crate = dict(price=cr['price'], qty=cr['qty'], sold=sold(cr), ref=round(cr['ref']) if cr.get('ref') else None,
+                         thin=bool(cr.get('stale')), old=cr['seen'] < live['now'] - 2 * 3600)
+            if crate['old']:
+                crate = None
+        row = dict(id=k['id'], name=k['name'], tier=k['tier'], art=k['art'], farbe=k['farbe'], gunst=k['gunst'], geld=k['geld'],
+                   crate=crate, fills=fills[:4], n_fills=len(fills))
+        if fills:
+            best = fills[0]
+            if crate:
+                row['total'] = crate['price'] + best['cost'] - (k['geld'] or 0)
+                if k['gunst']:
+                    row['per_favor'] = row['total'] / k['gunst']
+            if len(fills) >= 2:
+                row['room'] = fills[1]['cost'] / best['count']
+                row['gap'] = fills[1]['cost'] / best['cost'] if best['cost'] else None
+                steps = book.get(best['id'])
+                if steps:
+                    row['wall'] = sum(q for u, q, _ in steps if u < row['room'])
+                    row['wall_fills'] = row['wall'] // best['count']
+        out.append(row)
+    return out
+
+
+def load_kisten():
+    """Merchant's Favor crates (ah/data/kisten.json) with item ids for the fill materials."""
+    p = os.path.join(HERE, 'data', 'kisten.json')
+    if not os.path.exists(p):
+        return None
+    K = json.load(open(p, encoding='utf-8'))
+    items = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+    by = {v.get('name'): int(i) for i, v in items.items() if v.get('name')}
+    prof_items = json.load(open(os.path.join(ROOT, 'data_prof.json'), encoding='utf-8'))['items']
+    for i, v in prof_items.items():
+        by.setdefault(v.get('n'), int(i))
+    out = []
+    for k in K['kisten']:
+        fills = []
+        for part in k['fills'].split(';'):
+            n, name = part.strip().split(' ', 1)
+            if name in by:
+                fills.append((by[name], name, int(n)))
+        g, m = (K['gunst'].get(k['tier']) or {}), (K['geld'].get(k['tier']) or {})
+        out.append(dict(id=k['id'], name=(items.get(str(k['id'])) or {}).get('name') or f"Waylaid Crate: {k['tier']} {k['art']}",
+                        tier=k['tier'], art=k['art'], farbe=k['farbe'], gunst=g.get(k['farbe']), geld=m.get(k['farbe']), fills=fills))
     return out
 
 
 def live_payload(con, realm, cfg, ctx):
     """Live part of the page from a scan database; ctx = the page's own DATA.ctx (used by the website's worker,
     which merges the members' uploaded scans and puts this into the shared page)."""
+    cfg = spieldaten.apply(cfg)   # vendor prices and deposit as read in game (ah/data/spieldaten.json)
     now = max(con.execute('SELECT MAX(seen) FROM scans WHERE realm=?', (realm,)).fetchone()[0] or 0,
               con.execute('SELECT MAX(t) FROM history WHERE realm=?', (realm,)).fetchone()[0] or 0)
     if not now:
         return None
     fills = {tier: [tuple(f) for f in v] for tier, v in ctx['fills'].items()}
-    out = pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills)
+    kisten = [dict(k, fills=[tuple(f) for f in k['fills']]) for k in ctx['kisten']] if ctx.get('kisten') else None
+    out = pack(analysed(con, realm, cfg, now), cfg, set(ctx['wanted']), fills, kisten)
     if out:
         out['sources'] = sources_of(con, realm)
     return out
@@ -256,26 +363,71 @@ def thin(series):
     return out[::-1]
 
 
-def pack(live, cfg, wanted, fills):
-    """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows."""
+def pack(live, cfg, wanted, fills, kisten=None):
+    """What the page needs from a scan data set (real or demo); per-item prices only for items the page shows.
+    kisten (pages from 11.11.2026 on): the crate tab gets total costs per crate (crate_costs); older pages keep the
+    fills per tier (favor_index)."""
     if not live:
         return None
+    best = [dict(b) for b in (live.get('best') or [])[:400]]
+    for b in best:   # items outside the model page: their own chart, order book and market value for the detail view
+        if str(b['id']) in wanted:
+            continue
+        lr = live['rows'].get(b['id']) or {}
+        if lr.get('series'):
+            b['spark'] = [[p[0], p[1], p[3]] for p in thin(lr['series'])]
+        b['med7'], b['sell'] = lr.get('median7'), lr.get('sell')
+        if live.get('book', {}).get(b['id']):
+            b['ob'] = live['book'][b['id']][:60]
+        if live.get('mv', {}).get(b['id']):
+            b['mv'] = live['mv'][b['id']]
     rows = {}
     for iid, lr in live['rows'].items():
         if str(iid) in wanted:
             rows[str(iid)] = dict(lp=lr['price'], lq=lr['qty'], sell=lr['sell'], med7=lr['median7'],
                                   d1=lr['p_d1'], d3=lr['p_d3'], d7=lr['p_d7'], flags=live['flags'].get(iid, []),
-                                  spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'))
-    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'),
-                qsim=bool(live.get('qty_simulated')), days=live['days'], n_scans=live['n_scans'], todo=live['todo'],
-                flips=flips(live, cfg), favor=favor_index(live, fills), rows=rows,
+                                  spark=[[p[0], p[1], p[3]] for p in thin(lr['series'])], tsm=lr.get('tsm'),
+                                  st=1 if lr.get('stale') else 0, ref=round(lr['ref']) if lr.get('ref') else None,
+                                  tr=round(lr['trend'], 3) if lr.get('trend') else None)
+            m, dp = lr.get('sold_raw'), lr.get('depth')
+            if m:   # measured from single auctions (ah/rawscan.py): bought per day, at which prices, restock
+                rows[str(iid)]['sd'] = dict(d=round(m['per_day'], 1), lo=round(m['low'], 1), hi=round(m['high'], 1),
+                                            avg=round(m['avg']) if m['avg'] else None, med=m.get('med'), top=m['top'], new=round(m['new'], 1), h=round(m['hours'], 1))
+            if live.get('book', {}).get(iid):   # order book of the newest full scan: [unit price, units, auctions]
+                rows[str(iid)]['ob'] = live['book'][iid]
+            if live.get('mv', {}).get(iid):     # market value (median of what is listed) per full scan
+                rows[str(iid)]['mv'] = live['mv'][iid]
+            if dp:  # depth of the newest full scan: units near the cheapest one, fresh listings
+                rows[str(iid)]['dp'] = dict(u=dp['units'], a=dp['auctions'], u110=dp['u110'], u125=dp['u125'], u150=dp['u150'],
+                                            c150=dp['cost150'], fr=dp['fresh'], sh=dp['short'])
+    # search index over every scanned item (the page's item search): [id, English name, German name or '', cheapest,
+    # units, vendor sell, 7-day median, change 24 h / 3 d / 7 d, stale, bought per day, average paid, median paid]
+    r2 = lambda v: None if v is None else round(v, 2)
+    DE = de_names()
+    idx = []
+    for iid, lr in live['rows'].items():
+        if lr.get('price') is None:
+            continue
+        m = lr.get('sold_raw') or {}
+        de = lr.get('de') or ''
+        if de == lr.get('name') or DE.get(str(iid)) == de:   # the page has the German names of names_de.json already
+            de = ''
+        idx.append([iid, lr.get('name') or '', de, lr['price'], lr.get('qty'), lr.get('sell') or 0,
+                    round(lr['median7']) if lr.get('median7') else None, r2(lr.get('p_d1')), r2(lr.get('p_d3')), r2(lr.get('p_d7')),
+                    1 if lr.get('stale') else 0, round(m['per_day'], 1) if m else None,
+                    round(m['avg']) if m.get('avg') else None, m.get('med')])
+    return dict(realm=live['realm'], at=datetime.fromtimestamp(live['now']).strftime('%d.%m.%Y %H:%M'), tsm_days=live.get('tsm_days'), idx=idx,
+                qsim=bool(live.get('qty_simulated')), days=live['days'], ob_at=live.get('book_ts'), n_scans=live['n_scans'], todo=live['todo'],
+                flips=flips(live, cfg), favor=crate_costs(live, kisten) if kisten else favor_index(live, fills), rows=rows, best=best,
+                best_h=best[0]['h'] if best else None,
                 crafts=[dict(id=c.get('item_id'), name=c['name'], prof=c['prof'], learn=c['learn'], cost=c['cost'], revenue=c['revenue'],
-                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
+                             margin=c['margin'], qty=c['qty'], sold=c.get('sold'), capped=c.get('capped'), spec=c.get('spec'),
+                             dep=round(c.get('deposit') or 0), cd=c.get('cd'), pd=round(c.get('per_day') or 0), fall=c.get('fall')) for c in live['crafts'][:250]])  # the page filters by own profession and skill
 
 
 def main():
     share = '--teilen' in sys.argv
-    cfg = json.load(open(os.path.join(HERE, 'config.json'), encoding='utf-8'))
+    cfg = spieldaten.apply(json.load(open(os.path.join(HERE, 'config.json'), encoding='utf-8')))
     prof = load('data_prof.json')
     gap = load('gap_model.json')
     detail = load('demand_detail.json')
@@ -321,17 +473,49 @@ def main():
         if c:
             tier, n = c.rsplit(' x', 1)
             fills.setdefault(tier, []).append((r['item_id'], r['name'], int(n)))
-    wanted = ({str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
-              | {str(x['id']) for o in refine for x in o.get('inputs_list', [])})
-    payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref,
+    # Angel-Radar (tools/fishing_model.py): its fish, products and reagents need live prices as well
+    fishing = load('fishing.json') if os.path.exists(os.path.join(ROOT, 'fishing.json')) else None
+    # Kürschner-Radar (tools/skinning_model.py): leathers and by-catch of the skinnable mobs
+    skinning = load('skinning.json') if os.path.exists(os.path.join(ROOT, 'skinning.json')) else None
+    kisten = load_kisten()   # Merchant's Favor crates with their fills: total cost per crate on the crate tab
+    # Craftsman's Writs (ah/data/verfuegungen.json): requested items, hand-in NPCs with coordinates, daily route
+    writs = json.load(open(os.path.join(HERE, 'data', 'verfuegungen.json'), encoding='utf-8'))         if os.path.exists(os.path.join(HERE, 'data', 'verfuegungen.json')) else None
+    # gold calendar (ah/data/events.json): Darkmoon Faire, holidays, battleground weekends with the items they move
+    events = json.load(open(os.path.join(HERE, 'data', 'events.json'), encoding='utf-8'))         if os.path.exists(os.path.join(HERE, 'data', 'events.json')) else None
+    if events:   # item names for the page: German (names_de.json, the scans' item DB), else English
+        names, meta = de_names(), {}
+        try:
+            meta = {str(i): n for i, n in sqlite3.connect(os.path.join(HERE, 'ah.db')).execute('SELECT item_id, name FROM item_meta') if n}
+        except sqlite3.Error:
+            pass
+        en = json.load(open(os.path.join(HERE, 'data', 'items.json'), encoding='utf-8'))
+        for e in events['events']:
+            for x in e['items']:
+                k = str(x['id'])
+                x['name'] = names.get(k) or meta.get(k) or (en.get(k) or {}).get('name') or x.get('name') or k
+    # own watch lists with buy zone, target and hold time, each its own tab: materials (ah/data/kaufzonen.json) and
+    # reworked BoEs, recipes, T0 pieces (ah/data/boes.json); on the shared page only with "teilen": true
+    def own_list(name):
+        p = os.path.join(HERE, 'data', name)
+        d = json.load(open(p, encoding='utf-8')) if os.path.exists(p) else None
+        return None if d and share and not d.get('teilen') else d
+    kaufzonen, boes = own_list('kaufzonen.json'), own_list('boes.json')
+    wanted = ({str(x) for L in (kaufzonen, boes) for k in (L or {}).get('items', []) for x in k.get('ids', [])}
+              | {str(i['id']) for i in items} | {str(o['item_id']) for o in refine}
+              | {str(x['id']) for o in refine for x in o.get('inputs_list', [])} | set((fishing or {}).get('items', {}))
+              | set((skinning or {}).get('items', {}))
+              | {str(k['id']) for k in kisten or []} | {str(f[0]) for k in kisten or [] for f in k['fills']}
+              | {str(v[k]) for v in (writs or {}).get('verfuegungen', []) for k in ('writ', 'item') if v.get(k)}
+              | {str(x['id']) for e in (events or {}).get('events', []) for x in e['items']})
+    payload = dict(generated=datetime.now().strftime('%d.%m.%Y %H:%M'), shared=share, items=items, refine=ref, fishing=fishing,
+                   skinning=skinning, writs=writs, events=events, kaufzonen=kaufzonen, boes=boes,
                    launch=cfg.get('launch', '2026-11-05'), launch_at=cfg.get('launch_zeit', '2026-11-04T23:00:00Z'),
                    fee=cfg.get('ah_gebuehr', 0.05),
                    vend={k: v for k, v in cfg['vendor_kosten'].items() if not k.startswith('_')},
                    limited=limited, kk=load('kaufkraft.json'), de=de_names(), annahmen=json.load(open(os.path.join(ROOT, 'tools', 'annahmen.json'), encoding='utf-8')),
-                   live=None if share else pack(live_data(cfg), cfg, wanted, fills),
-                   demo=pack(demo_data(cfg), cfg, wanted, fills),
+                   live=None if share else pack(live_data(cfg), cfg, wanted, fills, kisten),
                    # what live_payload() needs to add live data to this page later (website worker)
-                   ctx=dict(wanted=sorted(wanted), fills=fills))
+                   ctx=dict(wanted=sorted(wanted), fills=fills, kisten=kisten))
     tpl = open(os.path.join(HERE, 'dashboard_template.html'), encoding='utf-8').read()
     # header artwork is embedded, so the single file also works behind the website login
     banner = os.path.join(HERE, 'header-banner.webp')
@@ -341,7 +525,13 @@ def main():
     # the markers let the website's worker swap in DATA with live data from the members' scans
     if payload.get('live') and os.path.exists(os.path.join(HERE, 'ah.db')):  # where the local live numbers come from
         payload['live']['sources'] = sources_of(sqlite3.connect(os.path.join(HERE, 'ah.db')), payload['live']['realm'])
-    data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False) + '/*__DATA_END__*/'
+    try:   # player census of the auction house (ah/census.py; at most every 12 hours, the website's worker keeps it current)
+        import census
+        cuts = census.cuts_for([cfg.get('ruleset', '')])
+        payload['census'] = census.payload(census.update(os.path.join(HERE, 'census.json'), cuts)[0], cuts)
+    except Exception as e:
+        print('Census nicht geladen:', e)
+    data = '/*__DATA_START__*/' + json.dumps(payload, ensure_ascii=False, separators=(',', ':')) + '/*__DATA_END__*/'
     open(out, 'w', encoding='utf-8').write(tpl.replace('/*__DATA__*/null', data))
     print(out)
 

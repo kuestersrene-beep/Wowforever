@@ -16,6 +16,7 @@ import {
 } from "@/lib/goldRadar";
 import { pruneUsage, revokeUpload, setFeedbackStatus } from "./actions";
 import DashboardUpload from "./DashboardUpload";
+import NewsReview, { type NewsRow } from "./NewsReview";
 
 interface UsageRow {
   discord_id: string;
@@ -67,6 +68,27 @@ export default async function GoldRadarAdminPage() {
       .returns<FeedbackRow[]>(),
   ]);
   const openFeedback = (feedback ?? []).filter((f) => f.status !== "erledigt").length;
+
+  // Neuigkeiten des Workers: offen (warten auf Freigabe) und zuletzt bearbeitet; fehlt die Tabelle noch, bleibt es leer
+  const newsCols = "id, kind, title, url, body, items, tags, score, created_at, sent_at, show_page, post_discord, reviewed";
+  const [{ data: newsOpen }, { data: newsDone }] = await Promise.all([
+    db
+      .from("gold_radar_news")
+      .select(newsCols)
+      .eq("reviewed", false)
+      .order("score", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(60)
+      .returns<NewsRow[]>(),
+    db
+      .from("gold_radar_news")
+      .select(newsCols)
+      .eq("reviewed", true)
+      .not("reviewed_at", "is", null)
+      .order("reviewed_at", { ascending: false })
+      .limit(30)
+      .returns<NewsRow[]>(),
+  ]);
 
   const rows = usage ?? [];
   const people = new Map<
@@ -204,6 +226,8 @@ export default async function GoldRadarAdminPage() {
         </form>
       </section>
 
+      <NewsReview open={newsOpen ?? []} done={newsDone ?? []} />
+
       <section className="panel flex flex-col gap-3 p-5">
         <h2 className="font-heading text-lg text-gold-light">
           Feedback aus dem Tool ({openFeedback} offen, {(feedback ?? []).length} gesamt)
@@ -336,11 +360,11 @@ export default async function GoldRadarAdminPage() {
           {blizz &&
             Object.entries(blizz.targets ?? {}).map(([key, t]) => (
               <div key={key} className={t.ok ? "text-green-300" : "text-slate-400"}>
-                {key === "demo" ? "Demo" : key}: <code>{t.target}</code> –{" "}
+                {key}: <code>{t.target}</code> –{" "}
                 {t.ok
                   ? `${t.auctions} Auktionen, ${t.items} Items, Stand ${t.dump ? fmt(t.dump) : "?"}`
                   : `noch keine Daten (${t.error ?? "?"})`}
-                {t.ok && key !== "demo" && t.realms_used?.length ? ` · gelesen: ${t.realms_used.join(", ")}` : ""}
+                {t.ok && t.realms_used?.length ? ` · gelesen: ${t.realms_used.join(", ")}` : ""}
               </div>
             ))}
           {blizz && (
@@ -370,7 +394,7 @@ export default async function GoldRadarAdminPage() {
         <DashboardUpload defaultRuleset={defaultRuleset()} />
         <p className="text-xs text-slate-500">
           Hochladen: <code>dashboard-teilen.html</code> aus <code>python ah/dashboard.py --teilen</code>{" "}
-          (enthält das Modell und die Demo, keine Preise). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
+          (enthält das Modell, keine Preise). Ein Ordner je Ruleset-Region-Fraktion, z. B.{" "}
           <code>pvp-eu-horde</code>. Die Datei wird als Vorlage gespeichert; gold-radar-worker setzt die
           gemeinsamen Scans der Mitglieder ein und baut die Seite innerhalb weniger Minuten neu.
         </p>

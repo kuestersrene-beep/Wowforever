@@ -123,12 +123,34 @@ def from_tradeskills(db, faction, out):
                 if isinstance(p, dict) and p.get('t'):
                     out.point(realm, item_id, int(p['t']), num(p.get('m')), num(p.get('q')))
         out.sources.append(f'Tradeskills {realm}')
+    # scans other guild members shared through the add-on: guildPrices[realm][item] = {sender, time, market value,
+    # lowest buyout, sender, ...}; no quantities. Checked 10.11.2026 against own readings within the same hour (9,562
+    # pairs): the 4th value is the lowest buyout (93 % within 10 %, median ratio 1.00), the 3rd a market value (median
+    # 1.06, the top tenth 1.65x and more). Before that the 3rd was read as the lowest price. An own reading at the same
+    # time stays: it carries the quantity.
+    for realm, table in (db.get('guildPrices') or {}).items():
+        if not isinstance(table, dict) or (faction and str(realm).endswith(('-Horde', '-Alliance')) and not str(realm).endswith('-' + faction)):
+            continue
+        realm, n = text(str(realm)), 0
+        for item_id, rec in table.items():
+            vals = lua_sv.as_list(rec)
+            if not isinstance(item_id, int):
+                continue
+            for i in range(0, len(vals) - 3, 4):
+                t, market, low = vals[i + 1], num(vals[i + 2]), num(vals[i + 3])
+                if isinstance(t, (int, float)) and (low or market) and (item_id, int(t)) not in out.scans:
+                    out.scan(realm, item_id, int(t), market or low, low or market, None, None)
+                    n += 1
+        if n:
+            out.sources.append(f'Tradeskills Gilde {realm}')
 
 
 def from_auctiondb(sv, faction, out):
     """houses[faction] = {items = {[id] = "ts,min,median,qty ..."} (every full scan of the last days),
-    daily = {[id] = "ts,min,median,qty,scans ..."} (older days)}. Houses are per faction, no realm stored."""
-    houses = {h: v for h, v in (sv.get('houses') or {}).items() if isinstance(v, dict) and (not faction or h == faction)}
+    daily = {[id] = "ts,min,median,qty,scans ..."} (older days)}. Older versions key the houses by faction alone
+    ("Horde"), newer ones by realm and faction ("eu-forever-pvp Horde", seen 10.11.2026); the label stays the faction."""
+    side = lambda h: str(h).rsplit(' ', 1)[-1]
+    houses = {side(h): v for h, v in (sv.get('houses') or {}).items() if isinstance(v, dict) and (not faction or side(h) == faction)}
     for name, house in houses.items():
         for key in ('items', 'daily'):
             for item_id, entries in (house.get(key) or {}).items():
@@ -150,7 +172,12 @@ def from_auctionator(db, faction, out):
     """["Realm Faction"] = {[itemKey] = {m = current min price, l / h = {[day] = lowest / highest price that day},
     a = {[day] = quantity available}}}, a Lua table or (database version 8+) a CBOR string. Only plain item IDs."""
     for realm, table in db.items():
-        if not isinstance(realm, str) or realm.startswith('__') or (faction and not realm.endswith(' ' + faction)):
+        if not isinstance(realm, str) or realm.startswith('__'):
+            continue
+        # WoW Forever's Auctionator keys the data by ruleset alone ("PvP"), without a faction: then it belongs to the
+        # auction house the uploader chose; only a key naming another faction is skipped
+        side = realm.rsplit(' ', 1)[-1] if ' ' in realm else ''
+        if faction and side in ('Horde', 'Alliance', 'Neutral') and side != faction:
             continue
         if isinstance(table, str):
             try:
