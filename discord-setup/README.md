@@ -16,6 +16,7 @@ Zwei Teile:
   - Willkommens-Nachricht per DM bis zum Release (`willkommen.py`), siehe unten.
   - Hinweis-Liste im Mod-Log, wer die Umfrage ausgefüllt hat, aber noch nicht im Server ist
     (`einladung.py`), siehe unten.
+  - Kopfgeld-Brett in `💰│kopfgeld` (`kopfgeld.py`), siehe unten.
 
 ## Voraussetzungen im Discord Developer Portal
 
@@ -188,3 +189,12 @@ Items, ihren Preisen und Links zu Wowhead.
 - Braucht wie die Raid-Anmeldung `SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY`; `SITE_URL` setzt einen Link zum
   Goldkalender darunter.
 - In der `.env` der Website bleibt `GOLD_RADAR_NEWS_WEBHOOK` leer, sonst postet zusätzlich der Worker.
+
+## Kopfgeld-Brett (`kopfgeld.py`)
+- Marin hält oben in `💰│kopfgeld` einen Post mit dem Button **Kopfgeld aussetzen** aktuell (legt ihn beim Start an).
+- Formular: Spieler, Klasse, Volk, letztes bekanntes Level, Summe. Daraus wird ein Steckbrief mit Thread für Sichtungen.
+- **Erledigt melden**: Marin wartet 15 Minuten auf einen Screenshot des Klickenden im Thread, hängt ihn an den
+  Steckbrief, markiert ihn als erledigt, erinnert den Auftraggeber ans Bezahlen und schließt den Thread.
+- **Zurückziehen**: nur Auftraggeber oder Offiziere.
+- Im Kanal schreibt nur Marin; Mitglieder dürfen in den Threads schreiben (`"threads": "mitglied"` in
+  `server_einrichten.py`). Keine Datenbank nötig: der Auftraggeber steht in der custom_id der Buttons.

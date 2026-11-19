@@ -10,6 +10,7 @@
 - Willkommens-Nachricht per DM an neue Mitglieder bis zum Release (siehe willkommen.py).
 - Hinweis-Liste im Mod-Log, wer die Umfrage ausgefüllt hat, aber noch nicht im Server ist
   (siehe einladung.py).
+- Kopfgeld-Brett: Steckbriefe auf Spieler der Gegenfraktion, Kill per Screenshot melden (siehe kopfgeld.py).
 - Gold-Neuigkeiten des Blackwater Terminals, die der Betreiber für Discord freigegeben hat (siehe goldnews.py).
 
 Läuft dauerhaft (siehe docker-compose.yml). DISCORD_TOKEN und optional GUILD_ID kommen aus .env.
@@ -32,6 +33,7 @@ from discord.ext import tasks
 import einladung
 import fraktion
 import goldnews
+import kopfgeld
 import modlog
 import raid
 import rollensync
@@ -93,6 +95,7 @@ class GildenBot(discord.Client):
         modlog.einrichten(self)
         willkommen.einrichten(self)
         einladung.einrichten(self)
+        kopfgeld.einrichten(self)
 
     async def on_ready(self):
         gid = os.environ.get("GUILD_ID")
@@ -110,6 +113,7 @@ class GildenBot(discord.Client):
         await willkommen.starten(self)
         await einladung.starten(self)
         await goldnews.starten(self)
+        await kopfgeld.starten(self)
 
 
 bot = GildenBot(intents=intents)

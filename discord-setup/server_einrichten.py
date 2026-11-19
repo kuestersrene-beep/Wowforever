@@ -149,7 +149,7 @@ STRUKTUR = [
     ]},
     {"name": "💬 COMMUNITY", "sicht": "gast", "kanaele": [
         {"name": "💬│allgemein", "thema": "Quatschen über alles rund um die Gilde."},
-        {"name": "😂│memes", "thema": "Humor erwünscht – im Rahmen der Regeln."},
+        {"name": "😂│memes-screenshots", "thema": "Humor erwünscht – im Rahmen der Regeln."},
         {"name": "🔗│links-und-guides", "thema": "Nützliche Seiten, Addons und Guides."},
     ]},
     {"name": "⚔️ GILDE", "sicht": "mitglied", "kanaele": [
@@ -161,6 +161,9 @@ STRUKTUR = [
     {"name": "🩸 PVP", "sicht": "mitglied", "kanaele": [
         {"name": "⚔️│pvp-treffpunkt", "thema": "Schlachtfelder, World-PvP und Angriffe auf feindliche Städte."},
         {"name": "🚨│hilferufe", "thema": "Wirst du gegankt? Ort posten – wer kann, kommt helfen!"},
+        # Steckbriefe postet nur Marin (kopfgeld.py); Sichtungen und Kill-Screenshots kommen in die Threads
+        {"name": "💰│kopfgeld", "thema": "Kopfgeld auf Spieler der Allianz aussetzen – Kill per Screenshot melden.",
+         "schreiben": "offizier", "threads": "mitglied"},
         {"name": "⚔️ Schlachtfeld 1", "typ": "voice"},
         {"name": "⚔️ Schlachtfeld 2", "typ": "voice"},
         {"name": "🔥 World-PvP", "typ": "voice"},
@@ -341,7 +344,8 @@ def api(methode, pfad, daten=None, optional=False):
     sys.exit(f"Zu viele Rate-Limits bei {methode} {pfad}")
 
 
-def overwrites(guild_id, rollen_ids, sicht, schreiben):
+def overwrites(guild_id, rollen_ids, sicht, schreiben, threads=None):
+    """threads: Gruppe, die trotz Schreibsperre in vorhandenen Threads schreiben darf."""
     ow = {guild_id: [0, 0]}  # id -> [allow, deny]
 
     def setze(rid, allow=0, deny=0):
@@ -358,6 +362,9 @@ def overwrites(guild_id, rollen_ids, sicht, schreiben):
         setze(guild_id, deny=schreib_bits)
         for name in GRUPPEN[schreiben]:
             setze(rollen_ids[name], allow=schreib_bits)
+    if threads:
+        for name in GRUPPEN[threads]:
+            setze(rollen_ids[name], allow=P["THREAD_SEND"])
     return [{"id": rid, "type": 0, "allow": str(a), "deny": str(d)} for rid, (a, d) in ow.items()]
 
 
@@ -511,7 +518,8 @@ def main():
         for k in kat["kanaele"]:
             voice = k.get("typ") == "voice"
             treffer = next((c for c in vorhanden if c.get("parent_id") == kat_id and c["name"] == k["name"]), None)
-            k_ow = overwrites(gid, rollen_ids, k.get("sicht", kat["sicht"]), k.get("schreiben", kat.get("schreiben")))
+            k_ow = overwrites(gid, rollen_ids, k.get("sicht", kat["sicht"]), k.get("schreiben", kat.get("schreiben")),
+                              k.get("threads"))
             if treffer:
                 cid = treffer["id"]
                 rechte_abgleichen(treffer, k_ow, "      ")
